@@ -1,0 +1,17 @@
+
+# Requirements for the voice assistant application
+#
+# This list specifies the Python packages required to run the
+# application.  If you create a virtual environment, you can
+# install all dependencies with:
+#
+#   pip install -r requirements.txt
+#
+# After installation, ensure that ``ffmpeg`` is available in your
+# system path for Whisper to decode audio files correctly.
+
+openai>=1.0.0
+openai-whisper>=20230314  # version constraint for Whisper ASR
+sounddevice>=0.4.6
+soundfile>=0.12.1
+numpy>=1.22

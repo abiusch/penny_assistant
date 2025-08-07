@@ -1,5 +1,16 @@
+# Requirements for the voice assistant application
+#
+# This list specifies the Python packages required to run the
+# application. If you create a virtual environment, you can
+# install all dependencies with:
+#
+#   pip install -r requirements.txt
+#
+# After installation, ensure that ``ffmpeg`` is available in your
+# system path for Whisper to decode audio files correctly.
+
 # === Core LLM + Agent Support ===
-openai
+openai>=1.0.0
 langchain
 anthropic
 
@@ -9,7 +20,7 @@ torch
 accelerate
 
 # === STT (Whisper & WebRTC) ===
-openai-whisper
+openai-whisper>=20230314
 faster-whisper
 webrtcvad
 
@@ -19,7 +30,8 @@ pyttsx3
 
 # === Audio I/O ===
 pyaudio
-sounddevice
+sounddevice>=0.4.6
+soundfile>=0.12.1
 
 # === Vector DBs / Embeddings ===
 chromadb
@@ -30,3 +42,5 @@ numpy
 requests
 tqdm
 python-dotenv
+numpy>=1.22
+>>>>>>> 94bc07c1939369ef6ae4906a8833bb29a73858f3

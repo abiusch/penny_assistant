@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.log
+
+# Env
+.venv/
+venv/
+.env
+.env.*
+
+# VS Code
+.vscode/
+
+# Jupyter
+*.ipynb_checkpoints
+
+# Ollama (optional)
+~/.ollama
+
+# Backups
+*.bak

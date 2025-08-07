@@ -1,0 +1,32 @@
+# === Core LLM + Agent Support ===
+openai
+langchain
+anthropic
+
+# === Local Model (gpt-oss) Support ===
+transformers
+torch
+accelerate
+
+# === STT (Whisper & WebRTC) ===
+openai-whisper
+faster-whisper
+webrtcvad
+
+# === TTS (ElevenLabs or fallback) ===
+elevenlabs
+pyttsx3
+
+# === Audio I/O ===
+pyaudio
+sounddevice
+
+# === Vector DBs / Embeddings ===
+chromadb
+faiss-cpu
+
+# === Utilities / Helpers ===
+numpy
+requests
+tqdm
+python-dotenv

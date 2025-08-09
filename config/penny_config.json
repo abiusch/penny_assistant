@@ -1,0 +1,9 @@
+{
+  "wake_word": "hey penny",
+  "vad": { "provider": "webrtc", "sensitivity": "medium" },
+  "stt": { "provider": "whisper", "model": "base" },
+  "tts": { "provider": "google", "voice": "en-US-Standard-F" },
+  "llm": { "mode": "local_first", "local": "ollama:llama3.1", "cloud": "gpt-4o" },
+  "personality": { "sarcasm": "high", "cursing_level": 3 },
+  "timeouts": { "response_ms": 2000 }
+}

@@ -43,3 +43,4 @@ jobs:
 
       - name: Run pytest
         run: pytest -q tests --ignore=whisper
+git push -u origin HEAD

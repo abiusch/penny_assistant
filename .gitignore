@@ -21,3 +21,6 @@ venv/
 
 # Backups
 *.bak
+
+# third-party sources
+whisper/

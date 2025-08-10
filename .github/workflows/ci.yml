@@ -28,7 +28,7 @@ jobs:
         run: bash scripts/check-nested-repos.sh
 
       - name: Run pre-commit (all files)
-        run: pre-commit run --all-files --show-diff-on-failure
+        run: pre-commit run --all-files --show-diff-on-failure -c .pre-commit-config.yaml
 
       - name: Run pytest
         run: pytest -q tests --ignore=whisper

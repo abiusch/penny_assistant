@@ -10,7 +10,23 @@ _LLM_INSTANCE: Any | None = None
 
 
 def _config_path() -> str:
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config", "penny_config.json"))
+    # 1) Optional override via env
+    env_path = os.getenv("PENNY_CONFIG")
+    if env_path and os.path.exists(env_path):
+        return os.path.abspath(env_path)
+
+    here = os.path.dirname(__file__)
+    repo_root = os.path.abspath(os.path.join(here, ".."))
+
+    candidates = [
+        os.path.join(repo_root, "penny_config.json"),             # root
+        os.path.join(repo_root, "config", "penny_config.json"),   # config/
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return os.path.abspath(p)
+
+    raise FileNotFoundError("penny_config.json not found in repo root or config/ (and PENNY_CONFIG not set)")
 
 
 def _load_config() -> dict:

@@ -5,3 +5,15 @@ __pycache__/
 .venv/
 *.egg-info/
 
+
+.env
+.env.example
+.vscode/
+*.bak
+*.pyc
+__pycache__/
+.DS_Store
+*.wav
+.venv/
+*.egg-info/
+

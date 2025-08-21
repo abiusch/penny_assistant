@@ -1,6 +1,6 @@
 """STT Factory for creating speech-to-text instances."""
 
-from src.adapters.stt.whisper_adapter import WhisperSTT
+from adapters.stt.whisper_adapter import WhisperSTT
 
 def create_stt_engine(config):
     """Create STT engine based on configuration."""

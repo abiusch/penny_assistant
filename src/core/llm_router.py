@@ -2,8 +2,8 @@ import json
 import os
 from typing import Any
 
-from src.adapters.llm.local_ollama_adapter import LocalLLM
-from src.adapters.llm.cloud_openai_adapter import CloudLLM
+from adapters.llm.local_ollama_adapter import LocalLLM
+from adapters.llm.cloud_openai_adapter import CloudLLM
 
 _CONFIG_CACHE: dict | None = None
 _LLM_INSTANCE: Any | None = None

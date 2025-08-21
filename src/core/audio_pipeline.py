@@ -1,9 +1,9 @@
-from src.core.stt.factory import STTFactory
-from src.core.tts.factory import TTSFactory
-from src.core.vad.webrtc_vad import create_vad_engine
-from src.core.telemetry import telemetry
-from src.core.llm_router import get_llm, load_config
-from src.core.personality import apply
+from core.stt.factory import STTFactory
+from core.tts.factory import TTSFactory
+from core.vad.webrtc_vad import create_vad_engine
+from core.telemetry import telemetry
+from core.llm_router import get_llm, load_config
+from core.personality import apply
 
 def run_once() -> dict:
     cfg = load_config()

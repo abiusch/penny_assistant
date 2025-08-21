@@ -1,8 +1,8 @@
 """LLM Factory for creating language model instances."""
 
-from src.adapters.llm.local_ollama_adapter import LocalLLM
-from src.adapters.llm.cloud_openai_adapter import CloudLLM
-from src.adapters.llm.gptoss_adapter import GPTOSS
+from adapters.llm.local_ollama_adapter import LocalLLM
+from adapters.llm.cloud_openai_adapter import CloudLLM
+from adapters.llm.gptoss_adapter import GPTOSS
 
 def create_llm_engine(config):
     """Create LLM engine based on configuration."""

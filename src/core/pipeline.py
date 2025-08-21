@@ -12,12 +12,12 @@ if sys.version_info >= (3, 13):
         UserWarning,
         stacklevel=2
     )
-from src.core.stt.factory import STTFactory
-from src.core.tts.factory import TTSFactory
-from src.adapters.llm.factory import LLMFactory
-from src.core.vad.webrtc_vad import SimpleVAD
-from src.core.telemetry import Telemetry
-from src.core.llm_router import load_config
+from core.stt.factory import STTFactory
+from core.tts.factory import TTSFactory
+from adapters.llm.factory import LLMFactory
+from core.vad.webrtc_vad import SimpleVAD
+from core.telemetry import Telemetry
+from core.llm_router import load_config
 
 class State(Enum):
     IDLE = "idle"
@@ -106,7 +106,7 @@ class PipelineLoop:
         
         # Personality layer (optional): try to import; else fall back
         try:
-            from src.core.personality import apply as apply_personality  # expect apply(text, tone) -> str
+            from core.personality import apply as apply_personality  # expect apply(text, tone) -> str
         except Exception:
             def apply_personality(txt, t): return f"[{t}] {txt}" if txt else "Say that again?"
         
@@ -176,7 +176,7 @@ def run_once() -> dict:
     reply = llm.generate(prompt)
     
     try:
-        from src.core.personality import apply
+        from core.personality import apply
         out = apply(reply, cfg.get("personality", {}))
     except Exception:
         out = f"[neutral] {reply}"

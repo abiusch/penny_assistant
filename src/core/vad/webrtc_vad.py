@@ -1,6 +1,6 @@
 """WebRTC VAD implementation."""
 
-from src.adapters.vad.webrtc_vad_adapter import WebRTCVAD
+from adapters.vad.webrtc_vad_adapter import WebRTCVAD
 
 def create_vad_engine(config):
     """Create VAD engine based on configuration."""

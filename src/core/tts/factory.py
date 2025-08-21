@@ -1,6 +1,6 @@
 """TTS Factory for creating text-to-speech instances."""
 
-from src.adapters.tts.google_tts_adapter import GoogleTTS
+from adapters.tts.google_tts_adapter import GoogleTTS
 
 def create_tts_engine(config):
     """Create TTS engine based on configuration."""

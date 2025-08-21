@@ -3,7 +3,7 @@ import tempfile
 import soundfile as sf
 import numpy as np
 
-SILENCE_THRESHOLD = 0.01  # Lower = more sensitive. Raise if you're getting false positives.
+SILENCE_THRESHOLD = 0.005  # Lower = more sensitive. Raise if you're getting false positives.
 
 def is_silence(audio_data, threshold=SILENCE_THRESHOLD):
     volume = np.abs(audio_data).mean()

@@ -4,35 +4,35 @@
 def test_imports():
     """Test all imports as shown in the image."""
     try:
-        from core.stt.factory import STTFactory
+        from src.core.stt.factory import STTFactory
         print("STT OK")
     except Exception as e:
         print(f"STT ERROR: {e}")
         return False
 
     try:
-        from core.tts.factory import TTSFactory
+        from src.core.tts.factory import TTSFactory
         print("TTS OK")
     except Exception as e:
         print(f"TTS ERROR: {e}")
         return False
 
     try:
-        from core.vad.webrtc_vad import SimpleVAD
+        from src.core.vad.webrtc_vad import SimpleVAD
         print("VAD OK")
     except Exception as e:
         print(f"VAD ERROR: {e}")
         return False
 
     try:
-        from core.telemetry import Telemetry
+        from src.core.telemetry import Telemetry
         print("TELEMETRY OK")
     except Exception as e:
         print(f"TELEMETRY ERROR: {e}")
         return False
 
     try:
-        from core.pipeline import run_once
+        from src.core.pipeline import run_once
         print("PIPELINE OK")
     except Exception as e:
         print(f"PIPELINE ERROR: {e}")
@@ -43,7 +43,7 @@ def test_imports():
 def test_vad_methods():
     """Test that SimpleVAD has the required methods."""
     try:
-        from core.vad.webrtc_vad import SimpleVAD
+        from src.core.vad.webrtc_vad import SimpleVAD
         vad = SimpleVAD()
         
         # Test .start() method

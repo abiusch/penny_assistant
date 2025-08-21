@@ -1,8 +1,8 @@
 """Tests for LLM routing functionality."""
 
 import pytest
-from src.core.llm_router import load_config, get_llm, reset_llm
-from src.adapters.llm.factory import LLMFactory
+from core.llm_router import load_config, get_llm, reset_llm
+from adapters.llm.factory import LLMFactory
 
 
 def test_load_config():

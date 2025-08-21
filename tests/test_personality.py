@@ -1,7 +1,7 @@
 """Tests for personality functionality."""
 
 import pytest
-from src.core.personality import apply, _load_config
+from core.personality import apply, _load_config
 
 
 def test_apply_basic():

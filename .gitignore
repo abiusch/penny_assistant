@@ -1,26 +1,7 @@
-# Python
+*.pyc
 __pycache__/
-*.py[cod]
-*.egg-info/
-*.log
-
-# Env
+.DS_Store
+*.wav
 .venv/
-venv/
-.env
-.env.*
+*.egg-info/
 
-# VS Code
-.vscode/
-
-# Jupyter
-*.ipynb_checkpoints
-
-# Ollama (optional)
-~/.ollama
-
-# Backups
-*.bak
-
-# third-party sources
-whisper/

@@ -2,7 +2,7 @@ import threading
 import sounddevice as sd
 import time
 from stt_engine import transcribe_audio
-from llm_engine import get_gpt_response
+from core.llm_router import get_llm
 from src.audio.tts_engine import speak_text
 from src.core.intent_router import is_agent_mode_trigger
 from pynput import keyboard  # ✅ REPLACED `keyboard` WITH `pynput`
@@ -20,7 +20,8 @@ def capture_and_handle():
 
     print(f"🗣️ You said: {text}")
     agent_mode = is_agent_mode_trigger(text)
-    response = get_gpt_response(text, agent_mode=agent_mode)
+    llm = get_llm()
+    response = llm.generate(text) if hasattr(llm, 'generate') else llm.complete(text)
     speak_text(response)
 
 # ✅ NEW HOTKEY HANDLER USING `pynput`

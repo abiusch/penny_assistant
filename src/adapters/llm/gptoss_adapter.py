@@ -19,3 +19,8 @@ class GPTOSS:
             return str(result)
         except Exception as e:
             return f"[gpt-oss error: {e}] {prompt}"
+    
+    def generate(self, prompt: str, **kwargs) -> str:
+        """Alias for complete to match expected interface."""
+        tone = kwargs.get('tone', '')
+        return self.complete(prompt, tone)

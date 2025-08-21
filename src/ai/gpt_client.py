@@ -12,7 +12,7 @@ Example
 -------
 
 ```python
-from src.ai.gpt_client import GPTClient
+from ai.gpt_client import GPTClient
 
 client = GPTClient()
 messages = [

@@ -5,6 +5,10 @@
         "energy_threshold": 300,
         "timeout": 1.0
     },
+    "audio": {
+        "input_device": 1,
+        "comment": "MacBook Pro Microphone"
+    },
     "stt": {
         "type": "whisper",
         "model": "base",
@@ -16,10 +20,9 @@
         "speaking_rate": 1.0
     },
     "llm": {
-        "type": "local",
-        "model": "llama2",
-        "temperature": 0.7,
-        "max_tokens": 150
+        "provider": "gptoss",
+        "model": "gpt-oss-20b",
+        "mode": "local_first"
     },
     "personality": {
         "sarcasm_level": 0.3,

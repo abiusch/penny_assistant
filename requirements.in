@@ -1,3 +1,9 @@
 pytest
 webrtcvad
 gTTS
+sounddevice
+soundfile
+pynput
+openai-whisper
+numpy
+openai

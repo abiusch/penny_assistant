@@ -1,5 +1,5 @@
-from core.llm_router import get_llm
-from core.audio_pipeline import run_once
+from src.core.llm_router import get_llm
+from src.core.audio_pipeline import run_once
 
 def test_llm_router():
     llm = get_llm()

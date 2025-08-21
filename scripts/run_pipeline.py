@@ -2,12 +2,12 @@
 """Fast smoke test for pipeline components."""
 
 import time
-from core.pipeline import run_once
-from core.stt.factory import STTFactory
-from core.tts.factory import TTSFactory  
-from core.vad.webrtc_vad import SimpleVAD
-from core.telemetry import Telemetry
-from core.llm_router import load_config
+from src.core.pipeline import run_once
+from src.core.stt.factory import STTFactory
+from src.core.tts.factory import TTSFactory
+from src.core.vad.webrtc_vad import SimpleVAD
+from src.core.telemetry import Telemetry
+from src.core.llm_router import load_config
 
 def test_pipeline():
     """Run pipeline test with telemetry tracking."""

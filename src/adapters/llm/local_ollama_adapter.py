@@ -10,11 +10,17 @@ class LocalLLM:
         else:
             self.model_name = model_id
     
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, context: str = "") -> str:
         try:
+            # Add context to prompt if provided
+            if context:
+                full_prompt = f"Previous conversation:\n{context}\n\nUser: {prompt}\nAssistant:"
+            else:
+                full_prompt = prompt
+            
             # Call ollama via command line
             result = subprocess.run(
-                ["ollama", "run", self.model_name, prompt],
+                ["ollama", "run", self.model_name, full_prompt],
                 capture_output=True,
                 text=True,
                 timeout=30

@@ -7,3 +7,4 @@ pynput
 openai-whisper
 numpy
 openai
+aiohttp>=3.8.0

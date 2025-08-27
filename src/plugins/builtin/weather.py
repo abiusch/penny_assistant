@@ -68,7 +68,7 @@ class WeatherPlugin(BasePlugin):
     def _extract_city_from_query(self, query: str) -> Optional[str]:
         """Extract city name from user query (basic implementation)"""
         # Simple approach - look for "in [city]" or "for [city]"
-        query_lower = query.lower()
+        query_lower = query.lower().strip('?.,!')
         
         for preposition in [' in ', ' for ']:
             if preposition in query_lower:

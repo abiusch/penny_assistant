@@ -22,11 +22,30 @@ class WeatherPlugin(BasePlugin):
     
     def can_handle(self, intent: str, query: str) -> bool:
         """Check if this plugin can handle the weather request"""
-        weather_keywords = ['weather', 'temperature', 'temp', 'forecast', 'rain', 'sunny', 'cloudy']
-        query_lower = query.lower()
+        # If intent is already classified as weather, we handle it
+        if intent == 'weather':
+            return True
+            
+        # Otherwise, check for weather-specific patterns in the query
+        query_lower = query.lower().strip()
         
-        return (intent == 'weather' or 
-                any(keyword in query_lower for keyword in weather_keywords))
+        # Weather query patterns (more precise than just keywords)
+        weather_patterns = [
+            r"what'?s? the weather",
+            r"how'?s? the weather",
+            r"what'?s? the temperature",
+            r"how'?s? the temp",
+            r"weather in",
+            r"weather for",
+            r"temperature in",
+            r"temperature for",
+            r"is it (raining|sunny|cloudy|hot|cold)",
+            r"will it (rain|snow)",
+            r"weather forecast"
+        ]
+        
+        import re
+        return any(re.search(pattern, query_lower) for pattern in weather_patterns)
     
     async def execute(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """Execute weather lookup"""

@@ -12,6 +12,7 @@ import tempfile
 from gtts import gTTS
 from pygame import mixer
 import io
+import numpy as np
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -20,6 +21,7 @@ from stt_engine import transcribe_audio
 from src.core.enhanced_intent_router import EnhancedIntentRouter
 from src.core.llm_router import get_llm
 from src.core.llm_router import load_config
+from src.core.wake_word import detect_wake_word, extract_command
 
 # Set the correct microphone
 sd.default.device = 1  # MacBook Pro Microphone
@@ -125,22 +127,70 @@ class PennyWithPlugins:
             print(f"❌ Error processing query: {e}")
             return f"Sorry, I encountered an error: {str(e)}"
     
-    async def capture_and_handle(self):
-        """Capture audio and handle with plugins, including TTS response"""
-        print("🎤 Listening for 5 seconds...")
-        audio_data = sd.rec(int(5 * 16000), samplerate=16000, channels=1)
-        sd.wait()
-
-        text = transcribe_audio(audio_data)
-
-        if not text or not isinstance(text, str) or not text.strip():
-            print("🤷 Heard nothing. Try again.")
-            return
-
-        print(f"🗣️ You said: {text}")
+    async def continuous_listen(self):
+        """Continuously listen for wake word, then process command"""
+        print("🎧 Listening for wake word... Say 'Hey Penny' to start")
+        
+        while True:
+            try:
+                # Shorter audio capture for wake word detection
+                audio_data = sd.rec(int(3 * 16000), samplerate=16000, channels=1)
+                sd.wait()
+                
+                # Transcribe the audio
+                text = transcribe_audio(audio_data)
+                
+                if not text or not isinstance(text, str):
+                    continue
+                    
+                # Check for wake word
+                if detect_wake_word(text):
+                    print(f"🔊 Wake word detected: '{text}'")
+                    
+                    # Extract command after wake word
+                    command = extract_command(text)
+                    
+                    if command.strip():
+                        # Process the command immediately
+                        await self.handle_command(command)
+                    else:
+                        # Wake word only, listen for follow-up command
+                        print("🎤 Listening for your command...")
+                        await self.listen_for_command()
+                        
+                # Brief pause to prevent overwhelming the system
+                await asyncio.sleep(0.5)
+                
+            except KeyboardInterrupt:
+                print("\n👋 Stopping wake word detection...")
+                break
+            except Exception as e:
+                print(f"❌ Error in wake word detection: {e}")
+                await asyncio.sleep(1)  # Longer pause on errors
+    
+    async def listen_for_command(self):
+        """Listen for a command after wake word detected"""
+        try:
+            # Longer recording for full command
+            audio_data = sd.rec(int(5 * 16000), samplerate=16000, channels=1)
+            sd.wait()
+            
+            text = transcribe_audio(audio_data)
+            
+            if text and isinstance(text, str) and text.strip():
+                await self.handle_command(text.strip())
+            else:
+                print("🤷 Didn't catch that. Try again...")
+                
+        except Exception as e:
+            print(f"❌ Error listening for command: {e}")
+    
+    async def handle_command(self, command: str):
+        """Process a voice command"""
+        print(f"🗣️ Command: {command}")
         
         # Process through plugin system
-        response = await self.handle_query(text)
+        response = await self.handle_query(command)
         print(f"💬 Response: {response}")
         
         # Speak the response
@@ -148,27 +198,23 @@ class PennyWithPlugins:
             success = await self.speak_response(response)
             if not success and self.tts_enabled:
                 print("⚠️ TTS failed, but response generated successfully")
-        
-        return response
 
 
 async def main():
-    """Main async loop for enhanced Penny with TTS"""
-    print("💬 Starting Enhanced PennyGPT with Plugins and TTS...")
+    """Main async loop with wake word detection"""
+    print("Starting Enhanced PennyGPT with Wake Word Detection...")
     print("Using MacBook Pro Microphone")
-    print("Press Enter to speak, Ctrl+C to exit")
-    print("Try asking: 'What's the weather?' or 'How's the weather in London?'")
-    print("Responses will be spoken back to you!")
+    print("Say 'Hey Penny' followed by your request")
+    print("Examples: 'Hey Penny, what's the weather?' or 'Hey Penny, what's on my calendar today?'")
+    print("Press Ctrl+C to exit")
     print()
     
     penny = PennyWithPlugins()
     
     try:
-        while True:
-            input("Press Enter to start recording: ")
-            await penny.capture_and_handle()
+        await penny.continuous_listen()
     except KeyboardInterrupt:
-        print("\n👋 Exiting Enhanced PennyGPT...")
+        print("\nExiting Enhanced PennyGPT...")
 
 
 def sync_test():

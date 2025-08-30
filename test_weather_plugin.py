@@ -44,6 +44,40 @@ async def test_weather_plugin():
     return plugin
 
 
+async def test_calendar_plugin():
+    """Test calendar plugin directly"""
+    print("\n=== Testing Calendar Plugin ===")
+    
+    # Import here to avoid issues if calendar plugin has problems
+    try:
+        from src.plugins.builtin.calendar import CalendarPlugin
+    except ImportError as e:
+        print(f"Calendar plugin import failed: {e}")
+        return None
+    
+    plugin = CalendarPlugin()
+    print(f"Plugin loaded: {plugin.name}")
+    
+    # Test intent recognition
+    test_cases = [
+        ("What's on my calendar today?", 'calendar'),
+        ("What's my next meeting?", 'calendar'),
+        ("Do I have anything tomorrow?", 'calendar'),
+        ("Tell me a joke", 'entertainment'),  # Should not match
+    ]
+    
+    for query, intent in test_cases:
+        can_handle = plugin.can_handle(intent, query)
+        print(f"Query: '{query}' (intent: {intent}) -> Can handle: {can_handle}")
+    
+    # Test execution
+    print("\n--- Testing calendar execution ---")
+    result = await plugin.execute("What's on my calendar today?")
+    print(f"Calendar result: {result}")
+    
+    return plugin
+
+
 async def test_enhanced_router():
     """Test the enhanced intent router"""
     print("\n=== Testing Enhanced Intent Router ===")
@@ -62,6 +96,8 @@ async def test_enhanced_router():
     test_queries = [
         "What's the weather like?",
         "How's the weather in Paris?", 
+        "What's on my calendar today?",  # Test calendar plugin
+        "What's my next meeting?",      # Test calendar plugin
         "Tell me a joke",
         "What time is it?",
         "Help me with something",
@@ -94,6 +130,9 @@ async def main():
     try:
         # Test plugin directly
         plugin = await test_weather_plugin()
+        
+        # Test calendar plugin
+        calendar_plugin = await test_calendar_plugin()
         
         # Test router integration  
         router = await test_enhanced_router()

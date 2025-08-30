@@ -56,10 +56,15 @@ class EnhancedIntentRouter:
         if any(word in text_lower for word in ["help", "assist", "support"]):
             return "help"
 
-        # Calendar/schedule (new)
+        # Calendar/schedule (existing with more patterns)
         calendar_patterns = [
             r'\b(calendar|schedule|meeting|appointment|event)\b',
-            r'\bwhen.*\b'
+            r'\bwhen.*\b',
+            r'what\'?s? (on )?my (calendar|schedule|agenda)',
+            r'what\'?s? my next (meeting|appointment|event)',
+            r'do i have (any |anything )?(today|tomorrow)',
+            r'any (meetings|events) (today|tomorrow)',
+            r'schedule for (today|tomorrow)'
         ]
         if any(re.search(pattern, text_lower) for pattern in calendar_patterns):
             return 'calendar'

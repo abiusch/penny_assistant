@@ -39,6 +39,10 @@
         "weather": {
             "default_city": "San Francisco",
             "units": "metric"
+        },
+        "calendar": {
+            "calendar_app": "macos",
+            "default_scope": "today"
         }
     },
     "routing_rules": {

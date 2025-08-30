@@ -61,6 +61,8 @@ def extract_command(text: str) -> str:
         if text_lower.startswith(wake_word):
             # Return the text after wake word
             command = text[len(wake_word):].strip()
+            # Remove leading comma or other punctuation
+            command = command.lstrip(',').strip()
             return command if command else ""
     
     # No wake word found at start, return original

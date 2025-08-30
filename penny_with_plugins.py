@@ -129,7 +129,7 @@ class PennyWithPlugins:
     
     async def continuous_listen(self):
         """Continuously listen for wake word, then process command"""
-        print("🎧 Listening for wake word... Say 'Hey Penny' to start")
+        print("Listening for wake word... Say 'Hey Penny' to start")
         
         while True:
             try:
@@ -145,7 +145,7 @@ class PennyWithPlugins:
                     
                 # Check for wake word
                 if detect_wake_word(text):
-                    print(f"🔊 Wake word detected: '{text}'")
+                    print(f"Wake word detected: '{text}'")
                     
                     # Extract command after wake word
                     command = extract_command(text)
@@ -155,18 +155,19 @@ class PennyWithPlugins:
                         await self.handle_command(command)
                     else:
                         # Wake word only, listen for follow-up command
-                        print("🎤 Listening for your command...")
+                        print("Listening for your command...")
                         await self.listen_for_command()
+                    
+                    # After processing, wait a bit before listening for next wake word
+                    print("Ready for next command...")
+                    await asyncio.sleep(2)
                         
-                # Brief pause to prevent overwhelming the system
-                await asyncio.sleep(0.5)
-                
             except KeyboardInterrupt:
-                print("\n👋 Stopping wake word detection...")
+                print("\nStopping wake word detection...")
                 break
             except Exception as e:
-                print(f"❌ Error in wake word detection: {e}")
-                await asyncio.sleep(1)  # Longer pause on errors
+                print(f"Error in wake word detection: {e}")
+                await asyncio.sleep(1)
     
     async def listen_for_command(self):
         """Listen for a command after wake word detected"""
@@ -187,17 +188,18 @@ class PennyWithPlugins:
     
     async def handle_command(self, command: str):
         """Process a voice command"""
-        print(f"🗣️ Command: {command}")
+        print(f"Command: {command}")
         
         # Process through plugin system
         response = await self.handle_query(command)
-        print(f"💬 Response: {response}")
+        print(f"Response: {response}")
         
         # Speak the response
         if response:
+            print("Speaking response...")
             success = await self.speak_response(response)
             if not success and self.tts_enabled:
-                print("⚠️ TTS failed, but response generated successfully")
+                print("TTS failed, but response generated successfully")
 
 
 async def main():

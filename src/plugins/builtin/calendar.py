@@ -104,68 +104,181 @@ class CalendarPlugin(BasePlugin):
             return []
     
     async def _get_macos_events_for_date(self, date) -> List[Dict[str, Any]]:
-        """Get macOS Calendar events for a specific date using AppleScript"""
+        """Get macOS Calendar events using optimized approach"""
         try:
-            # Simpler AppleScript that's less likely to timeout
-            applescript = f'''
+            # Optimized AppleScript that checks only primary calendars
+            applescript = '''
             tell application "Calendar"
-                set todaysEvents to {{}}
-                set today to current date
-                set startOfDay to today - (time of today)
-                set endOfDay to startOfDay + (24 * 60 * 60)
-                
-                repeat with cal in calendars
-                    try
-                        set dayEvents to (every event of cal whose start date ≥ startOfDay and start date < endOfDay)
-                        repeat with evt in dayEvents
-                            set end of todaysEvents to (summary of evt as string)
-                        end repeat
-                    end try
-                end repeat
-                
-                return todaysEvents
+                try
+                    set today to current date
+                    set startOfDay to today - (time of today)
+                    set endOfDay to startOfDay + (24 * 60 * 60) - 1
+                    
+                    set eventList to {}
+                    set maxEvents to 5
+                    set currentCount to 0
+                    
+                    -- Get calendar count first
+                    set calCount to count of calendars
+                    
+                    -- Only check first few calendars to avoid timeout
+                    set maxCals to 3
+                    if calCount < maxCals then set maxCals to calCount
+                    
+                    repeat with i from 1 to maxCals
+                        if currentCount ≥ maxEvents then exit repeat
+                        
+                        try
+                            set cal to calendar i
+                            set dayEvents to (every event of cal whose start date ≥ startOfDay and start date ≤ endOfDay)
+                            
+                            repeat with evt in dayEvents
+                                if currentCount ≥ maxEvents then exit repeat
+                                
+                                set eventTitle to summary of evt
+                                set eventStart to start date of evt
+                                set eventList to eventList & {eventTitle & "|" & (eventStart as string)}
+                                set currentCount to currentCount + 1
+                            end repeat
+                        on error
+                            -- Skip this calendar if error
+                        end try
+                    end repeat
+                    
+                    if (count of eventList) > 0 then
+                        set AppleScript's text item delimiters to ","
+                        set result to eventList as string
+                        set AppleScript's text item delimiters to ""
+                        return result
+                    else
+                        return "NO_EVENTS"
+                    end if
+                on error errMsg
+                    return "ERROR:" & errMsg
+                end try
             end tell
             '''
             
-            # Execute AppleScript with shorter timeout
             result = subprocess.run(
                 ['osascript', '-e', applescript],
                 capture_output=True,
                 text=True,
-                timeout=5  # Reduced timeout
+                timeout=5  # Slightly longer timeout
             )
             
             if result.returncode == 0:
-                return self._parse_simple_events(result.stdout)
+                output = result.stdout.strip()
+                return self._parse_applescript_events(output)
             else:
                 print(f"AppleScript error: {result.stderr}")
                 return []
                 
         except subprocess.TimeoutExpired:
-            print("Calendar access timed out")
-            return []
+            print("Calendar access timed out - using fallback")
+            # Return a helpful fallback message
+            return [{'title': 'Calendar check timed out - please check manually', 'start_time': 'unknown', 'calendar': 'System'}]
         except Exception as e:
             print(f"Calendar access error: {e}")
             return []
     
-    async def _get_macos_upcoming_events(self, limit: int) -> List[Dict[str, Any]]:
-        """Get upcoming macOS Calendar events"""
+    def _parse_applescript_events(self, output: str) -> List[Dict[str, Any]]:
+        """Parse optimized AppleScript output into event objects"""
+        events = []
+        
+        if not output or output == "NO_EVENTS":
+            return events
+        
+        if output.startswith("ERROR:"):
+            print(f"AppleScript error: {output}")
+            return events
+        
         try:
+            # Split by commas (between events)
+            event_parts = output.split(',')
+            
+            for part in event_parts:
+                if '|' in part:
+                    title, date_str = part.split('|', 1)
+                    
+                    # Parse the date string to create a cleaner time representation
+                    time_str = self._format_date_string(date_str.strip())
+                    
+                    events.append({
+                        'title': title.strip(),
+                        'start_time': time_str,
+                        'calendar': 'Calendar'
+                    })
+        except Exception as e:
+            print(f"Error parsing AppleScript events: {e}")
+        
+        return events
+    
+    def _format_date_string(self, date_str: str) -> str:
+        """Format AppleScript date string into readable time"""
+        try:
+            # AppleScript dates come in format like "Saturday, August 30, 2025 at 2:00:00 PM"
+            if " at " in date_str:
+                date_part, time_part = date_str.split(" at ", 1)
+                # Extract just the time part
+                return time_part.strip()
+            else:
+                # Fallback to just showing the date
+                return date_str.strip()
+        except:
+            return "unknown time"
+    
+    async def _get_macos_upcoming_events(self, limit: int) -> List[Dict[str, Any]]:
+        """Get upcoming macOS Calendar events using optimized approach"""
+        try:
+            # Optimized AppleScript for upcoming events
             applescript = f'''
             tell application "Calendar"
-                set eventList to {{}}
-                set currentDate to current date
-                set endDate to currentDate + (7 * 24 * 60 * 60) -- Next 7 days
-                
-                repeat with cal in calendars
-                    set calEvents to (every event of cal whose start date >= currentDate and start date < endDate)
-                    repeat with evt in calEvents
-                        set eventRecord to {{title:(summary of evt), startDate:(start date of evt), endDate:(end date of evt), calendar:(name of cal)}}
-                        set end of eventList to eventRecord
+                try
+                    set now to current date
+                    set futureLimit to now + (7 * 24 * 60 * 60) -- 7 days ahead
+                    
+                    set eventList to {{}}
+                    set maxEvents to {limit}
+                    set currentCount to 0
+                    
+                    -- Get calendar count first
+                    set calCount to count of calendars
+                    
+                    -- Only check first few calendars to avoid timeout
+                    set maxCals to 3
+                    if calCount < maxCals then set maxCals to calCount
+                    
+                    repeat with i from 1 to maxCals
+                        if currentCount ≥ maxEvents then exit repeat
+                        
+                        try
+                            set cal to calendar i
+                            set futureEvents to (every event of cal whose start date > now and start date ≤ futureLimit)
+                            
+                            repeat with evt in futureEvents
+                                if currentCount ≥ maxEvents then exit repeat
+                                
+                                set eventTitle to summary of evt
+                                set eventStart to start date of evt
+                                set eventList to eventList & {{eventTitle & "|" & (eventStart as string)}}
+                                set currentCount to currentCount + 1
+                            end repeat
+                        on error
+                            -- Skip this calendar if error
+                        end try
                     end repeat
-                end repeat
-                
-                return eventList
+                    
+                    if (count of eventList) > 0 then
+                        set AppleScript's text item delimiters to ","
+                        set result to eventList as string
+                        set AppleScript's text item delimiters to ""
+                        return result
+                    else
+                        return "NO_EVENTS"
+                    end if
+                on error errMsg
+                    return "ERROR:" & errMsg
+                end try
             end tell
             '''
             
@@ -173,51 +286,22 @@ class CalendarPlugin(BasePlugin):
                 ['osascript', '-e', applescript],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=5
             )
             
             if result.returncode == 0:
-                events = self._parse_applescript_events(result.stdout)
-                # Sort by start time and limit results
-                events.sort(key=lambda x: x.get('start_time', ''))
-                return events[:limit]
+                output = result.stdout.strip()
+                return self._parse_applescript_events(output)
             else:
                 print(f"AppleScript error: {result.stderr}")
                 return []
                 
+        except subprocess.TimeoutExpired:
+            print("Upcoming events access timed out - using fallback")
+            return [{'title': 'Upcoming events check timed out', 'start_time': 'unknown', 'calendar': 'System'}]
         except Exception as e:
-            print(f"Calendar access error: {e}")
+            print(f"Upcoming events access error: {e}")
             return []
-    
-    def _parse_simple_events(self, output: str) -> List[Dict[str, Any]]:
-        """Parse simple AppleScript output into event objects"""
-        events = []
-        
-        try:
-            # Clean up the output and split by commas
-            clean_output = output.strip()
-            if not clean_output or clean_output == "{}":
-                return events
-                
-            # Remove curly braces and split on commas
-            clean_output = clean_output.strip('{}').strip()
-            if not clean_output:
-                return events
-                
-            event_titles = [title.strip().strip('"') for title in clean_output.split(',')]
-            
-            for title in event_titles:
-                if title:
-                    event = {
-                        'title': title,
-                        'start_time': 'today',  # Simplified for now
-                        'calendar': 'Calendar'
-                    }
-                    events.append(event)
-        except Exception as e:
-            print(f"Error parsing calendar events: {e}")
-        
-        return events
     
     def _format_calendar_response(self, events: List[Dict[str, Any]], time_scope: str) -> str:
         """Format calendar events into a natural response"""

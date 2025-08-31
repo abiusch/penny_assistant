@@ -21,7 +21,11 @@
         "speaking_rate": 1.2,
         "cache_enabled": true,
         "preload_common_phrases": true,
-        "backends": ["system", "google", "say"]
+        "backends": [
+            "system",
+            "google",
+            "say"
+        ]
     },
     "llm": {
         "provider": "openai_compatible",

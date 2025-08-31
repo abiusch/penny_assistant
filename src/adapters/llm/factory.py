@@ -3,6 +3,7 @@
 from adapters.llm.local_ollama_adapter import LocalLLM
 from adapters.llm.cloud_openai_adapter import CloudLLM
 from adapters.llm.gptoss_adapter import GPTOSS
+from adapters.llm.openai_compat import OpenAICompatLLM
 
 def create_llm_engine(config):
     """Create LLM engine based on configuration."""
@@ -16,7 +17,9 @@ def create_llm_engine(config):
     cloud_model = llm_config.get('cloud_model', 'gpt-4')
     
     # Check for specific provider first
-    if llm_provider == 'gptoss' or llm_type == 'gptoss':
+    if llm_provider.lower() in ("openai_compatible", "openai-compatible", "lmstudio"):
+        return OpenAICompatLLM(config)
+    elif llm_provider == 'gptoss' or llm_type == 'gptoss':
         return GPTOSS(config)
     elif llm_type == 'local' or llm_mode in ('local_first', 'local', 'local-only'):
         return LocalLLM(local_model)

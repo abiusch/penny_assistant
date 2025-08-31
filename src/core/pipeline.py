@@ -127,21 +127,37 @@ class PipelineLoop:
         return reply
 
     def speak(self, text: str) -> bool:
-        """Use TTS to speak the text, then return to IDLE."""
+        """Use TTS to speak the text with minimal latency, then return to IDLE."""
         if self.state != State.SPEAKING:
             return False
             
         self.telemetry.log_event("speaking_start")
         
         try:
-            # Start TTS
-            self.tts.speak(text)
-            self.telemetry.log_event("speaking_complete")
+            # Start TTS - new streaming TTS should begin immediately
+            success = self.tts.speak(text)
+            
+            if success:
+                self.telemetry.log_event("speaking_started")
+                
+                # For streaming TTS, we can return to IDLE immediately
+                # since speech continues in background and barge-in is supported
+                if hasattr(self.tts, 'is_speaking'):
+                    # Modern streaming TTS - return to IDLE for immediate responsiveness
+                    self.state = State.IDLE
+                    self.telemetry.log_event("speaking_async_complete")
+                else:
+                    # Legacy TTS - wait for completion (blocking)
+                    self.state = State.IDLE
+                    self.telemetry.log_event("speaking_complete")
+            else:
+                self.telemetry.log_event("speaking_failed")
+                self.state = State.IDLE
+                
         except Exception as e:
             self.telemetry.log_event("speaking_error", {"error": str(e)})
+            self.state = State.IDLE
         
-        # Return to IDLE state
-        self.state = State.IDLE
         return True
 
     def handle_barge_in(self):

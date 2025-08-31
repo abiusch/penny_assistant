@@ -16,13 +16,21 @@
     },
     "tts": {
         "type": "google",
+        "streaming": true,
         "voice": "en-US-Wavenet-D",
-        "speaking_rate": 1.0
+        "speaking_rate": 1.2,
+        "cache_enabled": true,
+        "preload_common_phrases": true,
+        "backends": ["system", "google", "say"]
     },
     "llm": {
-        "provider": "gptoss",
-        "model": "gpt-oss-20b",
-        "mode": "local_first"
+        "provider": "openai_compatible",
+        "base_url": "http://localhost:1234/v1",
+        "api_key": "lm-studio",
+        "model": "openai/gpt-oss-20b",
+        "mode": "local_first",
+        "temperature": 0.6,
+        "max_tokens": 512
     },
     "personality": {
         "sarcasm_level": 0.3,

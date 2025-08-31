@@ -43,6 +43,13 @@
         "calendar": {
             "calendar_app": "macos",
             "default_scope": "today"
+        },
+        "shell": {
+            "timeout": 10,
+            "max_output_lines": 10
+        },
+        "calculations": {
+            "max_precision": 6
         }
     },
     "routing_rules": {

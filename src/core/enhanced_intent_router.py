@@ -69,15 +69,39 @@ class EnhancedIntentRouter:
         if any(re.search(pattern, text_lower) for pattern in calendar_patterns):
             return 'calendar'
 
-        # System/shell commands (new)
+        # System/shell commands (enhanced)
         shell_patterns = [
             r'\b(run|execute|command|terminal|shell)\b',
             r'^(ls|cd|pwd|ps|kill|grep)',
-            r'\bopen\s+\w+'
+            r'\bopen\s+\w+',
+            r'show me (the )?(files|directory|processes|memory|disk|uptime)',
+            r'what\s*(files|processes|memory|disk)\s*(are|is)',
+            r'list (files|processes|directory)',
+            r'disk (usage|space)',
+            r'memory usage',
+            r'system (info|uptime)',
+            r'who am i',
+            r'current (user|directory)'
         ]
         if any(re.search(pattern, text_lower) for pattern in shell_patterns):
             return 'shell'
 
+        # Math/calculations (new)
+        calc_patterns = [
+            r'whats\s+(is\s+)?(\d+[\.]?\d*\s*[\+\-\*\/x]\s*\d+[\.]?\d*)',
+            r'calculate\s+',
+            r'compute\s+',
+            r'\d+\s*[\+\-\*\/x]\s*\d+',
+            r'\d+\s*percent\s*of\s*\d+',
+            r'square\s+root\s+of\s+\d+',
+            r'\d+\s*squared',
+            r'convert\s+\d+.*\s+to\s+',
+            r'\d+\s*(celsius|fahrenheit)\s+to\s+',
+            r'\d+\s*(feet|meters|inches)\s+to\s+'
+        ]  
+        if any(re.search(pattern, text_lower) for pattern in calc_patterns):
+            return 'calculation'
+            
         # Default to conversation
         return "conversation"
     

@@ -44,6 +44,96 @@ async def test_weather_plugin():
     return plugin
 
 
+async def test_calculations_plugin():
+    """Test calculations plugin directly"""
+    print("\n=== Testing Calculations Plugin ===")
+    
+    try:
+        from src.plugins.builtin.calculations import CalculationsPlugin
+    except ImportError as e:
+        print(f"Calculations plugin import failed: {e}")
+        return None
+    
+    plugin = CalculationsPlugin()
+    print(f"Plugin loaded: {plugin.name}")
+    
+    # Test intent recognition
+    test_cases = [
+        ("What's 15 + 25?", 'calculation'),
+        ("25% of 200", 'calculation'),
+        ("Convert 25 celsius to fahrenheit", 'calculation'),
+        ("Square root of 144", 'calculation'),
+        ("Tell me a joke", 'entertainment'),  # Should not match
+    ]
+    
+    for query, intent in test_cases:
+        can_handle = plugin.can_handle(intent, query)
+        print(f"Query: '{query}' (intent: {intent}) -> Can handle: {can_handle}")
+    
+    # Test execution
+    print("\n--- Testing calculations execution ---")
+    test_calculations = [
+        "What's 15 + 25?",
+        "25% of 200", 
+        "Square root of 144",
+        "Convert 25 celsius to fahrenheit"
+    ]
+    
+    for calc in test_calculations:
+        result = await plugin.execute(calc)
+        print(f"Calculation: {calc}")
+        print(f"Success: {result['success']}")
+        print(f"Response: {result['response']}")
+        print()
+    
+    return plugin
+
+
+async def test_shell_plugin():
+    """Test shell plugin directly"""
+    print("\n=== Testing Shell Plugin ===")
+    
+    # Import here to avoid issues if shell plugin has problems
+    try:
+        from src.plugins.builtin.shell import ShellPlugin
+    except ImportError as e:
+        print(f"Shell plugin import failed: {e}")
+        return None
+    
+    plugin = ShellPlugin()
+    print(f"Plugin loaded: {plugin.name}")
+    
+    # Test intent recognition
+    test_cases = [
+        ("Show disk usage", 'shell'),
+        ("List files", 'shell'),
+        ("What processes are running?", 'shell'),
+        ("Who am I?", 'shell'),
+        ("Tell me a joke", 'entertainment'),  # Should not match
+    ]
+    
+    for query, intent in test_cases:
+        can_handle = plugin.can_handle(intent, query)
+        print(f"Query: '{query}' (intent: {intent}) -> Can handle: {can_handle}")
+    
+    # Test execution
+    print("\n--- Testing shell execution ---")
+    test_commands = ["Show disk usage", "Who am I?", "List files"]
+    
+    for cmd in test_commands:
+        result = await plugin.execute(cmd)
+        print(f"Command: {cmd}")
+        print(f"Success: {result['success']}")
+        if result['success']:
+            response = result['response'][:100] + "..." if len(result['response']) > 100 else result['response']
+            print(f"Response: {response}")
+        else:
+            print(f"Error: {result['error']}")
+        print()
+    
+    return plugin
+
+
 async def test_calendar_plugin():
     """Test calendar plugin directly"""
     print("\n=== Testing Calendar Plugin ===")
@@ -130,6 +220,12 @@ async def main():
     try:
         # Test plugin directly
         plugin = await test_weather_plugin()
+        
+        # Test calculations plugin
+        calc_plugin = await test_calculations_plugin()
+        
+        # Test shell plugin
+        shell_plugin = await test_shell_plugin()
         
         # Test calendar plugin
         calendar_plugin = await test_calendar_plugin()

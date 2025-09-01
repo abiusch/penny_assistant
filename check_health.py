@@ -21,7 +21,7 @@ async def main():
     print("=" * 30)
     
     try:
-        monitor = PennyGPTHealthMonitor()
+        monitor = PennyGPTHealthMonitor()  # Remove config_path argument
         is_healthy = await monitor.run_health_check()
         
         if is_healthy:

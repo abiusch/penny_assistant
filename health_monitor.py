@@ -38,7 +38,7 @@ class PennyGPTHealthMonitor:
     """Monitor health of all PennyGPT components."""
     
     def __init__(self, config_path: str = "penny_config.json"):
-        self.config = load_config(config_path)
+        self.config = load_config()  # load_config() doesn't take arguments
         self.components = {}
         
     async def check_lm_studio_health(self) -> ComponentHealth:
@@ -299,7 +299,7 @@ class PennyGPTHealthMonitor:
                 health_status[result.name] = result
         
         # Test LLM completion separately (needs LM Studio to be healthy first)
-        if health_status.get("LM Studio", ComponentHealth("", HealthStatus.UNHEALTHY)).status == HealthStatus.HEALTHY:
+        if health_status.get("LM Studio", ComponentHealth("LM Studio", HealthStatus.UNHEALTHY, None)).status == HealthStatus.HEALTHY:
             try:
                 completion_health = await self.check_llm_completion()
                 health_status[completion_health.name] = completion_health

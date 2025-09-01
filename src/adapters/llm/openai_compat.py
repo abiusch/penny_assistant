@@ -13,7 +13,8 @@ class OpenAICompatLLM:
 
     def complete(self, prompt: str, tone: str = "") -> str:
         try:
-            url = f"{self.base_url}/v1/chat/completions"
+            # Fix URL construction - base_url already includes /v1
+            url = f"{self.base_url}/chat/completions"
             headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
             body = {
                 "model": self.model,
@@ -24,7 +25,7 @@ class OpenAICompatLLM:
                     {"role": "user", "content": prompt}
                 ]
             }
-            r = requests.post(url, headers=headers, data=json.dumps(body), timeout=60)
+            r = requests.post(url, headers=headers, data=json.dumps(body), timeout=15)
             r.raise_for_status()
             data = r.json()
             return (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()

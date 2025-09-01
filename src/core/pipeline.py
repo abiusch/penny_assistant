@@ -18,6 +18,7 @@ from adapters.llm.factory import LLMFactory
 from core.vad.webrtc_vad import SimpleVAD
 from core.telemetry import Telemetry
 from core.llm_router import load_config
+from core.wake_word import detect_wake_word, extract_command
 
 class State(Enum):
     IDLE = "idle"
@@ -83,14 +84,34 @@ class PipelineLoop:
         
         if not audio_bytes:
             self.state = State.IDLE
+            self.telemetry.log_event("stt_no_audio")
             return None
             
         # Transcribe the audio
         try:
             stt_result = self.stt.transcribe(audio_bytes)
             text = stt_result.get("text", "").strip() if isinstance(stt_result, dict) else str(stt_result).strip()
-            self.telemetry.log_event("stt_complete", {"text": text, "confidence": stt_result.get("confidence", 0.0) if isinstance(stt_result, dict) else 1.0})
-            return text
+            confidence = stt_result.get("confidence", 0.0) if isinstance(stt_result, dict) else 1.0
+            
+            self.telemetry.log_event("stt_complete", {"text": text, "confidence": confidence})
+            
+            # Handle empty transcription - return to IDLE without proceeding to LLM/TTS
+            if not text:
+                self.state = State.IDLE
+                self.telemetry.log_event("stt_empty_result")
+                return None
+            
+            # Check for wake word
+            if not detect_wake_word(text):
+                self.state = State.IDLE
+                self.telemetry.log_event("wake_word_not_detected", {"text": text})
+                return None
+            
+            # Extract command after wake word
+            command = extract_command(text)
+            self.telemetry.log_event("wake_word_detected", {"original": text, "command": command})
+                
+            return command if command else "Hello"  # Default greeting if no command
         except Exception as e:
             self.telemetry.log_event("stt_error", {"error": str(e)})
             self.state = State.IDLE

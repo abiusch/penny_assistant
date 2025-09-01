@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PennyGPT Metrics Dashboard</title>
+    <style>
+        body { font-family: system-ui; background: #1a1a2e; color: white; margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .metric-card { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; }
+        .metric-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .status-healthy { color: #00ff00; }
+        .status-degraded { color: #ffff00; }
+        .status-unhealthy { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 PennyGPT Metrics Dashboard</h1>
+        <div id="overall-status">Loading...</div>
+    </div>
+    
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>🔌 LM Studio</h3>
+            <div class="metric-value" id="lm-time">--</div>
+            <div id="lm-status">--</div>
+        </div>
+        
+        <div class="metric-card">
+            <h3>🧠 LLM Completion</h3>
+            <div class="metric-value" id="llm-time">--</div>
+            <div id="llm-status">--</div>
+        </div>
+        
+        <div class="metric-card">
+            <h3>🔊 TTS Engine</h3>
+            <div class="metric-value" id="tts-time">--</div>
+            <div id="tts-status">--</div>
+        </div>
+        
+        <div class="metric-card">
+            <h3>🎙️ STT Engine</h3>
+            <div class="metric-value" id="stt-time">--</div>
+            <div id="stt-status">--</div>
+        </div>
+        
+        <div class="metric-card">
+            <h3>🎵 Audio Devices</h3>
+            <div class="metric-value" id="audio-time">--</div>
+            <div id="audio-status">--</div>
+        </div>
+        
+        <div class="metric-card">
+            <h3>⚡ Performance</h3>
+            <div class="metric-value" id="requests">0</div>
+            <div>Total Requests</div>
+        </div>
+    </div>
+    
+    <script>
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+                
+                // Update overall status
+                document.getElementById('overall-status').textContent = `System: ${data.system_health}`;
+                document.getElementById('overall-status').className = `status-${data.system_health.toLowerCase()}`;
+                
+                // Update individual metrics
+                if (data.response_times) {
+                    document.getElementById('lm-time').textContent = `${data.response_times.lm_studio?.toFixed(1) || 0}ms`;
+                    document.getElementById('llm-time').textContent = `${data.response_times.llm_completion?.toFixed(0) || 0}ms`;
+                    document.getElementById('tts-time').textContent = `${data.response_times.tts?.toFixed(0) || 0}ms`;
+                    document.getElementById('stt-time').textContent = `${data.response_times.stt?.toFixed(0) || 0}ms`;
+                    document.getElementById('audio-time').textContent = `${data.response_times.audio?.toFixed(0) || 0}ms`;
+                }
+                
+                // Update statuses
+                if (data.component_statuses) {
+                    Object.entries(data.component_statuses).forEach(([name, status]) => {
+                        const element = document.getElementById(`${name.toLowerCase().replace(' ', '-')}-status`);
+                        if (element) {
+                            element.textContent = status;
+                            element.className = `status-${status.toLowerCase()}`;
+                        }
+                    });
+                }
+                
+                // Update totals
+                if (data.totals) {
+                    document.getElementById('requests').textContent = data.totals.requests || 0;
+                }
+                
+            } catch (error) {
+                console.error('Error updating metrics:', error);
+                document.getElementById('overall-status').textContent = 'Error loading metrics';
+            }
+        }
+        
+        // Update every 5 seconds
+        updateMetrics();
+        setInterval(updateMetrics, 5000);
+    </script>
+</body>
+</html>

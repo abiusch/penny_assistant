@@ -1,0 +1,61 @@
+{
+  "python": {
+    "version": "3.13.5 (v3.13.5:6cb20a219a8, Jun 11 2025, 12:23:45) [Clang 16.0.0 (clang-1600.0.26.6)]",
+    "version_info": {
+      "major": 3,
+      "minor": 13,
+      "micro": 5
+    },
+    "executable": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+    "platform": "darwin"
+  },
+  "system": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "node": "MacBook-Pro.local"
+  },
+  "lm_studio_process": true,
+  "port_1234_in_use": true,
+  "audio": {
+    "available": true,
+    "device_count": 4,
+    "input_devices": 3,
+    "output_devices": 2,
+    "default_input": "MacBook Pro Microphone",
+    "default_output": "MacBook Pro Speakers"
+  },
+  "files": {
+    "penny_config.json": {
+      "description": "Configuration file",
+      "exists": true,
+      "size": 1645,
+      "modified": 1756658443.0568988
+    },
+    "requirements.txt": {
+      "description": "Dependencies",
+      "exists": true,
+      "size": 3359,
+      "modified": 1756658269.1197188
+    },
+    "src/adapters/llm/openai_compat.py": {
+      "description": "LLM adapter",
+      "exists": true,
+      "size": 1523,
+      "modified": 1756751588.9486833
+    },
+    "src/core/pipeline.py": {
+      "description": "Core pipeline",
+      "exists": true,
+      "size": 8381,
+      "modified": 1756751764.0425365
+    },
+    "health_monitor.py": {
+      "description": "Health monitor",
+      "exists": true,
+      "size": 15820,
+      "modified": 1756759391.7236972
+    }
+  }
+}

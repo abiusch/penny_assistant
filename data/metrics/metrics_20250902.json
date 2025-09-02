@@ -1,354 +1,12 @@
 {
-  "timestamp": 1756844922.19435,
+  "timestamp": 1756847727.783962,
   "metrics": [
     {
-      "timestamp": 1756841839.305197,
-      "lm_studio_response_time": 8.810997009277344,
-      "llm_completion_time": 731.313943862915,
-      "tts_response_time": 466.9759273529053,
-      "stt_response_time": 338.702917098999,
-      "audio_check_time": 0.035762786865234375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841850.298653,
-      "lm_studio_response_time": 8.779048919677734,
-      "llm_completion_time": 405.4298400878906,
-      "tts_response_time": 158.5531234741211,
-      "stt_response_time": 351.5007495880127,
-      "audio_check_time": 0.03218650817871094,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841861.363198,
-      "lm_studio_response_time": 8.928060531616211,
-      "llm_completion_time": 431.0581684112549,
-      "tts_response_time": 202.43310928344727,
-      "stt_response_time": 348.7839698791504,
-      "audio_check_time": 0.033855438232421875,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841872.4843662,
-      "lm_studio_response_time": 5.136966705322266,
-      "llm_completion_time": 396.47531509399414,
-      "tts_response_time": 188.81678581237793,
-      "stt_response_time": 344.88773345947266,
-      "audio_check_time": 0.03695487976074219,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841883.622347,
-      "lm_studio_response_time": 7.660150527954102,
-      "llm_completion_time": 426.98001861572266,
-      "tts_response_time": 280.9770107269287,
-      "stt_response_time": 347.31316566467285,
-      "audio_check_time": 0.03314018249511719,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841894.610742,
-      "lm_studio_response_time": 7.811784744262695,
-      "llm_completion_time": 404.4930934906006,
-      "tts_response_time": 171.38195037841797,
-      "stt_response_time": 336.75217628479004,
-      "audio_check_time": 0.030040740966796875,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756841905.713155,
-      "lm_studio_response_time": 7.469892501831055,
-      "llm_completion_time": 507.92789459228516,
-      "tts_response_time": 182.0223331451416,
-      "stt_response_time": 338.62781524658203,
-      "audio_check_time": 0.030279159545898438,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842815.040917,
-      "lm_studio_response_time": 5.4950714111328125,
-      "llm_completion_time": 572.0419883728027,
-      "tts_response_time": 190.60492515563965,
-      "stt_response_time": 358.54387283325195,
-      "audio_check_time": 0.03910064697265625,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842826.0358021,
-      "lm_studio_response_time": 3.916025161743164,
-      "llm_completion_time": 410.9539985656738,
-      "tts_response_time": 151.0636806488037,
-      "stt_response_time": 351.04990005493164,
-      "audio_check_time": 0.03600120544433594,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842837.019275,
-      "lm_studio_response_time": 7.797002792358398,
-      "llm_completion_time": 410.520076751709,
-      "tts_response_time": 156.92400932312012,
-      "stt_response_time": 339.42508697509766,
-      "audio_check_time": 0.031948089599609375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842848.003028,
-      "lm_studio_response_time": 6.963968276977539,
-      "llm_completion_time": 416.9619083404541,
-      "tts_response_time": 151.93986892700195,
-      "stt_response_time": 339.7209644317627,
-      "audio_check_time": 0.033855438232421875,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842859.162752,
-      "lm_studio_response_time": 9.053945541381836,
-      "llm_completion_time": 577.7978897094727,
-      "tts_response_time": 165.52281379699707,
-      "stt_response_time": 338.670015335083,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842870.34816,
-      "lm_studio_response_time": 6.069183349609375,
-      "llm_completion_time": 574.3203163146973,
-      "tts_response_time": 192.5508975982666,
-      "stt_response_time": 339.21289443969727,
-      "audio_check_time": 0.03314018249511719,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842881.402555,
-      "lm_studio_response_time": 5.551815032958984,
-      "llm_completion_time": 469.146728515625,
-      "tts_response_time": 165.89999198913574,
-      "stt_response_time": 348.4468460083008,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756842892.3908749,
-      "lm_studio_response_time": 9.37795639038086,
-      "llm_completion_time": 381.6688060760498,
-      "tts_response_time": 170.61805725097656,
-      "stt_response_time": 348.01721572875977,
-      "audio_check_time": 0.03218650817871094,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756843802.8058949,
-      "lm_studio_response_time": 3.1409263610839844,
-      "llm_completion_time": 933.3429336547852,
-      "tts_response_time": 182.98888206481934,
-      "stt_response_time": 454.84304428100586,
-      "audio_check_time": 0.047206878662109375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756843813.8241978,
-      "lm_studio_response_time": 4.828929901123047,
-      "llm_completion_time": 420.6106662750244,
-      "tts_response_time": 183.28499794006348,
-      "stt_response_time": 346.35090827941895,
-      "audio_check_time": 0.03314018249511719,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756843824.8316422,
-      "lm_studio_response_time": 9.395837783813477,
-      "llm_completion_time": 424.03721809387207,
-      "tts_response_time": 168.9300537109375,
-      "stt_response_time": 344.04683113098145,
-      "audio_check_time": 0.03790855407714844,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756843835.828136,
-      "lm_studio_response_time": 7.836818695068359,
-      "llm_completion_time": 413.5317802429199,
-      "tts_response_time": 163.98119926452637,
-      "stt_response_time": 340.3210639953613,
-      "audio_check_time": 0.030040740966796875,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844591.851487,
-      "lm_studio_response_time": 3.133058547973633,
-      "llm_completion_time": 808.8240623474121,
-      "tts_response_time": 1900.1107215881348,
-      "stt_response_time": 339.46824073791504,
+      "timestamp": 1756847185.4433331,
+      "lm_studio_response_time": 7.797956466674805,
+      "llm_completion_time": 584.7752094268799,
+      "tts_response_time": 159.5132350921631,
+      "stt_response_time": 360.076904296875,
       "audio_check_time": 0.03409385681152344,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -362,65 +20,11 @@
       }
     },
     {
-      "timestamp": 1756844602.8744278,
-      "lm_studio_response_time": 11.837959289550781,
-      "llm_completion_time": 410.13288497924805,
-      "tts_response_time": 188.97104263305664,
-      "stt_response_time": 344.9826240539551,
-      "audio_check_time": 0.03218650817871094,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844614.034474,
-      "lm_studio_response_time": 6.880998611450195,
-      "llm_completion_time": 450.5631923675537,
-      "tts_response_time": 261.16085052490234,
-      "stt_response_time": 342.1320915222168,
-      "audio_check_time": 0.05507469177246094,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844625.022279,
-      "lm_studio_response_time": 14.077901840209961,
-      "llm_completion_time": 395.42675018310547,
-      "tts_response_time": 173.55918884277344,
-      "stt_response_time": 333.62293243408203,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844635.968815,
-      "lm_studio_response_time": 4.915952682495117,
-      "llm_completion_time": 389.8322582244873,
-      "tts_response_time": 138.9153003692627,
-      "stt_response_time": 353.61289978027344,
+      "timestamp": 1756847196.42728,
+      "lm_studio_response_time": 8.571147918701172,
+      "llm_completion_time": 405.6730270385742,
+      "tts_response_time": 158.75482559204102,
+      "stt_response_time": 351.24802589416504,
       "audio_check_time": 0.029087066650390625,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -434,47 +38,11 @@
       }
     },
     {
-      "timestamp": 1756844646.951935,
-      "lm_studio_response_time": 3.582000732421875,
-      "llm_completion_time": 405.00926971435547,
-      "tts_response_time": 160.28380393981934,
-      "stt_response_time": 350.99196434020996,
-      "audio_check_time": 0.03409385681152344,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844657.9686852,
-      "lm_studio_response_time": 4.480838775634766,
-      "llm_completion_time": 433.77685546875,
-      "tts_response_time": 163.4080410003662,
-      "stt_response_time": 350.7390022277832,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844668.934616,
-      "lm_studio_response_time": 2.819061279296875,
-      "llm_completion_time": 406.2469005584717,
-      "tts_response_time": 151.69000625610352,
-      "stt_response_time": 342.9999351501465,
+      "timestamp": 1756847207.687083,
+      "lm_studio_response_time": 2.043008804321289,
+      "llm_completion_time": 694.0338611602783,
+      "tts_response_time": 140.12908935546875,
+      "stt_response_time": 371.66690826416016,
       "audio_check_time": 0.030040740966796875,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -488,227 +56,11 @@
       }
     },
     {
-      "timestamp": 1756844679.928101,
-      "lm_studio_response_time": 6.690025329589844,
-      "llm_completion_time": 418.0421829223633,
-      "tts_response_time": 159.44409370422363,
-      "stt_response_time": 341.65096282958984,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844690.9292731,
-      "lm_studio_response_time": 4.9343109130859375,
-      "llm_completion_time": 417.0680046081543,
-      "tts_response_time": 164.2460823059082,
-      "stt_response_time": 347.46694564819336,
-      "audio_check_time": 0.03790855407714844,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844702.13093,
-      "lm_studio_response_time": 8.565902709960938,
-      "llm_completion_time": 578.1128406524658,
-      "tts_response_time": 195.29485702514648,
-      "stt_response_time": 350.22997856140137,
-      "audio_check_time": 0.03719329833984375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844713.1411278,
-      "lm_studio_response_time": 6.912946701049805,
-      "llm_completion_time": 412.1699333190918,
-      "tts_response_time": 164.0911102294922,
-      "stt_response_time": 352.80680656433105,
-      "audio_check_time": 0.03910064697265625,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844724.136148,
-      "lm_studio_response_time": 8.057832717895508,
-      "llm_completion_time": 410.5219841003418,
-      "tts_response_time": 160.6760025024414,
-      "stt_response_time": 346.55094146728516,
-      "audio_check_time": 0.031948089599609375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844735.143852,
-      "lm_studio_response_time": 9.407997131347656,
-      "llm_completion_time": 428.96223068237305,
-      "tts_response_time": 164.1709804534912,
-      "stt_response_time": 341.7189121246338,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844746.199112,
-      "lm_studio_response_time": 9.453058242797852,
-      "llm_completion_time": 455.1560878753662,
-      "tts_response_time": 186.24377250671387,
-      "stt_response_time": 343.0609703063965,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844757.298966,
-      "lm_studio_response_time": 8.59522819519043,
-      "llm_completion_time": 521.752119064331,
-      "tts_response_time": 167.78898239135742,
-      "stt_response_time": 341.80283546447754,
-      "audio_check_time": 0.03504753112792969,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844768.312203,
-      "lm_studio_response_time": 9.329795837402344,
-      "llm_completion_time": 421.4961528778076,
-      "tts_response_time": 173.5239028930664,
-      "stt_response_time": 348.71983528137207,
-      "audio_check_time": 0.030994415283203125,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844779.30448,
-      "lm_studio_response_time": 7.298946380615234,
-      "llm_completion_time": 401.1812210083008,
-      "tts_response_time": 176.47719383239746,
-      "stt_response_time": 344.6469306945801,
-      "audio_check_time": 0.031948089599609375,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844790.313577,
-      "lm_studio_response_time": 5.875825881958008,
-      "llm_completion_time": 408.9968204498291,
-      "tts_response_time": 166.69392585754395,
-      "stt_response_time": 357.36083984375,
-      "audio_check_time": 0.0457763671875,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844801.288554,
-      "lm_studio_response_time": 5.449771881103516,
-      "llm_completion_time": 409.88779067993164,
-      "tts_response_time": 146.2411880493164,
-      "stt_response_time": 344.9280261993408,
-      "audio_check_time": 0.03409385681152344,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844812.273886,
-      "lm_studio_response_time": 8.024930953979492,
-      "llm_completion_time": 407.31287002563477,
-      "tts_response_time": 166.49699211120605,
-      "stt_response_time": 343.6248302459717,
+      "timestamp": 1756847218.6289768,
+      "lm_studio_response_time": 4.233121871948242,
+      "llm_completion_time": 387.59684562683105,
+      "tts_response_time": 144.29593086242676,
+      "stt_response_time": 346.00114822387695,
       "audio_check_time": 0.029802322387695312,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -722,12 +74,12 @@
       }
     },
     {
-      "timestamp": 1756844823.273414,
-      "lm_studio_response_time": 12.52293586730957,
-      "llm_completion_time": 420.443058013916,
-      "tts_response_time": 159.83319282531738,
-      "stt_response_time": 344.3160057067871,
-      "audio_check_time": 0.03409385681152344,
+      "timestamp": 1756847229.781802,
+      "lm_studio_response_time": 2.8960704803466797,
+      "llm_completion_time": 562.3428821563721,
+      "tts_response_time": 173.66909980773926,
+      "stt_response_time": 347.9931354522705,
+      "audio_check_time": 0.030040740966796875,
       "total_requests": 0,
       "cache_hit_rate": 0,
       "system_health": "HEALTHY",
@@ -740,12 +92,12 @@
       }
     },
     {
-      "timestamp": 1756844834.256945,
-      "lm_studio_response_time": 6.638765335083008,
-      "llm_completion_time": 401.6871452331543,
-      "tts_response_time": 153.50675582885742,
-      "stt_response_time": 352.1757125854492,
-      "audio_check_time": 0.034809112548828125,
+      "timestamp": 1756847240.752128,
+      "lm_studio_response_time": 5.759000778198242,
+      "llm_completion_time": 404.0486812591553,
+      "tts_response_time": 150.60925483703613,
+      "stt_response_time": 350.2540588378906,
+      "audio_check_time": 0.03170967102050781,
       "total_requests": 0,
       "cache_hit_rate": 0,
       "system_health": "HEALTHY",
@@ -758,47 +110,11 @@
       }
     },
     {
-      "timestamp": 1756844845.25034,
-      "lm_studio_response_time": 4.527091979980469,
-      "llm_completion_time": 406.2628746032715,
-      "tts_response_time": 153.74207496643066,
-      "stt_response_time": 364.2401695251465,
-      "audio_check_time": 0.03790855407714844,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844856.277743,
-      "lm_studio_response_time": 5.420207977294922,
-      "llm_completion_time": 446.2592601776123,
-      "tts_response_time": 158.9958667755127,
-      "stt_response_time": 355.0419807434082,
-      "audio_check_time": 0.03409385681152344,
-      "total_requests": 0,
-      "cache_hit_rate": 0,
-      "system_health": "HEALTHY",
-      "component_statuses": {
-        "LM Studio": "HEALTHY",
-        "TTS": "HEALTHY",
-        "STT": "HEALTHY",
-        "Audio Devices": "HEALTHY",
-        "LLM Completion": "HEALTHY"
-      }
-    },
-    {
-      "timestamp": 1756844867.256454,
-      "lm_studio_response_time": 10.08915901184082,
-      "llm_completion_time": 403.72300148010254,
-      "tts_response_time": 153.24711799621582,
-      "stt_response_time": 348.1318950653076,
+      "timestamp": 1756847251.7434392,
+      "lm_studio_response_time": 6.9026947021484375,
+      "llm_completion_time": 386.8849277496338,
+      "tts_response_time": 180.79590797424316,
+      "stt_response_time": 350.36611557006836,
       "audio_check_time": 0.033855438232421875,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -812,11 +128,353 @@
       }
     },
     {
-      "timestamp": 1756844878.236038,
-      "lm_studio_response_time": 5.86390495300293,
-      "llm_completion_time": 405.9336185455322,
-      "tts_response_time": 166.1829948425293,
-      "stt_response_time": 343.17898750305176,
+      "timestamp": 1756847262.730027,
+      "lm_studio_response_time": 10.190010070800781,
+      "llm_completion_time": 408.5700511932373,
+      "tts_response_time": 152.05788612365723,
+      "stt_response_time": 353.6829948425293,
+      "audio_check_time": 0.030040740966796875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847273.754637,
+      "lm_studio_response_time": 6.571054458618164,
+      "llm_completion_time": 436.04516983032227,
+      "tts_response_time": 163.5110378265381,
+      "stt_response_time": 355.1340103149414,
+      "audio_check_time": 0.031948089599609375,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847284.766037,
+      "lm_studio_response_time": 5.759239196777344,
+      "llm_completion_time": 411.3011360168457,
+      "tts_response_time": 174.09205436706543,
+      "stt_response_time": 352.25391387939453,
+      "audio_check_time": 0.03790855407714844,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847295.777477,
+      "lm_studio_response_time": 9.960174560546875,
+      "llm_completion_time": 406.10313415527344,
+      "tts_response_time": 181.09798431396484,
+      "stt_response_time": 349.8821258544922,
+      "audio_check_time": 0.027894973754882812,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847306.764273,
+      "lm_studio_response_time": 5.378961563110352,
+      "llm_completion_time": 401.02410316467285,
+      "tts_response_time": 156.94689750671387,
+      "stt_response_time": 356.97102546691895,
+      "audio_check_time": 0.03314018249511719,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847317.7742789,
+      "lm_studio_response_time": 8.97979736328125,
+      "llm_completion_time": 403.60283851623535,
+      "tts_response_time": 180.91702461242676,
+      "stt_response_time": 350.48985481262207,
+      "audio_check_time": 0.029802322387695312,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847328.774297,
+      "lm_studio_response_time": 3.0798912048339844,
+      "llm_completion_time": 422.76501655578613,
+      "tts_response_time": 148.6339569091797,
+      "stt_response_time": 373.60095977783203,
+      "audio_check_time": 0.03790855407714844,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847339.905237,
+      "lm_studio_response_time": 9.328842163085938,
+      "llm_completion_time": 508.32486152648926,
+      "tts_response_time": 193.60995292663574,
+      "stt_response_time": 351.9461154937744,
+      "audio_check_time": 0.031232833862304688,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847350.883677,
+      "lm_studio_response_time": 10.935068130493164,
+      "llm_completion_time": 407.4058532714844,
+      "tts_response_time": 168.29276084899902,
+      "stt_response_time": 339.92505073547363,
+      "audio_check_time": 0.030040740966796875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847361.930175,
+      "lm_studio_response_time": 4.8770904541015625,
+      "llm_completion_time": 435.0399971008301,
+      "tts_response_time": 187.87598609924316,
+      "stt_response_time": 350.53086280822754,
+      "audio_check_time": 0.027894973754882812,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847372.990866,
+      "lm_studio_response_time": 10.249137878417969,
+      "llm_completion_time": 473.97899627685547,
+      "tts_response_time": 164.84618186950684,
+      "stt_response_time": 348.9341735839844,
+      "audio_check_time": 0.029087066650390625,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847384.006964,
+      "lm_studio_response_time": 8.077859878540039,
+      "llm_completion_time": 406.4459800720215,
+      "tts_response_time": 183.26497077941895,
+      "stt_response_time": 349.98416900634766,
+      "audio_check_time": 0.03314018249511719,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847395.029331,
+      "lm_studio_response_time": 4.873991012573242,
+      "llm_completion_time": 413.851261138916,
+      "tts_response_time": 179.10099029541016,
+      "stt_response_time": 355.59701919555664,
+      "audio_check_time": 0.030755996704101562,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847405.986042,
+      "lm_studio_response_time": 3.548145294189453,
+      "llm_completion_time": 406.83913230895996,
+      "tts_response_time": 136.091947555542,
+      "stt_response_time": 351.5188694000244,
+      "audio_check_time": 0.027894973754882812,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847418.4064472,
+      "lm_studio_response_time": 4.302024841308594,
+      "llm_completion_time": 1818.9451694488525,
+      "tts_response_time": 162.1689796447754,
+      "stt_response_time": 367.6190376281738,
+      "audio_check_time": 0.0438690185546875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847429.393402,
+      "lm_studio_response_time": 12.108087539672852,
+      "llm_completion_time": 404.3149948120117,
+      "tts_response_time": 156.494140625,
+      "stt_response_time": 353.61289978027344,
+      "audio_check_time": 0.03218650817871094,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847440.501143,
+      "lm_studio_response_time": 9.308815002441406,
+      "llm_completion_time": 519.6478366851807,
+      "tts_response_time": 161.03696823120117,
+      "stt_response_time": 356.22096061706543,
+      "audio_check_time": 0.029087066650390625,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847451.5082319,
+      "lm_studio_response_time": 4.353046417236328,
+      "llm_completion_time": 404.32190895080566,
+      "tts_response_time": 187.8349781036377,
+      "stt_response_time": 350.05903244018555,
+      "audio_check_time": 0.029802322387695312,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847462.487594,
+      "lm_studio_response_time": 9.222269058227539,
+      "llm_completion_time": 382.2510242462158,
+      "tts_response_time": 151.51214599609375,
+      "stt_response_time": 375.8120536804199,
+      "audio_check_time": 0.030279159545898438,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847473.5095649,
+      "lm_studio_response_time": 7.774114608764648,
+      "llm_completion_time": 385.70213317871094,
+      "tts_response_time": 194.74005699157715,
+      "stt_response_time": 374.5138645172119,
       "audio_check_time": 0.030994415283203125,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -830,12 +488,12 @@
       }
     },
     {
-      "timestamp": 1756844889.235015,
-      "lm_studio_response_time": 8.882284164428711,
-      "llm_completion_time": 415.01903533935547,
-      "tts_response_time": 158.9949131011963,
-      "stt_response_time": 353.00612449645996,
-      "audio_check_time": 0.035762786865234375,
+      "timestamp": 1756847484.4795258,
+      "lm_studio_response_time": 3.217935562133789,
+      "llm_completion_time": 409.348726272583,
+      "tts_response_time": 146.22020721435547,
+      "stt_response_time": 350.0170707702637,
+      "audio_check_time": 0.029087066650390625,
       "total_requests": 0,
       "cache_hit_rate": 0,
       "system_health": "HEALTHY",
@@ -848,11 +506,299 @@
       }
     },
     {
-      "timestamp": 1756844900.231051,
-      "lm_studio_response_time": 10.11204719543457,
-      "llm_completion_time": 416.4929389953613,
-      "tts_response_time": 161.66114807128906,
-      "stt_response_time": 344.26021575927734,
+      "timestamp": 1756847495.558698,
+      "lm_studio_response_time": 9.775876998901367,
+      "llm_completion_time": 463.1938934326172,
+      "tts_response_time": 181.17904663085938,
+      "stt_response_time": 353.87372970581055,
+      "audio_check_time": 0.036716461181640625,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847506.5482318,
+      "lm_studio_response_time": 7.447004318237305,
+      "llm_completion_time": 398.26202392578125,
+      "tts_response_time": 171.62203788757324,
+      "stt_response_time": 352.02908515930176,
+      "audio_check_time": 0.030994415283203125,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847517.66665,
+      "lm_studio_response_time": 4.395008087158203,
+      "llm_completion_time": 510.81299781799316,
+      "tts_response_time": 179.62908744812012,
+      "stt_response_time": 359.5242500305176,
+      "audio_check_time": 0.031948089599609375,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847528.842357,
+      "lm_studio_response_time": 4.87971305847168,
+      "llm_completion_time": 421.12088203430176,
+      "tts_response_time": 330.8260440826416,
+      "stt_response_time": 349.69401359558105,
+      "audio_check_time": 0.027894973754882812,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847539.822028,
+      "lm_studio_response_time": 5.310773849487305,
+      "llm_completion_time": 402.1410942077637,
+      "tts_response_time": 158.2958698272705,
+      "stt_response_time": 348.77538681030273,
+      "audio_check_time": 0.030994415283203125,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847550.911996,
+      "lm_studio_response_time": 7.447004318237305,
+      "llm_completion_time": 400.8898735046387,
+      "tts_response_time": 245.27788162231445,
+      "stt_response_time": 351.3190746307373,
+      "audio_check_time": 0.03409385681152344,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847561.9101272,
+      "lm_studio_response_time": 11.811017990112305,
+      "llm_completion_time": 412.7652645111084,
+      "tts_response_time": 161.09609603881836,
+      "stt_response_time": 353.3821105957031,
+      "audio_check_time": 0.0438690185546875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847573.173564,
+      "lm_studio_response_time": 9.741067886352539,
+      "llm_completion_time": 434.3082904815674,
+      "tts_response_time": 420.24707794189453,
+      "stt_response_time": 343.7080383300781,
+      "audio_check_time": 0.030040740966796875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847584.124032,
+      "lm_studio_response_time": 2.6340484619140625,
+      "llm_completion_time": 376.82485580444336,
+      "tts_response_time": 149.61600303649902,
+      "stt_response_time": 365.7851219177246,
+      "audio_check_time": 0.030040740966796875,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847595.1261709,
+      "lm_studio_response_time": 10.526895523071289,
+      "llm_completion_time": 407.1459770202637,
+      "tts_response_time": 165.46392440795898,
+      "stt_response_time": 359.7147464752197,
+      "audio_check_time": 0.029802322387695312,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847606.173476,
+      "lm_studio_response_time": 6.54911994934082,
+      "llm_completion_time": 421.2031364440918,
+      "tts_response_time": 199.0818977355957,
+      "stt_response_time": 352.7202606201172,
+      "audio_check_time": 0.031948089599609375,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847617.1897779,
+      "lm_studio_response_time": 5.366802215576172,
+      "llm_completion_time": 407.1798324584961,
+      "tts_response_time": 186.66601181030273,
+      "stt_response_time": 353.0881404876709,
+      "audio_check_time": 0.028848648071289062,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847628.218306,
+      "lm_studio_response_time": 4.871129989624023,
+      "llm_completion_time": 405.28106689453125,
+      "tts_response_time": 202.70490646362305,
+      "stt_response_time": 351.40085220336914,
+      "audio_check_time": 0.06699562072753906,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847639.306889,
+      "lm_studio_response_time": 10.440826416015625,
+      "llm_completion_time": 402.630090713501,
+      "tts_response_time": 229.62212562561035,
+      "stt_response_time": 374.675989151001,
+      "audio_check_time": 0.027894973754882812,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847650.284811,
+      "lm_studio_response_time": 7.356166839599609,
+      "llm_completion_time": 403.0799865722656,
+      "tts_response_time": 162.0039939880371,
+      "stt_response_time": 346.2991714477539,
+      "audio_check_time": 0.030994415283203125,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847661.291285,
+      "lm_studio_response_time": 7.396936416625977,
+      "llm_completion_time": 409.14463996887207,
+      "tts_response_time": 173.50506782531738,
+      "stt_response_time": 350.5978584289551,
+      "audio_check_time": 0.028848648071289062,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847672.5100532,
+      "lm_studio_response_time": 7.730960845947266,
+      "llm_completion_time": 535.0127220153809,
+      "tts_response_time": 259.6781253814697,
+      "stt_response_time": 346.8899726867676,
       "audio_check_time": 0.032901763916015625,
       "total_requests": 0,
       "cache_hit_rate": 0,
@@ -866,12 +812,12 @@
       }
     },
     {
-      "timestamp": 1756844911.23524,
-      "lm_studio_response_time": 3.712892532348633,
-      "llm_completion_time": 409.31200981140137,
-      "tts_response_time": 169.27409172058105,
-      "stt_response_time": 353.9729118347168,
-      "audio_check_time": 0.03504753112792969,
+      "timestamp": 1756847683.5266151,
+      "lm_studio_response_time": 10.75601577758789,
+      "llm_completion_time": 398.4417915344238,
+      "tts_response_time": 190.45138359069824,
+      "stt_response_time": 349.4148254394531,
+      "audio_check_time": 0.03600120544433594,
       "total_requests": 0,
       "cache_hit_rate": 0,
       "system_health": "HEALTHY",
@@ -884,12 +830,66 @@
       }
     },
     {
-      "timestamp": 1756844922.194295,
-      "lm_studio_response_time": 7.426023483276367,
-      "llm_completion_time": 388.87786865234375,
-      "tts_response_time": 162.3530387878418,
-      "stt_response_time": 346.8437194824219,
-      "audio_check_time": 0.030994415283203125,
+      "timestamp": 1756847694.757186,
+      "lm_studio_response_time": 9.78708267211914,
+      "llm_completion_time": 402.6491641998291,
+      "tts_response_time": 398.47421646118164,
+      "stt_response_time": 353.2841205596924,
+      "audio_check_time": 0.034809112548828125,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847705.767974,
+      "lm_studio_response_time": 9.27591323852539,
+      "llm_completion_time": 413.2821559906006,
+      "tts_response_time": 167.48523712158203,
+      "stt_response_time": 353.1019687652588,
+      "audio_check_time": 0.0324249267578125,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847716.7735229,
+      "lm_studio_response_time": 6.406068801879883,
+      "llm_completion_time": 404.0789604187012,
+      "tts_response_time": 179.15105819702148,
+      "stt_response_time": 350.496768951416,
+      "audio_check_time": 0.03314018249511719,
+      "total_requests": 0,
+      "cache_hit_rate": 0,
+      "system_health": "HEALTHY",
+      "component_statuses": {
+        "LM Studio": "HEALTHY",
+        "TTS": "HEALTHY",
+        "STT": "HEALTHY",
+        "Audio Devices": "HEALTHY",
+        "LLM Completion": "HEALTHY"
+      }
+    },
+    {
+      "timestamp": 1756847727.783839,
+      "lm_studio_response_time": 4.496097564697266,
+      "llm_completion_time": 421.1158752441406,
+      "tts_response_time": 160.83192825317383,
+      "stt_response_time": 352.5998592376709,
+      "audio_check_time": 0.033855438232421875,
       "total_requests": 0,
       "cache_hit_rate": 0,
       "system_health": "HEALTHY",

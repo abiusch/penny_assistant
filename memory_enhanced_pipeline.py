@@ -16,6 +16,15 @@ sys.path.insert(0, os.path.dirname(__file__))
 from src.core.pipeline import PipelineLoop, State
 from memory_system import MemoryManager
 
+# Health monitor with safe fallback
+class NullHealthMonitor:
+    """Null object pattern for health monitor when unavailable."""
+    async def check_all_components(self):
+        return {
+            "status": "health_monitor_disabled",
+            "message": "Health monitoring temporarily disabled"
+        }
+
 
 class MemoryEnhancedPipeline(PipelineLoop):
     """Enhanced pipeline with conversation memory and context awareness."""
@@ -23,6 +32,16 @@ class MemoryEnhancedPipeline(PipelineLoop):
     def __init__(self):
         super().__init__()
         self.memory = MemoryManager()
+        
+        # Initialize health monitor with safe fallback
+        try:
+            from health_monitor import PennyGPTHealthMonitor
+            self.health_monitor = PennyGPTHealthMonitor()
+            print("🏥 Health monitor initialized")
+        except Exception as e:
+            self.health_monitor = NullHealthMonitor()
+            print(f"⚠️ Health monitor disabled: {e}")
+        
         print("🧠 Memory-enhanced pipeline initialized")
     
     def think(self, user_text: str) -> str:

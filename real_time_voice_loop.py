@@ -283,8 +283,22 @@ class RealTimeVoiceAssistant:
         # Check system health first
         print("🏥 Running system health check...")
         try:
-            # FIX: Skip health monitor check that was causing AttributeError
-            print("✅ Health check skipped (health monitor not configured)")
+            health_stats = await self.pipeline.health_monitor.check_all_components()
+            
+            if isinstance(health_stats, dict) and health_stats.get("status") == "health_monitor_disabled":
+                print("✅ Health check skipped (health monitor not configured)")
+            else:
+                healthy_count = sum(1 for h in health_stats.values() 
+                                  if hasattr(h, 'status') and h.status.name == 'HEALTHY')
+                total_count = len(health_stats)
+                
+                if healthy_count == total_count:
+                    print(f"✅ All systems healthy ({healthy_count}/{total_count})")
+                else:
+                    print(f"⚠️ System status: {healthy_count}/{total_count} components healthy")
+                    for name, health in health_stats.items():
+                        if hasattr(health, 'status') and health.status.name != 'HEALTHY':
+                            print(f"   ❌ {name}: {health.status.name}")
         except Exception as e:
             print(f"⚠️ Health check failed: {e}")
         

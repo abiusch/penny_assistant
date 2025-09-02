@@ -23,87 +23,83 @@ Voice assistant with working pipeline: Audio → Whisper → Ollama → gTTS →
 Repository: https://github.com/abiusch/penny_assistant
 Working script: `penny_with_tts.py` (run with `PYTHONPATH=src python penny_with_tts.py`)
 
-## Priority 1: Wake Word Detection
-**Goal**: Implement "Hey Penny" or "Penny" wake word to trigger listening
+## 🎯 UPDATED PRIORITIES (Post Voice Assistant Completion)
 
-### Task 1.1: Create Wake Word Detector
-- [ ] Create `src/core/wake_word.py`
-- [ ] Implement simple keyword detection in transcribed text
-- [ ] Check for variations: "hey penny", "penny", "ok penny"
-- [ ] Return boolean for wake word detected
+### **🎯 Priority 1: Performance & Reliability Monitoring** - ⏸️ IN PROGRESS
+**Goal**: Add logging and monitoring for optimization
 
-### Task 1.2: Add Continuous Listening Mode
-- [ ] Create `penny_wake_word.py` based on `penny_with_tts.py`
-- [ ] Implement continuous audio monitoring loop
-- [ ] Only process commands after wake word detected
-- [ ] Add timeout after wake word (e.g., 5 seconds to give command)
+#### Task 1.1: Add Performance Logging
+- [ ] Create `performance_logger.py` with CSV output
+- [ ] Log per-stage timings: VAD/STT/LLM/TTS + cache hit rates
+- [ ] Add to `real_time_voice_loop.py` conversation flow
+- [ ] Generate simple performance reports
 
-### Task 1.3: Test Wake Word
-- [ ] Create `tests/test_wake_word.py`
-- [ ] Test detection of various wake word formats
-- [ ] Test rejection of non-wake-word audio
-- [ ] Verify timeout behavior
+#### Task 1.2: Wake-word Hardening
+- [ ] Add debounce window to prevent false triggers
+- [ ] Implement confidence threshold for wake word detection
+- [ ] Unit tests for wake word edge cases and near-matches
+- [ ] Test noise resilience
 
-## Priority 2: Conversation Memory
-**Goal**: Maintain context between interactions
+#### Task 1.3: TTS Resilience Testing
+- [ ] Test backend failure scenarios (Google TTS down, etc.)
+- [ ] Verify barge-in behavior unchanged
+- [ ] Add graceful fallback logging
+- [ ] Benchmark cold-start vs warmed phrase performance
 
-### Task 2.1: Create Memory Manager
-- [ ] Create `src/core/memory.py`
-- [ ] Implement conversation history storage (in-memory for now)
-- [ ] Store last N exchanges (user input + assistant response)
-- [ ] Add method to format history for LLM context
-
-### Task 2.2: Integrate Memory with LLM
-- [ ] Modify `src/adapters/llm/local_ollama_adapter.py`
-- [ ] Include conversation history in prompts
-- [ ] Add system prompt for context awareness
-- [ ] Test context retention across multiple interactions
-
-### Task 2.3: Add Memory Persistence (Optional)
-- [ ] Save conversation history to JSON file
-- [ ] Load previous session on startup
-- [ ] Add command to clear memory ("forget everything")
-
-## Priority 3: Response Optimization
-**Goal**: Make responses appropriate for voice interaction
-
-### Task 3.1: Add System Prompts
-- [ ] Create `src/core/prompts.py`
-- [ ] Define voice-optimized system prompt (keep responses under 2 sentences)
-- [ ] Add personality traits from `penny_config.json`
-- [ ] Include current date/time context
-
-### Task 3.2: Implement Prompt Templates
-- [ ] Modify LLM adapters to use system prompts
-- [ ] Add prompt template for different modes (casual, informative, joke)
-- [ ] Test response length and appropriateness
-
-## Priority 4: Pipeline Unification
+### **🎯 Priority 2: Pipeline Unification** - ⚠️ PARTIALLY COMPLETE
 **Goal**: Use the existing `PipelineLoop` class instead of separate scripts
 
-### Task 4.1: Fix PipelineLoop Integration
-- [ ] Update `src/core/pipeline.py` to use correct device settings
-- [ ] Ensure TTS is properly connected in pipeline
-- [ ] Add wake word support to pipeline states
-
-### Task 4.2: Create Unified Entry Point
-- [ ] Create `main.py` that uses PipelineLoop
+#### Task 2.1: Create Unified Entry Point
+- [x] Real-time voice loop working (`real_time_voice_loop.py`)
+- [ ] Create unified `main.py` that uses PipelineLoop 
 - [ ] Add command-line arguments for different modes
 - [ ] Support both continuous and single-interaction modes
 
-## Priority 5: Keyboard Shortcuts (macOS)
-**Goal**: Enable spacebar triggering without Enter key
+#### Task 2.2: Config & Preset Profiles
+- [ ] Document speaking_rate/WPM mapping in config
+- [ ] Add preset profiles: quiet room / noisy / accuracy-first
+- [ ] Create environment-specific optimizations
 
-### Task 5.1: Document macOS Setup
-- [ ] Create `docs/MACOS_SETUP.md`
+### **🎯 Priority 3: Production Packaging** - ⏸️ NOT STARTED
+**Goal**: Prepare for real-world deployment
+
+#### Task 3.1: macOS Integration
+- [ ] Create `docs/MACOS_SETUP.md` with permissions setup
 - [ ] Document Terminal accessibility permissions
-- [ ] Include screenshots of System Settings steps
-- [ ] Add troubleshooting section
+- [ ] Add troubleshooting section for audio permissions
 
-### Task 5.2: Implement Keyboard Handler
-- [ ] Update `penny.py` with proper keyboard monitoring
-- [ ] Add fallback for when permissions denied
-- [ ] Test with both spacebar and Enter key options
+#### Task 3.2: Deployment Preparation  
+- [ ] Outline menu-bar app/daemon architecture
+- [ ] Process model for background operation
+- [ ] Graceful start/stop mechanisms
+
+---
+
+## 🏆 COMPLETED PRIORITIES
+
+### **✅ Priority 1: Wake Word Detection** - COMPLETE
+- [x] Continuous listening mode working
+- [x] Wake word variations implemented ("hey penny", "penny", "ok penny")
+- [x] Timeout behavior functional
+- [x] Command extraction working properly
+
+### **✅ Priority 2: Conversation Memory** - COMPLETE
+- [x] Memory manager operational (14 conversations stored)
+- [x] Context integration with LLM working
+- [x] User preference learning active (5 preferences)
+- [x] Memory persistence and retrieval
+
+### **✅ Priority 3: Response Optimization** - COMPLETE
+- [x] Voice-optimized responses implemented
+- [x] Natural conversation flow achieved  
+- [x] Speech rate properly configured (150 WPM)
+- [x] Personality integration working
+
+### **✅ Priority 4: Health Monitoring** - COMPLETE
+- [x] Health monitor integration fixed
+- [x] Null object pattern for safe fallback
+- [x] No more AttributeError crashes on startup
+- [x] Graceful degradation when health monitor unavailable
 
 ## Testing Requirements
 For each implemented feature:

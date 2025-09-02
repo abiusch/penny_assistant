@@ -18,7 +18,7 @@
         "type": "google",
         "streaming": true,
         "voice": "en-US-Wavenet-D",
-        "speaking_rate": 1.2,
+        "speaking_rate": 0.75,
         "cache_enabled": true,
         "preload_common_phrases": true,
         "backends": [

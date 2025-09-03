@@ -28,11 +28,13 @@ Working script: `penny_with_tts.py` (run with `PYTHONPATH=src python penny_with_
 ### **🎯 Priority 1: Performance & Reliability Monitoring** - ⏸️ IN PROGRESS
 **Goal**: Add logging and monitoring for optimization
 
-#### Task 1.1: Add Performance Logging
-- [ ] Create `performance_logger.py` with CSV output
-- [ ] Log per-stage timings: VAD/STT/LLM/TTS + cache hit rates
-- [ ] Add to `real_time_voice_loop.py` conversation flow
-- [ ] Generate simple performance reports
+#### Task 1.1: Add Performance Logging - ✅ COMPLETE
+- [x] Create `performance_logger.py` with CSV output
+- [x] Log per-stage timings: VAD/STT/LLM/TTS + cache hit rates
+- [x] Add to `real_time_voice_loop.py` conversation flow
+- [x] Generate simple performance reports
+- [x] Real-time performance display during conversations
+- [x] Session summaries with averages and cache hit rates
 
 #### Task 1.2: Wake-word Hardening
 - [ ] Add debounce window to prevent false triggers

@@ -3,6 +3,14 @@
 ## 🎉 CURRENT STATUS: FULLY FUNCTIONAL VOICE ASSISTANT ✅
 **Last Updated: September 2, 2025**
 
+### **PROJECT VISION EVOLUTION** 🧠
+**PennyGPT is not a smart home assistant - it's a conversational AI companion designed to:**
+- Build a loyal, learning relationship with the user
+- Develop emotional intelligence through guided conversations
+- Learn family dynamics and personal context with permission
+- Engage in philosophical discussions while growing together
+- Combine Penny (Big Bang Theory) sass with Justine AI (Why Him?) tech-savvy personality
+
 ### **MAJOR BREAKTHROUGH COMPLETED TODAY**
 ✅ **Real-time voice assistant is now 100% operational** - Full conversation pipeline working end-to-end
 
@@ -24,10 +32,51 @@ Voice assistant with working pipeline: Audio → Whisper → Ollama → gTTS →
 Repository: https://github.com/abiusch/penny_assistant
 Working script: `penny_with_tts.py` (run with `PYTHONPATH=src python penny_with_tts.py`)
 
-## 🎯 UPDATED PRIORITIES (Post Voice Assistant Completion)
+## 🎯 UPDATED PRIORITIES (AI Companion Development)
 
-### **🎯 Priority 1: Performance & Reliability Monitoring** - ⏸️ IN PROGRESS
-**Goal**: Add logging and monitoring for optimization
+### **🎯 Priority 1: Emotional Intelligence & Learning System** - ⏸️ NEW PRIORITY
+**Goal**: Transform from voice assistant to AI companion with personality and emotional growth
+
+#### Task 1.1: Enhanced Memory & Emotional Context System
+- [ ] Expand memory system beyond conversation logs to emotional memory
+- [ ] Track user mood patterns, stress indicators, conversation preferences
+- [ ] Family/relationship mapping system (names, relationships, dynamics)
+- [ ] Value alignment learning (user's ethical framework, beliefs)
+- [ ] Learning preference tracking (detailed vs. brief explanations, humor style)
+
+#### Task 1.2: Personality Integration & Sass System
+- [ ] Implement Penny (Big Bang Theory) personality traits in responses
+- [ ] Add Justine AI (Why Him?) tech-savvy commentary system
+- [ ] Sarcasm and wit integration with warmth boundaries
+- [ ] Proactive engagement - jumping in with unsolicited commentary
+- [ ] Context-aware personality adjustments based on topic/mood
+
+#### Task 1.3: Conversational Flow & Relationship Building
+- [ ] Conversation state management (engaged vs. waiting for wake word)
+- [ ] Follow-up question handling without wake word requirement
+- [ ] Reference previous conversations naturally ("Like we talked about yesterday...")
+- [ ] Philosophical discussion capability with growing depth
+- [ ] Permission-based learning system ("Can I research X for you?")
+
+### **🎯 Priority 2: Advanced Companion Features** - ⏸️ NOT STARTED
+**Goal**: Autonomous learning and proactive engagement capabilities
+
+#### Task 2.1: Guided Learning & Reasoning System
+- [ ] Permission-based research and exploration
+- [ ] Learning from user corrections and guidance
+- [ ] Curiosity system with appropriate boundaries
+- [ ] Knowledge building about user's specific world/context
+- [ ] Ethical reasoning development through conversation
+
+#### Task 2.2: Family & Social Integration
+- [ ] Multi-user recognition and context switching
+- [ ] Family member profiles and relationship understanding
+- [ ] Inside joke and shared memory systems
+- [ ] Privacy boundaries per family member
+- [ ] Social dynamic awareness and appropriate responses
+
+### **🎯 Priority 3: Performance & Production (Technical Foundation)** - ⚠️ PARTIALLY COMPLETE
+**Goal**: Maintain technical excellence while building companion features
 
 #### Task 1.1: Add Performance Logging - ✅ COMPLETE
 - [x] Create `performance_logger.py` with CSV output
@@ -37,33 +86,19 @@ Working script: `penny_with_tts.py` (run with `PYTHONPATH=src python penny_with_
 - [x] Real-time performance display during conversations
 - [x] Session summaries with averages and cache hit rates
 
-#### Task 1.2: Wake-word Hardening
-- [ ] Add debounce window to prevent false triggers
-- [ ] Implement confidence threshold for wake word detection
-- [ ] Unit tests for wake word edge cases and near-matches
-- [ ] Test noise resilience
+#### Task 3.2: Wake-word & Conversation Flow (AI Companion Context)
+- [ ] Conversation state management for natural flow
+- [ ] Context window management (when to stay engaged vs. require wake word)
+- [ ] Natural conversation boundary detection
+- [ ] Follow-up question handling without wake word
 
-#### Task 1.3: TTS Resilience Testing
+#### Task 3.3: TTS Resilience & Production Polish
 - [ ] Test backend failure scenarios (Google TTS down, etc.)
 - [ ] Verify barge-in behavior unchanged
 - [ ] Add graceful fallback logging
 - [ ] Benchmark cold-start vs warmed phrase performance
 
-### **🎯 Priority 2: Pipeline Unification** - ⚠️ PARTIALLY COMPLETE
-**Goal**: Use the existing `PipelineLoop` class instead of separate scripts
-
-#### Task 2.1: Create Unified Entry Point
-- [x] Real-time voice loop working (`real_time_voice_loop.py`)
-- [ ] Create unified `main.py` that uses PipelineLoop 
-- [ ] Add command-line arguments for different modes
-- [ ] Support both continuous and single-interaction modes
-
-#### Task 2.2: Config & Preset Profiles
-- [ ] Document speaking_rate/WPM mapping in config
-- [ ] Add preset profiles: quiet room / noisy / accuracy-first
-- [ ] Create environment-specific optimizations
-
-### **🎯 Priority 3: Production Packaging** - ⏸️ NOT STARTED
+### **🎯 Priority 4: Standalone Application** - ⏸️ NOT STARTED
 **Goal**: Prepare for real-world deployment
 
 #### Task 3.1: macOS Integration

@@ -24,6 +24,7 @@ from src.core.pipeline import State
 from src.core.telemetry import Telemetry
 from src.core.wake_word import detect_wake_word, extract_command
 from stt_engine import transcribe_audio
+from performance_logger import PerformanceLogger, ConversationMetrics
 
 
 class RealTimeVoiceAssistant:
@@ -35,6 +36,7 @@ class RealTimeVoiceAssistant:
         # Core components
         self.pipeline = MemoryEnhancedPipeline()
         self.telemetry = Telemetry()
+        self.performance_logger = PerformanceLogger()
         
         # Audio configuration
         self.sample_rate = 16000  # 16kHz for Whisper
@@ -174,17 +176,37 @@ class RealTimeVoiceAssistant:
     
     async def handle_voice_input(self, audio_buffer: list):
         """Handle voice input through the complete pipeline."""
+        conversation_start = time.time()
+        metrics = {
+            'vad_time_ms': 0,  # VAD time tracked in process_audio_stream
+            'stt_time_ms': 0,
+            'llm_time_ms': 0, 
+            'tts_time_ms': 0,
+            'tts_cache_hit': False,
+            'memory_context_length': 0,
+            'user_input_length': 0,
+            'response_length': 0,
+            'wake_word_detected': False
+        }
+        
         try:
             # Step 1: Speech-to-Text
+            stt_start = time.time()
             user_text = self.process_audio_buffer(audio_buffer)
+            metrics['stt_time_ms'] = (time.time() - stt_start) * 1000
+            
             if not user_text:
                 return
+            
+            metrics['user_input_length'] = len(user_text)
             
             # Step 2: Wake word detection
             if not detect_wake_word(user_text):
                 print(f"💭 Ignoring (no wake word): '{user_text}'")
                 self.telemetry.log_event("wake_word_not_detected", {"text": user_text})
                 return
+            
+            metrics['wake_word_detected'] = True
             
             # Step 3: Extract command
             command = extract_command(user_text)
@@ -199,29 +221,41 @@ class RealTimeVoiceAssistant:
             
             # Step 4: Generate response with memory
             print("🤖 Thinking...")
-            start_time = time.time()
+            llm_start = time.time()
+            
+            # Get memory context length for metrics
+            memory_context = self.pipeline.memory.get_context_for_llm()
+            metrics['memory_context_length'] = len(memory_context) if memory_context else 0
             
             # Set pipeline state
             self.pipeline.state = State.THINKING
             response = self.pipeline.think(command)
             
-            think_time = (time.time() - start_time) * 1000
-            print(f"💭 Generated response in {think_time:.1f}ms")
+            metrics['llm_time_ms'] = (time.time() - llm_start) * 1000
+            print(f"💭 Generated response in {metrics['llm_time_ms']:.1f}ms")
             
             if response:
+                metrics['response_length'] = len(response)
                 print(f"🤖 PennyGPT: '{response}'")
                 
                 # Step 5: Text-to-Speech
                 print("🔊 Speaking response...")
+                tts_start = time.time()
                 self.pipeline.state = State.SPEAKING
+                
+                # Check if TTS has cache hit info (StreamingTTS adapter)
                 tts_success = self.pipeline.speak(response)
+                metrics['tts_time_ms'] = (time.time() - tts_start) * 1000
+                
+                # Try to detect cache hit (rough heuristic: very fast TTS = likely cached)
+                metrics['tts_cache_hit'] = metrics['tts_time_ms'] < 100  # Less than 100ms = likely cached
                 
                 if tts_success:
                     print("✅ Response spoken successfully")
                     self.telemetry.log_event("conversation_complete", {
                         "command_length": len(command),
                         "response_length": len(response),
-                        "think_time_ms": think_time
+                        "think_time_ms": metrics['llm_time_ms']
                     })
                 else:
                     print("❌ TTS failed")
@@ -233,6 +267,25 @@ class RealTimeVoiceAssistant:
             # Return to idle
             self.pipeline.state = State.IDLE
             print("😴 Ready for next command...")
+            
+            # Log performance metrics
+            total_time = (time.time() - conversation_start) * 1000
+            conversation_metrics = ConversationMetrics(
+                timestamp=conversation_start,
+                session_id="",  # Will be set by logger
+                vad_time_ms=metrics['vad_time_ms'],
+                stt_time_ms=metrics['stt_time_ms'],
+                llm_time_ms=metrics['llm_time_ms'],
+                memory_context_length=metrics['memory_context_length'],
+                tts_time_ms=metrics['tts_time_ms'],
+                tts_cache_hit=metrics['tts_cache_hit'],
+                user_input_length=metrics['user_input_length'],
+                response_length=metrics['response_length'],
+                wake_word_detected=metrics['wake_word_detected'],
+                total_time_ms=total_time
+            )
+            
+            self.performance_logger.log_conversation(conversation_metrics)
             
         except Exception as e:
             print(f"❌ Voice input handling error: {e}")
@@ -330,12 +383,20 @@ class RealTimeVoiceAssistant:
             self.running = False
             self.stop_audio_stream()
             
+            # End performance logging session
+            session_stats = self.performance_logger.end_session()
+            
             # Show final stats
             final_stats = self.pipeline.get_memory_stats()
             print(f"\n📊 Session Summary:")
             print(f"   💬 Conversations: {final_stats.get('total_conversation_turns', 0)}")
             print(f"   🧠 Memory: {final_stats.get('memory_db_size', 0)/1024:.1f}KB")
             print(f"   👤 Preferences: {final_stats.get('user_preferences', 0)}")
+            print(f"   ⏱️ Avg Response Time: {session_stats.get('avg_total_time', 0):.0f}ms")
+            print(f"   🏁 Cache Hit Rate: {session_stats.get('cache_hit_rate', 0):.1f}%")
+            
+            # Generate and show performance report
+            print(f"\n{self.performance_logger.generate_report()}")
             
             print("\n👋 PennyGPT stopped. Thanks for chatting!")
     

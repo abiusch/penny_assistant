@@ -44,7 +44,7 @@ def test_metrics_endpoints():
     
     # Check required metrics fields for both endpoints
     expected_fields = [
-        "requests", "speak_ok", "speak_fail", "tts_cache_hits",
+        "schema_version", "requests", "speak_ok", "speak_fail", "tts_cache_hits",
         "health_tick_count", "last_health_err", "last_latency_ms",
         "p50_ms", "p95_ms", "speak_success_rate", "total_speak_requests", "uptime_s"
     ]
@@ -53,7 +53,9 @@ def test_metrics_endpoints():
         assert field in data1, f"Missing field in /metrics: {field}"
         assert field in data2, f"Missing field in /api/metrics: {field}"
     
-    # Verify data types
+    # Verify data types and schema version
+    assert data1["schema_version"] == 1, "Schema version should be 1"
+    assert data2["schema_version"] == 1, "Schema version should be 1"
     assert isinstance(data1["requests"], int)
     assert isinstance(data1["speak_success_rate"], float)
     assert isinstance(data1["uptime_s"], (int, float))

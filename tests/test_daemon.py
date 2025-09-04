@@ -29,3 +29,35 @@ def test_speak_contract():
     assert r.status_code == 200
     data = r.json()
     assert "ok" in data
+
+
+def test_metrics_endpoints():
+    # Test both /metrics and /api/metrics
+    r1 = client.get("/metrics")
+    r2 = client.get("/api/metrics")
+    
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    
+    data1 = r1.json()
+    data2 = r2.json()
+    
+    # Check required metrics fields for both endpoints
+    expected_fields = [
+        "requests", "speak_ok", "speak_fail", "tts_cache_hits",
+        "health_tick_count", "last_health_err", "last_latency_ms",
+        "p50_ms", "p95_ms", "speak_success_rate", "total_speak_requests", "uptime_s"
+    ]
+    
+    for field in expected_fields:
+        assert field in data1, f"Missing field in /metrics: {field}"
+        assert field in data2, f"Missing field in /api/metrics: {field}"
+    
+    # Verify data types
+    assert isinstance(data1["requests"], int)
+    assert isinstance(data1["speak_success_rate"], float)
+    assert isinstance(data1["uptime_s"], (int, float))
+    assert isinstance(data1["last_health_err"], str)
+    
+    # Verify metrics are being tracked (requests should be > 0 from this test)
+    assert data2["requests"] > 0

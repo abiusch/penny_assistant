@@ -4,15 +4,18 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 from typing import Optional
+from time import perf_counter
+from collections import deque
 
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Request
 from pydantic import BaseModel
 
-from daemon.health import start_health_loop, stop_health_loop
+from daemon.health import start_health_loop, stop_health_loop, set_health_callback
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    set_health_callback(_health_metrics_callback)
     iv = os.getenv("PENNY_HEALTH_INTERVAL")
     start_health_loop(float(iv) if iv else None)
     logger.info("Daemon started")
@@ -21,6 +24,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     stop_health_loop()
+    set_health_callback(None)
     logger.info("Daemon stopped")
 
 
@@ -31,6 +35,61 @@ app = FastAPI(title="PennyGPT Daemon", lifespan=lifespan)
 _PTT_ACTIVE = False
 _PTT_LOCK = threading.Lock()
 _START_TS = time.time()
+
+# ---- metrics tracking ----
+_METRICS = {
+    "requests": 0,
+    "speak_ok": 0,
+    "speak_fail": 0,
+    "tts_cache_hits": 0,
+    "health_tick_count": 0,
+    "last_health_err": "",
+    "last_latency_ms": 0
+}
+_LATENCIES = deque(maxlen=1000)  # Keep last 1000 request latencies for percentiles
+_METRICS_LOCK = threading.Lock()
+
+
+def _health_metrics_callback(success: bool, error_msg: str) -> None:
+    """Update health metrics from health loop."""
+    with _METRICS_LOCK:
+        _METRICS["health_tick_count"] += 1
+        if not success:
+            _METRICS["last_health_err"] = error_msg
+        # Clear error on success (could also keep last error for debugging)
+        elif not _METRICS["last_health_err"]:
+            _METRICS["last_health_err"] = ""
+
+
+def _update_latency_percentiles():
+    """Calculate p50/p95 from recent latencies."""
+    if not _LATENCIES:
+        return {"p50_ms": 0, "p95_ms": 0}
+    
+    sorted_latencies = sorted(_LATENCIES)
+    n = len(sorted_latencies)
+    p50_idx = int(n * 0.5)
+    p95_idx = int(n * 0.95)
+    
+    return {
+        "p50_ms": sorted_latencies[p50_idx] if p50_idx < n else 0,
+        "p95_ms": sorted_latencies[p95_idx] if p95_idx < n else 0
+    }
+
+
+@app.middleware("http")
+async def _metrics_middleware(request: Request, call_next):
+    """Track request metrics and latencies."""
+    t0 = perf_counter()
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        latency_ms = int((perf_counter() - t0) * 1000)
+        with _METRICS_LOCK:
+            _METRICS["requests"] += 1
+            _METRICS["last_latency_ms"] = latency_ms
+            _LATENCIES.append(latency_ms)
 
 
 class SpeakRequest(BaseModel):
@@ -47,13 +106,23 @@ def _say(text: str, voice_id: Optional[str] = None, ssml: Optional[str] = None) 
         from adapters.tts.google_tts_adapter import GoogleTTS
     except Exception:
         logger.warning("GoogleTTS adapter not available")
+        with _METRICS_LOCK:
+            _METRICS["speak_fail"] += 1
         return False
 
     try:
         tts = GoogleTTS(config={})
-        return bool(tts.speak(text, voice_id=voice_id, ssml=ssml, allow_barge_in=True))
+        result = bool(tts.speak(text, voice_id=voice_id, ssml=ssml, allow_barge_in=True))
+        with _METRICS_LOCK:
+            if result:
+                _METRICS["speak_ok"] += 1
+            else:
+                _METRICS["speak_fail"] += 1
+        return result
     except Exception as e:
         logger.warning("TTS speak failed: %s", e)
+        with _METRICS_LOCK:
+            _METRICS["speak_fail"] += 1
         return False
 
 
@@ -89,6 +158,27 @@ def ptt_stop():
 def speak(req: SpeakRequest = Body(...)):
     ok = _say(req.text, voice_id=req.voice_id, ssml=req.ssml)
     return {"ok": bool(ok)}
+
+
+@app.get("/metrics")
+@app.get("/api/metrics")
+def metrics():
+    """Return comprehensive metrics for observability."""
+    with _METRICS_LOCK:
+        base_metrics = _METRICS.copy()
+        percentiles = _update_latency_percentiles()
+    
+    # Calculate success rates
+    total_speak = base_metrics["speak_ok"] + base_metrics["speak_fail"]
+    speak_success_rate = (base_metrics["speak_ok"] / total_speak) if total_speak > 0 else 1.0
+    
+    return {
+        **base_metrics,
+        **percentiles,
+        "speak_success_rate": round(speak_success_rate, 3),
+        "total_speak_requests": total_speak,
+        "uptime_s": round(time.time() - _START_TS, 2),
+    }
 
 
 if __name__ == "__main__":

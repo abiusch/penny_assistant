@@ -1,21 +1,40 @@
 import os
 import threading
 import logging
-from typing import Optional
+from typing import Optional, Callable
 
 logger = logging.getLogger("penny.daemon")
 
 _HEALTH_THREAD: Optional[threading.Thread] = None
 _HEALTH_STOP = threading.Event()
+_HEALTH_CALLBACK: Optional[Callable[[bool, str], None]] = None
+
+
+def set_health_callback(callback: Optional[Callable[[bool, str], None]]) -> None:
+    """Set callback to be called on each health tick with (success, error_msg)."""
+    global _HEALTH_CALLBACK
+    _HEALTH_CALLBACK = callback
 
 
 def _health_tick() -> None:
     """Put your real checks here (LLM, TTS, devices, etc.)."""
+    error_msg = ""
+    success = True
+    
     try:
         # e.g. llm.health(); tts.health(); devices.health()
         pass
     except Exception as e:
+        error_msg = str(e)
+        success = False
         logger.warning("Health check failed: %s", e)
+    
+    # Notify metrics callback
+    if _HEALTH_CALLBACK:
+        try:
+            _HEALTH_CALLBACK(success, error_msg)
+        except Exception as e:
+            logger.warning("Health callback failed: %s", e)
 
 
 def _health_loop(stop_evt: threading.Event, interval: float) -> None:
@@ -57,4 +76,4 @@ def stop_health_loop() -> None:
         logger.info("Health loop stopped")
 
 
-__all__ = ["start_health_loop", "stop_health_loop"]
+__all__ = ["start_health_loop", "stop_health_loop", "set_health_callback"]

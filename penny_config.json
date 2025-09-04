@@ -37,6 +37,8 @@
         "max_tokens": 512
     },
     "personality": {
+        "enabled": true,
+        "default_tone": "friendly",
         "sarcasm_level": 0.4,
         "warmth_level": 0.8,
         "tech_enthusiasm": 0.9,

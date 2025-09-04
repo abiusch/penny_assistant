@@ -71,13 +71,6 @@ class MemoryEnhancedPipeline(PipelineLoop):
             "context_length": len(memory_context) if memory_context else 0
         })
         
-        # Personality layer
-        try:
-            from core.personality import apply as apply_personality
-        except Exception:
-            def apply_personality(txt, cfg): 
-                return f"[{tone}] {txt}" if txt else "Say that again?"
-        
         # Generate response with memory context
         start_time = time.time()
         try:
@@ -91,9 +84,19 @@ class MemoryEnhancedPipeline(PipelineLoop):
         
         response_time_ms = (time.time() - start_time) * 1000
         
-        # Apply personality
-        reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
-        
+        # Personality layer - ENHANCED with emotional memory integration
+        try:
+            from personality_integration import create_personality_integration
+            personality_integration = create_personality_integration(self.memory)
+            reply = personality_integration.generate_contextual_response(reply_raw, user_text)
+            print(f"🎭 Applied Penny personality mode: {personality_integration.personality_system.current_mode.value}")
+        except Exception as e:
+            print(f"⚠️ Personality integration failed, using fallback: {e}")
+            try:
+                from core.personality import apply as apply_personality
+                reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
+            except Exception:
+                reply = f"[{tone}] {reply_raw}" if reply_raw else "Say that again?"
         # Store in memory with emotional processing
         try:
             # Add conversation turn to base memory

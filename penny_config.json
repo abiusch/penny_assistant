@@ -37,7 +37,11 @@
         "max_tokens": 512
     },
     "personality": {
-        "sarcasm_level": 0.3,
+        "sarcasm_level": 0.4,
+        "warmth_level": 0.8,
+        "tech_enthusiasm": 0.9,
+        "proactivity": 0.5,
+        "humor_frequency": 0.6,
         "cursing_level": 0.1,
         "humor_style": "witty"
     },

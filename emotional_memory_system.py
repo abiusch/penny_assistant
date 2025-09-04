@@ -287,7 +287,7 @@ class EmotionalMemorySystem:
                 r'\b(my friend|a friend of mine)\b'
             ],
             RelationshipType.COLLEAGUE: [
-                r'\b(my )?(colleague|coworker|boss|manager|team|work)\b'
+                r'\b(my )?(colleague|coworker|boss|manager|team)\b'
             ],
             RelationshipType.PARTNER: [
                 r'\b(my )?(partner|boyfriend|girlfriend|fiancé|fiancée|spouse)\b'
@@ -306,13 +306,29 @@ class EmotionalMemorySystem:
                     mentions.append((name, rel_type))
         
         # Look for specific names (capitalized words that might be names)
-        name_pattern = r'\b[A-Z][a-z]+\b'
+        # Only check for names after relationship indicators
+        name_pattern = r'\b[A-Z][a-z]{2,}\b'  # At least 3 letters
         potential_names = re.findall(name_pattern, user_input)
         
         # Filter out common words that aren't names
-        common_words = {'I', 'The', 'This', 'That', 'When', 'Where', 'How', 'What', 'Why', 'Can', 'Could', 'Would', 'Should'}
+        common_words = {
+            'I', 'The', 'This', 'That', 'When', 'Where', 'How', 'What', 'Why', 
+            'Can', 'Could', 'Would', 'Should', 'Hello', 'Thanks', 'You', 'Ugh',
+            'My', 'Your', 'His', 'Her', 'Their', 'We', 'They', 'He', 'She',
+            'And', 'But', 'Or', 'So', 'Because', 'If', 'Then', 'Now', 'Here',
+            'There', 'Yes', 'No', 'Maybe', 'Please', 'Sorry', 'Okay', 'Well'
+        }
+        
+        # Only add names if they appear near relationship indicators
+        relationship_context = ' '.join([m[0] for m in mentions])
+        
         for name in potential_names:
-            if name not in common_words and len(name) > 2:
+            if (name not in common_words and 
+                len(name) > 2 and 
+                name.isalpha() and
+                # Only add if we found other relationship mentions in this text
+                (mentions or any(rel_word in text_lower for rel_word in 
+                    ['mom', 'dad', 'family', 'friend', 'dog', 'cat', 'manager', 'boss']))):
                 mentions.append((name, RelationshipType.OTHER))
         
         return mentions
@@ -438,22 +454,38 @@ class EmotionalMemorySystem:
                     self._save_learning_goal_to_db(self.learning_goals[topic])
     
     def _save_relationship_to_db(self, member: FamilyMember):
-        """Save relationship to database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                INSERT OR REPLACE INTO relationships 
-                (name, relationship_type, notes, last_mentioned, mention_count, 
-                 emotional_associations, important_facts)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                member.name,
-                member.relationship_type.value,
-                json.dumps(member.notes),
-                member.last_mentioned,
-                member.mention_count,
-                json.dumps(member.emotional_associations),
-                json.dumps(member.important_facts)
-            ))
+        """Save relationship to database with transaction safety."""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with sqlite3.connect(self.db_path, timeout=10.0) as conn:
+                    conn.execute("""BEGIN IMMEDIATE TRANSACTION""")
+                    conn.execute("""
+                        INSERT OR REPLACE INTO relationships 
+                        (name, relationship_type, notes, last_mentioned, mention_count, 
+                         emotional_associations, important_facts)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        member.name,
+                        member.relationship_type.value,
+                        json.dumps(member.notes),
+                        member.last_mentioned,
+                        member.mention_count,
+                        json.dumps(member.emotional_associations),
+                        json.dumps(member.important_facts)
+                    ))
+                    conn.commit()
+                    break
+            except sqlite3.OperationalError as e:
+                if "locked" in str(e).lower() and attempt < max_retries - 1:
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                    continue
+                else:
+                    print(f"Database error saving relationship {member.name}: {e}")
+                    break
+            except Exception as e:
+                print(f"Error saving relationship {member.name}: {e}")
+                break
     
     def _save_value_alignment_to_db(self, alignment: ValueAlignment):
         """Save value alignment to database."""

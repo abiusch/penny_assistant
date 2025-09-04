@@ -21,12 +21,12 @@ _PTT_LOCK = threading.Lock()
 def _health_metrics_callback(success: bool, error_msg: str) -> None:
     """Update health metrics from health loop."""
     with METRICS.lock:
-        METRICS.health_tick_count += 1
+        METRICS._health_tick_count += 1
         if not success:
-            METRICS.last_health_err = error_msg
+            METRICS._last_health_err = error_msg
         # Clear error on success (could also keep last error for debugging)
-        elif not METRICS.last_health_err:
-            METRICS.last_health_err = ""
+        elif not METRICS._last_health_err:
+            METRICS._last_health_err = ""
 
 
 @asynccontextmanager
@@ -59,7 +59,7 @@ async def _metrics_middleware(request: Request, call_next):
     finally:
         latency_ms = (perf_counter() - t0) * 1000
         with METRICS.lock:
-            METRICS.requests += 1
+            METRICS._requests += 1
         METRICS.record_latency_ms(latency_ms)
 
 
@@ -78,7 +78,7 @@ def _say(text: str, voice_id: Optional[str] = None, ssml: Optional[str] = None) 
     except Exception:
         logger.warning("GoogleTTS adapter not available")
         with METRICS.lock:
-            METRICS.speak_fail += 1
+            METRICS._speak_fail += 1
         return False
 
     try:
@@ -86,14 +86,14 @@ def _say(text: str, voice_id: Optional[str] = None, ssml: Optional[str] = None) 
         result = bool(tts.speak(text, voice_id=voice_id, ssml=ssml, allow_barge_in=True))
         with METRICS.lock:
             if result:
-                METRICS.speak_ok += 1
+                METRICS._speak_ok += 1
             else:
-                METRICS.speak_fail += 1
+                METRICS._speak_fail += 1
         return result
     except Exception as e:
         logger.warning("TTS speak failed: %s", e)
         with METRICS.lock:
-            METRICS.speak_fail += 1
+            METRICS._speak_fail += 1
         return False
 
 

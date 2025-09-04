@@ -87,7 +87,7 @@ LLM + Memory + FIXED Emotional Intelligence → TTS → Audio Output
 - ✅ **Error Handling**: Graceful TTS fallbacks and adapter interface validation
 - ✅ **Health Monitoring**: Background health loop with configurable intervals
 
-**📊 Comprehensive Metrics & Observability (NEW - September 4, 2025):**
+**📊 Comprehensive Metrics & Observability (UPDATED - September 4, 2025):**
 - ✅ **Request Tracking**: Total HTTP requests, latency percentiles (p50/p95), last request timing
 - ✅ **TTS Performance Monitoring**: Success/failure counts, success rates, total speak requests
 - ✅ **Health System Integration**: Health tick counting, error message tracking via callback system
@@ -95,18 +95,25 @@ LLM + Memory + FIXED Emotional Intelligence → TTS → Audio Output
 - ✅ **Dual Endpoint Access**: Both `/metrics` and `/api/metrics` provide identical comprehensive data
 - ✅ **Production Observability**: Real-time system performance insights for operational monitoring
 - ✅ **Failure Scenario Validation**: Confirmed proper tracking when TTS adapters unavailable
+- ✅ **Centralized Metrics Module**: **NEW** - Extracted to `src/daemon/metrics.py` for maintainability
+- ✅ **Schema Versioning**: **NEW** - Added `schema_version: 1` for UI/test stability on field changes
+- ✅ **Private Field Architecture**: **NEW** - Internal fields use `_` prefix with backward compatibility
+- ✅ **Fixed Percentile Math**: **NEW** - Proper percentile calculation under centralized lock
 
-**Sample Metrics Output:**
+**Enhanced Metrics Output (Schema Version 1):**
 ```json
 {
+  "schema_version": 1,
   "requests": 5,
+  "last_latency_ms": 188,
+  "p50_ms": 0, "p95_ms": 193,
   "speak_ok": 2, "speak_fail": 0,
   "speak_success_rate": 1.0,
-  "p50_ms": 0, "p95_ms": 193,
-  "health_tick_count": 0,
-  "uptime_s": 0.39,
+  "total_speak_requests": 2,
   "tts_cache_hits": 0,
-  "last_health_err": ""
+  "health_tick_count": 0,
+  "last_health_err": "",
+  "uptime_s": 0.39
 }
 ```
 

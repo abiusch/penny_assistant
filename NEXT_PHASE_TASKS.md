@@ -80,23 +80,47 @@ LLM + Memory + FIXED Emotional Intelligence → TTS → Audio Output
   - `POST /ptt/start` - Enable push-to-talk functionality  
   - `POST /ptt/stop` - Disable push-to-talk functionality
   - `POST /speak` - Text-to-speech via Google TTS
+  - `GET /metrics` & `GET /api/metrics` - **NEW**: Comprehensive observability endpoints
 - ✅ **Thread-Safe State Management**: PTT active/inactive tracking with proper concurrency
 - ✅ **Modern Lifespan Handlers**: Upgraded from deprecated `@app.on_event` to `@asynccontextmanager`
 - ✅ **Production Configuration**: Environment variable controls for host, port, health intervals
 - ✅ **Error Handling**: Graceful TTS fallbacks and adapter interface validation
 - ✅ **Health Monitoring**: Background health loop with configurable intervals
 
+**📊 Comprehensive Metrics & Observability (NEW - September 4, 2025):**
+- ✅ **Request Tracking**: Total HTTP requests, latency percentiles (p50/p95), last request timing
+- ✅ **TTS Performance Monitoring**: Success/failure counts, success rates, total speak requests
+- ✅ **Health System Integration**: Health tick counting, error message tracking via callback system
+- ✅ **Thread-Safe Metrics**: All metrics updates use proper locking with rolling latency window (1000 samples)
+- ✅ **Dual Endpoint Access**: Both `/metrics` and `/api/metrics` provide identical comprehensive data
+- ✅ **Production Observability**: Real-time system performance insights for operational monitoring
+- ✅ **Failure Scenario Validation**: Confirmed proper tracking when TTS adapters unavailable
+
+**Sample Metrics Output:**
+```json
+{
+  "requests": 5,
+  "speak_ok": 2, "speak_fail": 0,
+  "speak_success_rate": 1.0,
+  "p50_ms": 0, "p95_ms": 193,
+  "health_tick_count": 0,
+  "uptime_s": 0.39,
+  "tts_cache_hits": 0,
+  "last_health_err": ""
+}
+```
+
 **🎭 Minimal Personality Layer:**
 - ✅ **Core Personality Module**: Simple `apply(text, tone) -> str` function
 - ✅ **4 Tone Presets**: friendly, dry, concise, penny (Big Bang Theory style)
 - ✅ **Safety Guardrails**: Sensitive topic detection with automatic fallback
 - ✅ **Configuration Integration**: Enable/disable via `penny_config.json`
-- ✅ **Production Ready**: 22/22 tests passing (19 personality + 3 daemon), ~150 lines
+- ✅ **Production Ready**: 26/26 tests passing (19 personality + 4 daemon + 3 metrics), ~150 lines
 - ✅ **Drop-in Replacement**: Works with existing pipeline imports
 
 **🔧 Technical Infrastructure:**
 - ✅ **Dependency Management**: Added FastAPI, uvicorn, pydantic, httpx to requirements
-- ✅ **Test Infrastructure**: Comprehensive test suite with FastAPI TestClient
+- ✅ **Test Infrastructure**: Comprehensive test suite with FastAPI TestClient + metrics validation
 - ✅ **Environment Isolation**: `PENNY_DISABLE_HEALTH_LOOP=1` for clean testing
 - ✅ **Server Validation**: Startup confirmed on `http://127.0.0.1:8080`
 
@@ -104,6 +128,8 @@ LLM + Memory + FIXED Emotional Intelligence → TTS → Audio Output
 ```bash
 # API Usage Examples:
 curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:8080/metrics          # NEW: Observability endpoint
+curl http://127.0.0.1:8080/api/metrics      # NEW: Alternative metrics path
 curl -X POST http://127.0.0.1:8080/ptt/start
 curl -X POST http://127.0.0.1:8080/speak -d '{"text":"Hello world"}'
 ```
@@ -141,7 +167,7 @@ curl -X POST http://127.0.0.1:8080/speak -d '{"text":"Hello world"}'
 - ✅ **Comprehensive Testing**: Full test suite validates all flow features and pipeline integration
 
 **🎯 Complete System Capabilities:**
-**The PennyGPT system now includes ALL major companion features:**
+**The PennyGPT system now includes ALL major companion features + performance optimizations:**
 1. ✅ **Emotional Intelligence** - Tracks emotions, relationships, values, learning goals
 2. ✅ **Penny Personality** - 7 personality modes with sass, warmth, and tech enthusiasm
 3. ✅ **Conversational Flow** - Natural engagement without constant wake words
@@ -150,26 +176,26 @@ curl -X POST http://127.0.0.1:8080/speak -d '{"text":"Hello world"}'
 6. ✅ **Philosophical Discussions** - Engages in deeper conversations when appropriate
 7. ✅ **Permission-Based Learning** - Asks before researching topics proactively
 8. ✅ **Context-Aware Responses** - Adapts to user emotion, stress, and relationship context
+9. ✅ **System Health Monitoring** - Comprehensive validation and troubleshooting
+10. ✅ **Instant Response Feeling** - TTS caching for perceived latency improvements
 
 **🚀 What's Next:**
-The core AI companion system is now **COMPLETE**! The next priorities would be:
+With 5/7 ChatGPT roadmap priorities complete, the remaining tasks are:
 
-**Priority 2: Advanced Companion Features**
-* Multi-user recognition and context switching
-* Family member profiles with privacy boundaries
-* Proactive research and knowledge building
-* Ethical reasoning development
+**Priority 6: Calendar Tiny-Window Fallback**
+* Configurable primary calendar with 2-hour query window
+* 3-second hard timeout with friendly fallback messages
+* AppleScript reliability improvements
 
-**Priority 3: Production & Performance**
-* Python 3.13 compatibility fixes
-* Performance optimization and caching
-* Real-world voice conversation testing
-* Error handling and resilience improvements
+**Priority 7: CI + Docs Cleanup**
+* Single GitHub workflow consolidation
+* Enhanced unit test coverage
+* Documentation updates and Copilot instructions
 
-**Priority 4: Deployment**
-* macOS menu bar application
-* Background service architecture
-* User interface and controls
+**Educational Priority: Native macOS Integration**
+* Rebuild Xcode project structure properly
+* Menu bar app with working build system
+* App Store distribution preparation
 
 **💡 Key Innovation:**
 This system transforms PennyGPT from a simple voice assistant into a true **AI companion** that:

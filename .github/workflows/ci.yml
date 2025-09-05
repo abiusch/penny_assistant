@@ -1,19 +1,75 @@
-name: CI
+name: PennyGPT CI Pipeline
 
 on:
   push:
+    branches: [ main, develop ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.11, 3.13]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install deps (if present)
-        run: |
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Compile Python
-        run: python -m compileall .
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-mock
+    
+    - name: Run tests with coverage
+      env:
+        PENNY_DISABLE_HEALTH_LOOP: 1
+        PYTHONPATH: src
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+    
+    - name: Run Penny Doctor health check
+      env:
+        PYTHONPATH: src
+      run: |
+        python penny_doctor.py || echo "Doctor found issues (expected in CI)"
+    
+    - name: Test TTS cache system
+      env:
+        PYTHONPATH: src
+      run: |
+        python test_tts_cache.py
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Validate imports
+      env:
+        PYTHONPATH: src
+      run: |
+        python -c "
+        from core.personality import apply
+        from adapters.tts.cache import TTSCache
+        from adapters.calendar.tiny_window import CalendarTinyWindow
+        print('All core modules import successfully')
+        "

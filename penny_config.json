@@ -15,17 +15,23 @@
         "language": "en"
     },
     "tts": {
-        "type": "google",
+        "type": "elevenlabs",
         "streaming": true,
         "voice": "en-US-Wavenet-D",
         "speaking_rate": 0.75,
         "cache_enabled": true,
         "preload_common_phrases": true,
         "backends": [
-            "system",
+            "elevenlabs",
             "google",
+            "system",
             "say"
-        ]
+        ],
+        "elevenlabs": {
+            "voice_id": "21m00Tcm4TlvDq8ikWAM",
+            "model": "eleven_monolingual_v1",
+            "personality_aware": true
+        }
     },
     "llm": {
         "provider": "openai_compatible",

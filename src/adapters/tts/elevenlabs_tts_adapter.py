@@ -46,58 +46,53 @@ class ElevenLabsTTS:
         self._playback_thread = None
         self._stop_playback = threading.Event()
         
-        # Personality voice settings for Penny
-        self.personality_settings = {
-            'sassy': {
-                'stability': 0.25,      # More variation for sass
-                'similarity_boost': 0.7,
-                'style': 0.4,           # More expressive
-                'use_speaker_boost': True
-            },
-            'tech_enthusiast': {
-                'stability': 0.2,       # Excited variation
-                'similarity_boost': 0.8,
-                'style': 0.5,           # Very expressive
-                'use_speaker_boost': True
-            },
-            'supportive': {
-                'stability': 0.4,       # More stable/calm
-                'similarity_boost': 0.75,
-                'style': 0.3,           # Gentle expression
-                'use_speaker_boost': True
-            },
-            'playful': {
-                'stability': 0.3,       # Moderate variation
-                'similarity_boost': 0.7,
-                'style': 0.45,          # Playful expression
-                'use_speaker_boost': True
-            },
-            'default': {
-                'stability': 0.3,       # Rachel's optimized settings
-                'similarity_boost': 0.7,
-                'style': 0.2,
-                'use_speaker_boost': True
-            }
+        # Simplified voice settings - focus on quality over personality variations
+        self.voice_settings = {
+            'stability': 0.4,       # Good balance of consistency and variation
+            'similarity_boost': 0.8, # Maintain Rachel's character
+            'style': 0.3,           # Natural expressiveness
+            'use_speaker_boost': True
         }
     
     def _detect_personality_mode(self, text: str) -> str:
         """Detect Penny's personality mode from text content"""
         text_lower = text.lower()
         
-        # Sassy indicators
-        if any(word in text_lower for word in ['sweetie', 'honey', 'really?', 'seriously', 'adorable']):
+        # Check sassy indicators FIRST - these override everything else
+        sassy_patterns = [
+            'obviously', 'of course', 'sure thing', 'yeah right', 
+            'really?', 'seriously?', 'great job', 'nice work',
+            'brilliant', 'genius', 'perfect', 'wonderful',
+            'clearly', 'apparently', 'supposedly'
+        ]
+        if any(pattern in text_lower for pattern in sassy_patterns):
             return 'sassy'
         
-        # Tech enthusiasm indicators
-        if any(word in text_lower for word in ['algorithm', 'neural', 'quantum', 'cool!', 'fascinating', 'amazing']):
-            return 'tech_enthusiast'
-        
-        # Supportive indicators
-        if any(word in text_lower for word in ['stressed', 'worried', 'okay', 'help', 'support', 'there for you']):
+        # Supportive indicators - check before tech (anxiety about tech topics)
+        support_patterns = [
+            'stressed', 'worried', 'anxious', 'help me',
+            'struggling', 'difficult', 'hard time', 'overwhelmed',
+            'support', 'advice', 'guidance'
+        ]
+        if any(pattern in text_lower for pattern in support_patterns):
             return 'supportive'
         
+        # Tech enthusiasm indicators - only if no sassy/support detected
+        tech_patterns = [
+            'algorithm', 'neural', 'quantum', 'machine learning',
+            'ai', 'artificial intelligence', 'deep learning',
+            'programming', 'code', 'software', 'technology',
+            'computer', 'data science', 'blockchain'
+        ]
+        if any(pattern in text_lower for pattern in tech_patterns):
+            return 'tech_enthusiast'
+        
         # Playful indicators
-        if any(word in text_lower for word in ['ooh', 'haha', 'funny', 'silly', 'ridiculous']):
+        playful_patterns = [
+            'haha', 'funny', 'silly', 'ridiculous', 'crazy',
+            'weird', 'strange', 'amusing', 'hilarious'
+        ]
+        if any(pattern in text_lower for pattern in playful_patterns):
             return 'playful'
         
         return 'default'
@@ -164,17 +159,15 @@ class ElevenLabsTTS:
                 print(f"[ElevenLabs] Cache write failed: {e}")
     
     def _synthesize_audio(self, text: str, personality: str = 'default') -> Optional[str]:
-        """Synthesize text using ElevenLabs API with personality"""
+        """Synthesize text using ElevenLabs API with consistent quality settings"""
         try:
             # Check cache first
-            cached_file = self._get_cached_file(text, personality)
+            cache_key = hashlib.md5(text.encode('utf-8')).hexdigest()
+            cached_file = self._get_cached_file(text, 'default')  # Use single cache key
             if cached_file and os.path.exists(cached_file):
                 return cached_file
             
-            # Get personality settings
-            voice_settings = self.personality_settings.get(personality, self.personality_settings['default'])
-            
-            # API request
+            # API request with simplified settings
             url = f"{self.base_url}/text-to-speech/{self.voice_id}"
             headers = {
                 "Accept": "audio/mpeg",
@@ -185,7 +178,7 @@ class ElevenLabsTTS:
             data = {
                 "text": text,
                 "model_id": "eleven_monolingual_v1",
-                "voice_settings": voice_settings
+                "voice_settings": self.voice_settings  # Use single optimized settings
             }
             
             response = requests.post(url, json=data, headers=headers)
@@ -197,7 +190,7 @@ class ElevenLabsTTS:
                     self._last_file = f.name
                     
                     # Cache the result
-                    self._cache_file(text, personality, f.name)
+                    self._cache_file(text, 'default', f.name)
                     
                     return f.name
             else:

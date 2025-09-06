@@ -9,6 +9,9 @@ import os
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+# Import the unpredictable personality system
+from personality.unpredictable_response import UnpredictablePenny
+
 def main():
     print("💬 Starting PennyGPT with Natural Voice!")
     
@@ -52,6 +55,11 @@ def main():
 
         tts = create_tts_adapter(config)
         print("   ✅ Voice system ready!")
+        
+        # Initialize unpredictable personality system
+        unpredictable_penny = UnpredictablePenny()
+        print("   🎭 Personality enhancement system ready!")
+        
     except Exception as e:
         print(f"   ❌ Voice system failed: {e}")
         import traceback
@@ -76,16 +84,35 @@ def main():
             llm = get_llm()
             # Add instruction for shorter, conversational responses
             prompt = f"Please give a brief, conversational response (2-3 sentences max) to: {text}"
-            response = llm.generate(prompt) if hasattr(llm, 'generate') else llm.complete(prompt)
-            print(f"🤖 Penny: {response}")
+            original_response = llm.generate(prompt) if hasattr(llm, 'generate') else llm.complete(prompt)
+            
+            # Apply personality enhancement to make it entertaining
+            enhanced_response = unpredictable_penny.enhance_response(original_response, text)
+            unpredictable_penny.log_conversation(text, enhanced_response)
+            
+            print(f"🤖 Penny: {enhanced_response}")
         except Exception as e:
             print(f"❌ LLM failed: {e}")
-            response = "Sorry, I'm having trouble thinking right now."
+            enhanced_response = "Sorry, I'm having trouble thinking right now."
         
         # Speak the response with personality-aware voice
+        # IMPORTANT: Use the USER INPUT for personality detection, not Penny's response
         print("🔊 Speaking with natural voice...")
         try:
-            success = tts.speak(response)
+            # Detect personality from user input, not Penny's response
+            user_personality = tts._detect_personality_mode(text)
+            if user_personality != 'default':
+                print(f"[Penny Voice] Detected {user_personality} mode from user input")
+            
+            # Override TTS personality detection to use user input
+            original_detect = tts._detect_personality_mode
+            tts._detect_personality_mode = lambda _: user_personality
+            
+            success = tts.speak(enhanced_response)
+            
+            # Restore original function
+            tts._detect_personality_mode = original_detect
+            
             if not success:
                 print("❌ Speech failed")
         except Exception as e:

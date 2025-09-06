@@ -57,16 +57,20 @@ class StreamingElevenLabsTTS:
         }
     
     def _detect_personality_mode(self, text: str) -> str:
-        """Quick personality detection"""
+        """Quick personality detection with proper priority order"""
         text_lower = text.lower()
         
-        if any(word in text_lower for word in ['sweetie', 'honey', 'seriously', 'adorable']):
+        # Sassy indicators FIRST - override everything else
+        if any(pattern in text_lower for pattern in ['obviously', 'of course', 'sure thing', 'yeah right', 'really?', 'seriously?']):
             return 'sassy'
-        elif any(word in text_lower for word in ['algorithm', 'neural', 'quantum', 'cool', 'fascinating']):
-            return 'tech_enthusiast'
-        elif any(word in text_lower for word in ['stressed', 'worried', 'help', 'support']):
+        # Supportive indicators - before tech (anxiety about tech)
+        elif any(pattern in text_lower for pattern in ['stressed', 'worried', 'help me', 'struggling', 'difficult', 'overwhelmed']):
             return 'supportive'
-        elif any(word in text_lower for word in ['haha', 'funny', 'silly']):
+        # Tech enthusiasm indicators - only if no sassy/support
+        elif any(pattern in text_lower for pattern in ['algorithm', 'neural', 'quantum', 'programming', 'ai', 'machine learning']):
+            return 'tech_enthusiast'
+        # Playful indicators
+        elif any(pattern in text_lower for pattern in ['haha', 'funny', 'silly', 'ridiculous', 'crazy']):
             return 'playful'
         
         return 'default'

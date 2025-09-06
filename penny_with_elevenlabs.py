@@ -39,6 +39,26 @@ def main():
         with open('penny_config.json', 'r') as f:
             config = json.load(f)
         print("✅ Config loaded")
+        
+        # Load personality profile if specified
+        if 'personality' in config and 'profile_path' in config['personality']:
+            personality_path = config['personality']['profile_path']
+            try:
+                with open(personality_path, 'r') as f:
+                    personality_config = json.load(f)
+                print(f"✅ Personality profile loaded: {personality_config.get('name', 'Unknown')} v{personality_config.get('version', '1.0')}")
+                
+                # Validate schema version
+                schema_version = personality_config.get('schema_version', '0.0.0')
+                if schema_version.startswith('1.'):
+                    print(f"✅ Compatible schema version: {schema_version}")
+                else:
+                    print(f"⚠️ Warning: Personality schema version {schema_version} may not be compatible")
+                    
+            except Exception as e:
+                print(f"⚠️ Warning: Could not load personality profile: {e}")
+                print("   Continuing with default personality settings")
+                
     except Exception as e:
         print(f"❌ Config load failed: {e}")
         return
@@ -113,7 +133,12 @@ def main():
             # Restore original function
             tts._detect_personality_mode = original_detect
             
-            if not success:
+            if success:
+                # Show performance metrics after successful speech
+                if hasattr(tts, 'get_metrics'):
+                    metrics = tts.get_metrics()
+                    print(f"📊 Performance: {metrics['cache_hits']} cache hits, {metrics['avg_synthesis_ms']}ms avg synthesis")
+            else:
                 print("❌ Speech failed")
         except Exception as e:
             print(f"❌ Speech error: {e}")
@@ -128,6 +153,10 @@ def main():
         success = tts.speak("Hey there! I'm Penny, and I'm excited to chat with you using my new natural voice!")
         if success:
             print("✅ Voice test successful!")
+            # Show initial metrics
+            if hasattr(tts, 'get_metrics'):
+                metrics = tts.get_metrics()
+                print(f"📊 TTS Metrics: {metrics['cache_hits']} cache hits, {metrics['avg_synthesis_ms']}ms avg synthesis")
         else:
             print("❌ Voice test failed")
     except Exception as e:

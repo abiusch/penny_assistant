@@ -160,11 +160,18 @@ class ElevenLabsTTS:
     
     def _synthesize_audio(self, text: str, personality: str = 'default') -> Optional[str]:
         """Synthesize text using ElevenLabs API with consistent quality settings"""
+        start_time = time.time()
+        
         try:
             # Check cache first
             cache_key = hashlib.md5(text.encode('utf-8')).hexdigest()
             cached_file = self._get_cached_file(text, 'default')  # Use single cache key
             if cached_file and os.path.exists(cached_file):
+                # Increment cache hit counter
+                if hasattr(self, '_cache_hits'):
+                    self._cache_hits += 1
+                else:
+                    self._cache_hits = 1
                 return cached_file
             
             # API request with simplified settings
@@ -184,6 +191,17 @@ class ElevenLabsTTS:
             response = requests.post(url, json=data, headers=headers)
             
             if response.status_code == 200:
+                # Record synthesis timing
+                synthesis_time = (time.time() - start_time) * 1000  # Convert to ms
+                if hasattr(self, '_synthesis_times'):
+                    self._synthesis_times.append(synthesis_time)
+                else:
+                    self._synthesis_times = [synthesis_time]
+                
+                # Keep only recent times (for rolling average)
+                if len(self._synthesis_times) > 100:
+                    self._synthesis_times = self._synthesis_times[-100:]
+                
                 # Save to temporary file
                 with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                     f.write(response.content)
@@ -310,6 +328,23 @@ class ElevenLabsTTS:
         return (self._playback_thread and 
                 self._playback_thread.is_alive() and 
                 not self._stop_playback.is_set())
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get TTS performance metrics"""
+        cache_hits = getattr(self, '_cache_hits', 0)
+        synthesis_times = getattr(self, '_synthesis_times', [])
+        
+        avg_synthesis_ms = 0
+        if synthesis_times:
+            avg_synthesis_ms = sum(synthesis_times) / len(synthesis_times)
+        
+        return {
+            'tts_engine': 'elevenlabs',
+            'voice_id': self.voice_id,
+            'cache_hits': cache_hits,
+            'avg_synthesis_ms': round(avg_synthesis_ms, 2),
+            'recent_synthesis_count': len(synthesis_times)
+        }
     
     def clear_cache(self):
         """Clear TTS cache"""

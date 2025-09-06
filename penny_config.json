@@ -43,15 +43,10 @@
         "max_tokens": 512
     },
     "personality": {
+        "profile_path": "configs/personalities/penny_unpredictable_v1.json",
         "enabled": true,
-        "default_tone": "friendly",
-        "sarcasm_level": 0.4,
-        "warmth_level": 0.8,
-        "tech_enthusiasm": 0.9,
-        "proactivity": 0.5,
-        "humor_frequency": 0.6,
-        "cursing_level": 0.1,
-        "humor_style": "witty"
+        "default_tone": "penny",
+        "override_legacy_settings": true
     },
     "timeouts": {
         "vad_timeout": 3.0,

@@ -83,6 +83,49 @@ class LearningGoal:
     last_discussed: float
 
 
+@dataclass
+class ResearchSession:
+    """Tracks research requests and user feedback."""
+    id: Optional[int]
+    topic: str
+    user_input: str
+    permission_requested: float
+    permission_granted: bool
+    research_conducted: bool
+    research_results: Optional[str]
+    user_feedback: Optional[str]
+    feedback_rating: Optional[int]  # 1-5 scale
+    timestamp: float
+
+
+@dataclass
+class UserCorrection:
+    """Tracks when user corrects Penny's information."""
+    id: Optional[int]
+    original_statement: str
+    corrected_statement: str
+    context: str
+    user_input: str
+    confidence_before: float
+    confidence_after: float
+    learned_from: bool
+    timestamp: float
+
+
+@dataclass
+class CuriosityTopic:
+    """Tracks topics for curious follow-up questions."""
+    id: Optional[int]
+    topic: str
+    interest_level: float
+    depth_explored: float
+    last_explored: Optional[float]
+    follow_up_questions: List[str]
+    user_engagement_level: float
+    boundary_respect: bool  # True=respectful, False=too pushy
+    related_emotions: List[str]
+
+
 class EmotionalMemorySystem:
     """Enhanced memory system with emotional intelligence and relationship tracking."""
     
@@ -109,6 +152,15 @@ class EmotionalMemorySystem:
         self.family_members: Dict[str, FamilyMember] = {}
         self.value_alignments: Dict[str, ValueAlignment] = {}
         self.learning_goals: Dict[str, LearningGoal] = {}
+        
+        # New guided learning tracking
+        self.research_sessions: Dict[int, ResearchSession] = {}
+        self.user_corrections: Dict[int, UserCorrection] = {}
+        self.curiosity_topics: Dict[int, CuriosityTopic] = {}
+        
+        # Learning state tracking
+        self.pending_research_topics: List[str] = []
+        self.recent_corrections: List[str] = []  # Track recent corrections to avoid repetition
         
         # Initialize enhanced database
         self._init_emotional_database()
@@ -165,6 +217,52 @@ class EmotionalMemorySystem:
                     learning_style_preference TEXT DEFAULT 'conversational',
                     exploration_permission INTEGER DEFAULT 0,
                     last_discussed REAL NOT NULL
+                )
+            """)
+            
+            # Research sessions and learning tracking
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS research_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic TEXT NOT NULL,
+                    user_input TEXT NOT NULL,
+                    permission_requested REAL NOT NULL,
+                    permission_granted INTEGER DEFAULT 0,
+                    research_conducted INTEGER DEFAULT 0,
+                    research_results TEXT,
+                    user_feedback TEXT,
+                    feedback_rating INTEGER,  -- 1-5 scale
+                    timestamp REAL NOT NULL
+                )
+            """)
+            
+            # User corrections and learning from mistakes
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_corrections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    original_statement TEXT NOT NULL,
+                    corrected_statement TEXT NOT NULL,
+                    context TEXT,
+                    user_input TEXT NOT NULL,
+                    confidence_before REAL DEFAULT 0.5,
+                    confidence_after REAL DEFAULT 0.8,
+                    learned_from INTEGER DEFAULT 1,
+                    timestamp REAL NOT NULL
+                )
+            """)
+            
+            # Curiosity topics and follow-up questions
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS curiosity_topics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic TEXT NOT NULL,
+                    interest_level REAL NOT NULL,
+                    depth_explored REAL DEFAULT 0.0,
+                    last_explored REAL,
+                    follow_up_questions TEXT,  -- JSON list
+                    user_engagement_level REAL DEFAULT 0.5,
+                    boundary_respect INTEGER DEFAULT 1,  -- 1=respectful, 0=too pushy
+                    related_emotions TEXT  -- JSON list
                 )
             """)
             

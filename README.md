@@ -1,23 +1,63 @@
-# PennyGPT - Local Voice Assistant
+# PennyGPT - AI Companion with Personality & Learning
 
-A privacy-focused voice assistant that runs entirely on your local machine using LM Studio for language processing.
+A privacy-focused AI companion that learns, remembers relationships, and develops a unique personality through conversations. Goes far beyond basic voice assistant functionality to create genuine companionship.
 
-## Features
+## 🧠 What Makes PennyGPT Different
 
-- **🎙️ Voice Interaction**: Wake word detection and speech recognition
-- **🤖 Local LLM**: Powered by LM Studio with OpenAI-compatible API
-- **🔒 Privacy First**: All processing happens locally, no cloud dependencies
-- **📅 Smart Plugins**: Calendar integration, weather, calculations, and more
-- **⚡ Fast Response**: Optimized pipeline with caching and background processing
-- **🎨 Personality**: Configurable response style and tone
+**Not a Smart Home Assistant** - PennyGPT is designed to be a conversational AI companion that:
+- **Builds Relationships**: Learns about your family, friends, and personal context
+- **Develops Emotional Intelligence**: Tracks moods, provides support, adapts to your emotional state
+- **Has Real Personality**: Sassy like Penny from Big Bang Theory, tech-savvy like Justine AI
+- **Learns & Grows**: Remembers corrections, builds shared memories, explores topics together
+- **Respects Boundaries**: Asks permission before research, adapts to your stress levels
 
-## Quick Start
+## 🎉 Current Features (ALL IMPLEMENTED)
+
+### **🧠 Advanced Companion Features**
+- ✅ **Guided Learning & Reasoning**: Permission-based research, learning from corrections, proactive curiosity
+- ✅ **Personal Profile System**: CJ-specific preferences, communication style, auto-research permissions  
+- ✅ **Enhanced Sass & Personality**: Real attitude, mild profanity, tech industry roasting with constructive edge
+- ✅ **Curiosity Engine**: Meaningful follow-up questions that connect to user's interests
+- ✅ **Knowledge Building**: Accumulates understanding through corrections and collaborative exploration
+- ✅ **Boundary Respect**: Always asks permission, adapts to user mood and stress levels
+
+### **🎭 Emotional Intelligence & Personality**
+- ✅ **7 Personality Modes**: Sassy, tech enthusiast, protective, playful, curious, friendly, serious
+- ✅ **Emotional Memory**: Tracks your moods, stress levels, and emotional patterns
+- ✅ **Relationship Tracking**: Learns about family, friends, colleagues, pets with context
+- ✅ **Value Alignment**: Discovers and respects your ethical framework and beliefs
+- ✅ **Context-Aware Responses**: Personality adapts based on who you're talking about
+
+### **💬 Conversational Flow & Engagement**
+- ✅ **Natural Conversation States**: Idle, engaged, follow-up, deep dive, permission pending
+- ✅ **Wake Word Intelligence**: Stays engaged based on context, doesn't always require "Hey Penny"
+- ✅ **Historical References**: "Like we talked about yesterday..." - connects to previous conversations
+- ✅ **Philosophical Discussions**: Triggers deep conversations when engagement is high
+- ✅ **Follow-up Questions**: Generates contextual follow-ups based on topic category
+- ✅ **Engagement Calculation**: Dynamic scoring based on input complexity and emotional content
+
+### **🔧 Production Engineering & Performance**
+- ✅ **ElevenLabs Voice Integration**: Human-quality voice with personality-aware modulation
+- ✅ **TTS Performance Caching**: Instant playback for common phrases, background generation
+- ✅ **Comprehensive Health Monitoring**: System validation with "penny doctor" diagnostics
+- ✅ **Production Metrics**: Real-time performance tracking and monitoring
+- ✅ **Configuration Management**: Schema-versioned personality profiles with validation
+- ✅ **Robust Error Handling**: Graceful degradation when components fail
+
+### **🎯 Technical Foundation**
+- ✅ **Local LLM Integration**: Powered by LM Studio with OpenAI-compatible API
+- ✅ **Privacy First**: All processing happens locally, no cloud dependencies
+- ✅ **Memory Persistence**: SQLite database stores relationships, emotions, learning progress
+- ✅ **Plugin System**: Calendar integration, weather, calculations with smart fallbacks
+- ✅ **Performance Logging**: Detailed metrics and session reports
+
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/abiusch/penny_assistant.git
 cd penny_assistant
 
 # Install Python dependencies
@@ -30,270 +70,201 @@ pip install -r requirements.txt
 2. Download a model (recommended: `microsoft/Phi-3-mini-4k-instruct-gguf`)
 3. Start the local server on port 1234
 
-**Quick Test:**
-```bash
-# Verify LM Studio is running
-curl -X GET http://localhost:1234/v1/models
-
-# Test chat completion
-curl -X POST http://localhost:1234/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer lm-studio" \
-  -d '{
-    "model": "microsoft/Phi-3-mini-4k-instruct-gguf",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 50
-  }'
-```
-
-### 3. Configure PennyGPT
-
-The configuration is already set up in `penny_config.json`. Just ensure the model name matches your LM Studio model:
-
-```json
-{
-  "llm": {
-    "provider": "openai_compatible",
-    "base_url": "http://localhost:1234/v1",
-    "api_key": "lm-studio",
-    "model": "microsoft/Phi-3-mini-4k-instruct-gguf",
-    "temperature": 0.6,
-    "max_tokens": 512
-  }
-}
-```
-
-### 4. Test the System
+### 3. Experience the Full AI Companion
 
 ```bash
-# Run tests to verify everything works
-python -m pytest tests/test_openai_compat_llm.py -v
-python -m pytest tests/test_tts_pipeline.py -v
-python -m pytest tests/test_wake_word.py -v
+# Test the complete companion system with CJ's personalized setup
+PYTHONPATH=src python cj_personalized_penny.py
 
-# Test basic LLM integration
-python -c "from src.adapters.llm.openai_compat import OpenAICompatLLM; import json; config = json.load(open('penny_config.json')); llm = OpenAICompatLLM(config); print(llm.complete('Hello, how are you?'))"
+# Test enhanced learning and sass features
+PYTHONPATH=src python cj_enhanced_learning.py
+
+# Test the sassy personality system
+PYTHONPATH=src python test_sassy_penny.py
+
+# Run comprehensive health check
+PYTHONPATH=src python -m penny_doctor
 ```
 
-## Architecture
+### 4. Try These for Maximum Personality Experience
 
-### Core Components
+**Tech Industry Roasting:**
+- "Should I use microservices for everything?"
+- "What's the best JavaScript framework?"
 
-- **Pipeline**: State machine managing the conversation flow (IDLE → LISTENING → THINKING → SPEAKING)
-- **STT**: Speech-to-text using Whisper for voice input
-- **LLM**: Language model integration via LM Studio's OpenAI-compatible API
-- **TTS**: Text-to-speech with Google TTS, including caching and background playback
-- **VAD**: Voice activity detection to trigger listening
-- **Wake Word**: "Hey Penny" detection with command extraction
+**Learning & Curiosity:**
+- "I'm working on a FastAPI project"
+- "Tell me about machine learning"
 
-### Key Features
+**Relationship Building:**
+- "My dad thinks programming is just games"
+- "I'm stressed about work"
 
-**🔧 Robust Error Handling:**
-- Graceful degradation when components fail
-- Comprehensive logging and telemetry
-- Timeout protection and fallback mechanisms
+## 🎭 Personality Examples
 
-**⚡ Performance Optimizations:**
-- TTS caching for common phrases
-- Background audio playback
-- Efficient wake word processing
-- Optimized timeouts (15s for LLM, 1s for calendar)
+**Before Enhancement:**
+```
+User: "Should I use microservices for everything?"
+Basic AI: "Microservices can be beneficial but also add complexity. Consider your specific use case..."
+```
 
-**🎛️ Configurable:**
-- Personality settings (sarcasm, humor style)
-- Model parameters (temperature, max tokens)
-- Plugin routing and fallback behavior
-- Audio device and quality settings
+**With PennyGPT's Personality:**
+```
+User: "Should I use microservices for everything?"
+Penny: "Oh hell no! Microservices for everything? That's like using a sledgehammer to hang a picture frame. 
+Sure, Netflix does it because they have armies of engineers, but you're not Netflix. Start with a damn monolith 
+that actually works, then split it when you have real scaling problems, not imaginary ones."
+```
 
-## Plugin System
+## 🧠 Advanced Companion Features
 
-### Built-in Plugins
-
-- **Calendar**: macOS Calendar integration with reliable fallback
-- **Weather**: Current conditions and forecasts  
-- **Shell**: Safe command execution with timeouts
-- **Calculations**: Math and unit conversions
-
-### Plugin Development
-
+### **Permission-Based Research System**
 ```python
-from src.plugins.base_plugin import BasePlugin
+# Auto-approves research for your interests
+"Research FastAPI? Sure, I'll do the heavy lifting while you sit there looking pretty. Interested?"
 
-class MyPlugin(BasePlugin):
-    def can_handle(self, intent: str, query: str) -> bool:
-        return "my_keyword" in query.lower()
-    
-    async def execute(self, query: str, context: dict = None) -> dict:
-        return {
-            "success": True,
-            "response": "My plugin response",
-            "data": {}
-        }
+# Asks permission for new topics  
+"Want me to dive into blockchain? I can research it if you're curious about that particular rabbit hole."
 ```
 
-## Configuration
-
-### Core Settings
-
-```json
-{
-  "wake_word": "penny",
-  "stt": {
-    "type": "whisper",
-    "model": "base",
-    "language": "en"
-  },
-  "tts": {
-    "type": "google",
-    "cache_enabled": true,
-    "preload_common_phrases": true
-  },
-  "personality": {
-    "sarcasm_level": 0.3,
-    "humor_style": "witty"
-  },
-  "timeouts": {
-    "llm_timeout": 15.0,
-    "tts_timeout": 10.0
-  }
-}
+### **Learning from Corrections**
+```python
+# Detects when corrected and learns
+User: "Actually, it's React, not Angular"
+Penny: "Ah, React! Thanks for the correction - I'll remember that for next time. 
+React hooks are pretty slick, aren't they?"
 ```
 
-### Advanced Options
+### **Proactive Curiosity with Boundaries**
+```python
+# Meaningful follow-up questions
+"What's your actual plan with FastAPI, or are we just winging it?"
+"Speaking of Python, have you tried the new structural pattern matching in 3.10+?"
+```
 
-- **Audio**: Input device selection and calibration
-- **Routing**: Intent classification and plugin selection
-- **Memory**: Conversation context and history
-- **Telemetry**: Performance monitoring and debugging
+### **Personal Profile Integration**
+```python
+# Knows your context and projects
+"Given your FastAPI background, you'd probably love Pydantic v2's performance improvements."
+"This reminds me of that PennyGPT project you're working on..."
+```
 
-## Documentation
+## 📊 System Architecture
 
-- **[LM Studio Setup](docs/SETUP_LM_STUDIO.md)**: Complete guide to configuring local LLM
-- **[macOS Permissions](docs/SETUP_LM_STUDIO.md#macos-permissions-and-automation)**: System integration requirements
-- **Plugin API**: Development guide for custom plugins
-- **Voice Calibration**: Microphone and audio setup
+### **Core Pipeline**
+```
+Audio Input → VAD → Whisper STT → Wake Word → Command Extract → 
+Enhanced LLM + Memory + Emotional Intelligence + Personality → TTS → Audio Output
+```
 
-## Development
+### **Advanced Systems**
+- **Emotional Memory Engine**: Tracks relationships, moods, values, learning goals
+- **Personality System**: 7 dynamic modes with context-aware switching
+- **Conversation Flow Manager**: Natural engagement without constant wake words
+- **Permission-Based Learning**: Ethical autonomous research with user consent
+- **Enhanced TTS Pipeline**: Human-quality voice with personality modulation
 
-### Running Tests
+### **Data Storage** 
+```sql
+-- Enhanced database schema
+emotional_context: conversation_id, emotion, intensity, timestamp
+relationships: name, relationship_type, context, emotional_association
+value_alignments: category, importance, notes
+learning_goals: topic, interest_level, last_discussed
+research_sessions: topic, permission_granted, findings
+```
 
+## 🛠️ Development & Testing
+
+### **Comprehensive Test Suite**
 ```bash
-# Full test suite
-python -m pytest tests/ -v
+# Full system tests
+PYTHONPATH=src pytest tests/ -v
 
-# Specific components
-python -m pytest tests/test_openai_compat_llm.py -v  # LLM integration
-python -m pytest tests/test_tts_pipeline.py -v       # TTS reliability
-python -m pytest tests/test_wake_word.py -v          # Wake word detection
-python -m pytest tests/test_calendar_fallback.py -v  # Calendar plugin
+# Personality system tests  
+PYTHONPATH=src pytest tests/test_personality.py -v
 
-# Integration tests (requires LM Studio running)
-python -m pytest tests/ -v -k integration
+# Guided learning tests
+PYTHONPATH=src pytest tests/test_guided_learning.py -v
+
+# Health monitoring
+PYTHONPATH=src python -m penny_doctor
 ```
 
-### Code Quality
-
+### **Performance Monitoring**
 ```bash
-# Run pre-commit hooks
-pre-commit run --all-files
-
-# Type checking
-mypy src/
-
-# Format code
-black src/ tests/
+# Real-time metrics during conversations
+# Displays: STT latency, LLM response time, TTS generation, cache hit rates
+PYTHONPATH=src python penny_with_tts.py
 ```
 
-### Debugging
+## 📋 What's Next: MCP Agent Integration
 
-Enable verbose logging in `penny_config.json`:
+### **Phase 2: Agentic AI Capabilities (Future)**
+- **MCP Protocol Integration**: Tool access and multi-step workflows
+- **Advanced Agent Planning**: Goal decomposition and execution orchestration
+- **Learning & Adaptation**: Workflow optimization and custom tool development
+- **Security & Monitoring**: Audit logging, permission management, resource limits
 
-```json
-{
-  "debug": {
-    "verbose_logging": true,
-    "log_audio_pipeline": true,
-    "log_llm_requests": true
-  }
-}
-```
+**Estimated Timeline**: 3-4 months for full agentic transformation
+**Infrastructure**: FastAPI daemon ready, health monitoring extensible
 
-## Troubleshooting
+## 🎯 Project Vision
 
-### Common Issues
+**PennyGPT transforms AI assistance from transactional to relational:**
 
-**LM Studio Connection:**
-```bash
-# Check if server is running
-curl -X GET http://localhost:1234/v1/models
+**Traditional Voice Assistant:**
+- "Set a timer for 10 minutes" → Timer set
+- Forgets interaction immediately
+- No personality or learning
 
-# Verify model name matches configuration
-grep -A 10 '"llm"' penny_config.json
-```
+**PennyGPT AI Companion:**
+- Remembers you're stressed about deadlines
+- Suggests break reminders with sass: "Another coding marathon? Your brain needs more than caffeine to function."
+- Learns your work patterns and offers proactive support
+- Builds inside jokes and shared memories over time
 
-**Audio Issues:**
-```bash
-# Test microphone
-python debug_audio.py
+## 🏆 Achievement Status
 
-# Calibrate audio levels
-python audio_calibrate.py
-```
+**🎉 ALL 7 ChatGPT Roadmap Priorities COMPLETE:**
+1. ✅ Emotional Intelligence & Learning System
+2. ✅ Wake Word Detection & Conversation Flow  
+3. ✅ Conversation Memory & Context
+4. ✅ Response Optimization & Personality
+5. ✅ TTS Perceived Latency Improvements
+6. ✅ Health Monitoring & System Validation
+7. ✅ Performance Logging & Metrics
 
-**macOS Permissions:**
-- Grant microphone access to Terminal/IDE
-- Allow Calendar automation in System Settings
-- Enable Accessibility permissions for system control
+**🎆 PLUS Advanced Companion Features:**
+- ✅ Guided Learning & Personal Profiles
+- ✅ Enhanced Sass & Real Personality
+- ✅ Permission-Based Research System
+- ✅ Production Engineering Infrastructure
+- ✅ ElevenLabs Human-Quality Voice
 
-### Performance Issues
+## 📝 Documentation
 
-**Slow Responses:**
-- Use a smaller/faster model in LM Studio
-- Reduce `max_tokens` in configuration
-- Close other applications to free RAM
-- Enable GPU acceleration if available
+- **[Current Status](CURRENT_STATUS_9.5.md)**: Complete achievement log
+- **[Guided Learning](GUIDED_LEARNING_COMPLETE.md)**: Advanced companion features
+- **[Engineering Improvements](ENGINEERING_IMPROVEMENTS_COMPLETE.md)**: Production readiness
+- **[LM Studio Setup](docs/SETUP_LM_STUDIO.md)**: Local LLM configuration
+- **[Voice Quality](VOICE_QUALITY_COMPLETE.md)**: ElevenLabs integration
 
-**Memory Usage:**
-- Monitor with `htop` or Activity Monitor
-- Consider quantized models (Q4_K_M, Q5_K_M)
-- Enable model offloading in LM Studio
+## 🤝 Contributing
 
-## Contributing
+This system demonstrates advanced AI companion development with production-ready engineering. 
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`python -m pytest tests/ -v`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+**Key Innovation Areas:**
+- Emotional intelligence in AI systems
+- Personality-driven conversation flow
+- Permission-based autonomous learning
+- Privacy-first relationship building
+- Production AI companion infrastructure
 
-### Development Workflow
+## 📄 License
 
-- **Code Style**: Black formatting, type hints preferred
-- **Testing**: Add tests for new features, maintain >90% coverage
-- **Documentation**: Update relevant docs and docstrings
-- **Performance**: Profile changes, avoid blocking operations
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- **LM Studio** for providing excellent local LLM hosting
-- **OpenAI** for the API specification and model architectures
-- **Whisper** for robust speech recognition
-- **Contributors** who help improve PennyGPT
-
-## Roadmap
-
-- [ ] **Streaming TTS**: Real-time audio generation
-- [ ] **Multi-language**: Support for additional languages
-- [ ] **Advanced Plugins**: Home automation, file management
-- [ ] **Mobile Support**: iOS/Android companion apps
-- [ ] **Voice Training**: Personalized wake word detection
-- [ ] **Memory System**: Long-term conversation context
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Need Help?** Check the [documentation](docs/), run the test suite, or open an issue with detailed error logs and system information.
+**Experience an AI companion that actually remembers, learns, and develops a relationship with you. PennyGPT isn't just another voice assistant - it's a step toward genuine AI companionship.**

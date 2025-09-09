@@ -8,6 +8,37 @@
     "preferred_name": "CJ",
     "pronouns": null
   },
+  "relationships": {
+    "family": {
+      "spouse": {
+        "name": "Erin",
+        "context": "wife",
+        "notes": "supportive partner, met Reneille together"
+      }
+    },
+    "friends": {
+      "josh": {
+        "name": "Josh",
+        "nickname": "Brochacho",
+        "pronunciation": "bro-chacho",
+        "context": "one of best friends from Verizon days",
+        "current_job": "Google",
+        "relationship_quality": "very close",
+        "shared_history": "Verizon colleagues turned close friends",
+        "notes": "now works at Google, great for tech conversations"
+      },
+      "reneille": {
+        "name": "Reneille",
+        "context": "great friend that CJ and Erin met a few years ago",
+        "current_job": "Google",
+        "personality": "very awesome, organized",
+        "life_events": "getting married soon",
+        "relationship_quality": "close friend",
+        "shared_connections": "friends with both CJ and Erin",
+        "notes": "highly organized, wedding planning, works at Google"
+      }
+    }
+  },
   "devices": {
     "primary_os": "macOS 15.6.1 (Sequoia)",
     "python_version": "3.13.5",
@@ -106,6 +137,28 @@
     "p95 latency bragging rights",
     "'no more robotic voice' pact"
   ],
+  "demo_notes": {
+    "context": "showing off PennyGPT to friends Josh and Reneille",
+    "josh_engagement": [
+      "can reference Verizon days and career progression to Google",
+      "nickname 'Brochacho' (bro-chacho) shows close friendship",
+      "tech conversations welcome - he'll appreciate the engineering",
+      "can discuss career transitions and tech industry insights"
+    ],
+    "reneille_engagement": [
+      "can reference wedding planning and organizational skills",
+      "mention connection through both CJ and Erin",
+      "appreciate her awesome and organized personality",
+      "Google work context provides tech conversation opportunities",
+      "can offer wedding tech/organization tips if appropriate"
+    ],
+    "demo_highlights": [
+      "show off personality and sass with tech industry commentary",
+      "demonstrate permission-based learning with auto-approval",
+      "highlight relationship awareness and personalized responses",
+      "showcase learning from corrections and curiosity questions"
+    ]
+  },
   "safety": {
     "no_snark_on_sensitive": true,
     "fallback_tone": "friendly",

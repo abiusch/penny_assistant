@@ -21,6 +21,7 @@ class LearningOpportunityType(Enum):
     FOLLOW_UP_CURIOSITY = "follow_up_curiosity"
     CORRECTION_OPPORTUNITY = "correction_opportunity"
     INTEREST_DEEPENING = "interest_deepening"
+    PROBLEM_SOLVING = "problem_solving"
 
 
 class ResearchPermissionStrategy(Enum):
@@ -155,7 +156,317 @@ class GuidedLearningSystem:
                         context=user_input,
                         user_input=user_input,
                         confidence=0.9,
-                        suggested_research=f\"Research {topic} comprehensively\",
+                        suggested_research=f"Research {topic} comprehensively",
                         permission_strategy=ResearchPermissionStrategy.DIRECT_ASK,
                         expected_user_interest=0.8
-                    ))\n        \n        # 2. Implicit curiosity indicators\n        for pattern in self.research_patterns['implicit_curiosity']:\n            if re.search(pattern, user_lower):\n                topic = self._extract_main_topic(user_input)\n                if topic:\n                    opportunities.append(LearningOpportunity(\n                        opportunity_type=LearningOpportunityType.FOLLOW_UP_CURIOSITY,\n                        topic=topic,\n                        context=user_input,\n                        user_input=user_input,\n                        confidence=0.7,\n                        suggested_research=f\"Explore {topic} to satisfy curiosity\",\n                        permission_strategy=ResearchPermissionStrategy.CURIOUS_SUGGESTION,\n                        expected_user_interest=0.6\n                    ))\n        \n        # 3. Knowledge gaps\n        for pattern in self.research_patterns['knowledge_gaps']:\n            if re.search(pattern, user_lower):\n                topic = self._extract_confusion_topic(user_input)\n                if topic:\n                    opportunities.append(LearningOpportunity(\n                        opportunity_type=LearningOpportunityType.KNOWLEDGE_GAP,\n                        topic=topic,\n                        context=user_input,\n                        user_input=user_input,\n                        confidence=0.8,\n                        suggested_research=f\"Clarify understanding of {topic}\",\n                        permission_strategy=ResearchPermissionStrategy.PROBLEM_SOLVING,\n                        expected_user_interest=0.7\n                    ))\n        \n        # 4. Problem-solving opportunities\n        for pattern in self.research_patterns['problem_solving']:\n            if re.search(pattern, user_lower):\n                topic = self._extract_decision_topic(user_input)\n                if topic:\n                    opportunities.append(LearningOpportunity(\n                        opportunity_type=LearningOpportunityType.PROBLEM_SOLVING,\n                        topic=topic,\n                        context=user_input,\n                        user_input=user_input,\n                        confidence=0.8,\n                        suggested_research=f\"Research options for {topic}\",\n                        permission_strategy=ResearchPermissionStrategy.PROBLEM_SOLVING,\n                        expected_user_interest=0.8\n                    ))\n        \n        # 5. Interest deepening based on learning goals\n        current_interests = self._get_current_learning_interests()\n        for interest_topic in current_interests:\n            if interest_topic.lower() in user_lower:\n                opportunities.append(LearningOpportunity(\n                    opportunity_type=LearningOpportunityType.INTEREST_DEEPENING,\n                    topic=interest_topic,\n                    context=user_input,\n                    user_input=user_input,\n                    confidence=0.6,\n                    suggested_research=f\"Deepen knowledge of {interest_topic}\",\n                    permission_strategy=ResearchPermissionStrategy.INTEREST_BUILDING,\n                    expected_user_interest=0.9\n                ))\n        \n        return opportunities\n    \n    def detect_correction_attempt(self, user_input: str, previous_assistant_response: str) -> Optional[Tuple[str, str]]:\n        \"\"\"Detect if user is correcting previous information.\"\"\"\n        user_lower = user_input.lower()\n        \n        # Check for correction patterns\n        for pattern in self.correction_patterns:\n            if re.search(pattern, user_lower):\n                # Extract what they're correcting\n                original_info = self._extract_corrected_info(previous_assistant_response)\n                corrected_info = self._extract_new_info(user_input)\n                \n                if original_info and corrected_info:\n                    return (original_info, corrected_info)\n        \n        return None\n    \n    def request_research_permission(self, opportunity: LearningOpportunity) -> str:\n        \"\"\"Generate a permission request based on the opportunity.\"\"\"\n        strategy = opportunity.permission_strategy\n        templates = self.permission_templates[strategy]\n        \n        # Choose template based on user's emotional state and personality\n        emotional_context = self.memory.current_emotional_context\n        \n        if emotional_context and emotional_context.detected_emotion.value in ['playful', 'curious']:\n            # Use more enthusiastic templates\n            template = random.choice(templates)\n        else:\n            # Use more measured templates\n            template = templates[0]  # Use first (usually most direct)\n        \n        # Fill in template variables\n        filled_template = self._fill_permission_template(template, opportunity)\n        \n        return filled_template\n    \n    def generate_curiosity_question(self, topic: str, context: str) -> str:\n        \"\"\"Generate a curious follow-up question about a topic.\"\"\"\n        # Consider user's learning style and emotional state\n        emotional_context = self.memory.current_emotional_context\n        \n        # Get related topics from user's interests\n        related_topics = self._find_related_learning_topics(topic)\n        \n        # Choose appropriate curiosity template\n        template = random.choice(self.curiosity_templates)\n        \n        # Fill in the template\n        question = template.format(\n            topic=topic,\n            related_topic=related_topics[0] if related_topics else \"other interests\"\n        )\n        \n        return question\n    \n    def record_research_session(self, opportunity: LearningOpportunity, permission_granted: bool) -> int:\n        \"\"\"Record a research session in the database.\"\"\"\n        current_time = time.time()\n        \n        with sqlite3.connect(self.db_path) as conn:\n            cursor = conn.execute(\"\"\"\n                INSERT INTO research_sessions \n                (topic, user_input, permission_requested, permission_granted, \n                 research_conducted, timestamp)\n                VALUES (?, ?, ?, ?, ?, ?)\n            \"\"\", (\n                opportunity.topic,\n                opportunity.user_input,\n                current_time,\n                int(permission_granted),\n                0,  # Not conducted yet\n                current_time\n            ))\n            \n            session_id = cursor.lastrowid\n            \n        return session_id\n    \n    def record_user_correction(self, original_info: str, corrected_info: str, \n                             context: str, user_input: str) -> int:\n        \"\"\"Record when user corrects Penny's information.\"\"\"\n        current_time = time.time()\n        \n        with sqlite3.connect(self.db_path) as conn:\n            cursor = conn.execute(\"\"\"\n                INSERT INTO user_corrections \n                (original_statement, corrected_statement, context, user_input,\n                 confidence_before, confidence_after, learned_from, timestamp)\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n            \"\"\", (\n                original_info,\n                corrected_info,\n                context,\n                user_input,\n                0.5,  # Assumed confidence before\n                0.8,  # Higher confidence after correction\n                1,    # Learned from this\n                current_time\n            ))\n            \n            correction_id = cursor.lastrowid\n            \n        # Add to recent corrections to avoid repetition\n        self.memory.recent_corrections.append(corrected_info)\n        if len(self.memory.recent_corrections) > 10:\n            self.memory.recent_corrections.pop(0)\n            \n        return correction_id\n    \n    def update_research_session(self, session_id: int, research_results: str, \n                              user_feedback: Optional[str] = None, \n                              feedback_rating: Optional[int] = None):\n        \"\"\"Update research session with results and feedback.\"\"\"\n        with sqlite3.connect(self.db_path) as conn:\n            conn.execute(\"\"\"\n                UPDATE research_sessions \n                SET research_conducted = 1, research_results = ?, \n                    user_feedback = ?, feedback_rating = ?\n                WHERE id = ?\n            \"\"\", (research_results, user_feedback, feedback_rating, session_id))\n    \n    def get_learning_context_for_llm(self) -> str:\n        \"\"\"Get learning context to include in LLM prompts.\"\"\"\n        context_parts = []\n        \n        # Recent corrections to incorporate\n        if self.memory.recent_corrections:\n            corrections_context = \"Recent learnings: \" + \", \".join(self.memory.recent_corrections[-3:])\n            context_parts.append(corrections_context)\n        \n        # Current learning goals with permission\n        permitted_topics = [\n            goal.topic for goal in self.memory.learning_goals.values()\n            if goal.exploration_permission and goal.user_interest_level > 0.5\n        ]\n        if permitted_topics:\n            learning_context = f\"User interested in learning about: {', '.join(permitted_topics[:3])}\"\n            context_parts.append(learning_context)\n        \n        # Pending research topics\n        if self.memory.pending_research_topics:\n            pending_context = f\"Pending research: {', '.join(self.memory.pending_research_topics[:2])}\"\n            context_parts.append(pending_context)\n        \n        return \"\\n\".join(context_parts)\n    \n    # Helper methods\n    def _extract_topic_from_text(self, text: str) -> Optional[str]:\n        \"\"\"Extract topic from text after research indicators.\"\"\"\n        # Simple extraction - take first few meaningful words\n        words = text.split()[:4]\n        topic_words = [w for w in words if len(w) > 2 and w.isalpha()]\n        return \" \".join(topic_words) if topic_words else None\n    \n    def _extract_main_topic(self, text: str) -> Optional[str]:\n        \"\"\"Extract main topic from general text.\"\"\"\n        # Look for nouns and important terms\n        words = re.findall(r'\\b[a-zA-Z]{3,}\\b', text)\n        # Filter out common words\n        common_words = {'the', 'and', 'but', 'how', 'why', 'what', 'when', 'where', 'about', 'with', 'that', 'this'}\n        meaningful_words = [w for w in words if w.lower() not in common_words][:3]\n        return \" \".join(meaningful_words) if meaningful_words else None\n    \n    def _extract_confusion_topic(self, text: str) -> Optional[str]:\n        \"\"\"Extract what the user is confused about.\"\"\"\n        # Look for topics after confusion indicators\n        patterns = [r'understand (.+)', r'confused about (.+)', r'difference between (.+)']\n        for pattern in patterns:\n            match = re.search(pattern, text.lower())\n            if match:\n                return match.group(1).strip()[:50]\n        return self._extract_main_topic(text)\n    \n    def _extract_decision_topic(self, text: str) -> Optional[str]:\n        \"\"\"Extract decision/problem topic.\"\"\"\n        # Look for topics after decision indicators\n        patterns = [r'figure out (.+)', r'decide (.+)', r'choose (.+)', r'best way to (.+)']\n        for pattern in patterns:\n            match = re.search(pattern, text.lower())\n            if match:\n                return match.group(1).strip()[:50]\n        return self._extract_main_topic(text)\n    \n    def _get_current_learning_interests(self) -> List[str]:\n        \"\"\"Get current learning interests from memory.\"\"\"\n        return [goal.topic for goal in self.memory.learning_goals.values() \n                if goal.user_interest_level > 0.4]\n    \n    def _extract_corrected_info(self, previous_response: str) -> Optional[str]:\n        \"\"\"Extract information that was corrected from previous response.\"\"\"\n        # Simple extraction of factual statements\n        sentences = previous_response.split('.')[:2]  # First two sentences\n        return '. '.join(sentences).strip() if sentences else None\n    \n    def _extract_new_info(self, user_input: str) -> Optional[str]:\n        \"\"\"Extract the corrected information from user input.\"\"\"\n        # Look for corrective statements\n        user_input = user_input.strip()\n        # Remove correction indicators\n        for pattern in self.correction_patterns:\n            user_input = re.sub(pattern, '', user_input, flags=re.IGNORECASE)\n        return user_input.strip() if user_input.strip() else None\n    \n    def _fill_permission_template(self, template: str, opportunity: LearningOpportunity) -> str:\n        \"\"\"Fill in permission template with opportunity details.\"\"\"\n        # Get related context\n        related_interests = self._find_related_learning_topics(opportunity.topic)\n        \n        # Basic template filling\n        filled = template.format(\n            topic=opportunity.topic,\n            specific_aspect=f\"the practical applications of {opportunity.topic}\",\n            speculation=f\"this connects to {related_interests[0] if related_interests else 'your other interests'}\",\n            hook=f\"It seems really relevant to what you're thinking about\",\n            aspect=\"the real-world applications\",\n            specific_help=\"current options and best practices\",\n            problem=\"your decision\",\n            related_interest=related_interests[0] if related_interests else \"technology\",\n            connection=related_interests[0] if related_interests else \"your interests\"\n        )\n        \n        return filled\n    \n    def _find_related_learning_topics(self, topic: str) -> List[str]:\n        \"\"\"Find related topics from user's learning history.\"\"\"\n        # Simple keyword matching for now\n        related = []\n        topic_lower = topic.lower()\n        \n        for goal in self.memory.learning_goals.values():\n            if (goal.topic.lower() != topic_lower and \n                any(word in goal.topic.lower() for word in topic_lower.split())):\n                related.append(goal.topic)\n        \n        return related[:2]  # Return top 2 related topics\n\n\ndef create_guided_learning_system(emotional_memory_system):\n    \"\"\"Factory function to create guided learning system.\"\"\"\n    return GuidedLearningSystem(emotional_memory_system)\n
+                    ))
+        
+        # 2. Implicit curiosity indicators
+        for pattern in self.research_patterns['implicit_curiosity']:
+            if re.search(pattern, user_lower):
+                topic = self._extract_main_topic(user_input)
+                if topic:
+                    opportunities.append(LearningOpportunity(
+                        opportunity_type=LearningOpportunityType.FOLLOW_UP_CURIOSITY,
+                        topic=topic,
+                        context=user_input,
+                        user_input=user_input,
+                        confidence=0.7,
+                        suggested_research=f"Explore {topic} to satisfy curiosity",
+                        permission_strategy=ResearchPermissionStrategy.CURIOUS_SUGGESTION,
+                        expected_user_interest=0.6
+                    ))
+        
+        # 3. Knowledge gaps
+        for pattern in self.research_patterns['knowledge_gaps']:
+            if re.search(pattern, user_lower):
+                topic = self._extract_confusion_topic(user_input)
+                if topic:
+                    opportunities.append(LearningOpportunity(
+                        opportunity_type=LearningOpportunityType.KNOWLEDGE_GAP,
+                        topic=topic,
+                        context=user_input,
+                        user_input=user_input,
+                        confidence=0.8,
+                        suggested_research=f"Clarify understanding of {topic}",
+                        permission_strategy=ResearchPermissionStrategy.PROBLEM_SOLVING,
+                        expected_user_interest=0.7
+                    ))
+        
+        # 4. Problem-solving opportunities
+        for pattern in self.research_patterns['problem_solving']:
+            if re.search(pattern, user_lower):
+                topic = self._extract_decision_topic(user_input)
+                if topic:
+                    opportunities.append(LearningOpportunity(
+                        opportunity_type=LearningOpportunityType.PROBLEM_SOLVING,
+                        topic=topic,
+                        context=user_input,
+                        user_input=user_input,
+                        confidence=0.8,
+                        suggested_research=f"Research options for {topic}",
+                        permission_strategy=ResearchPermissionStrategy.PROBLEM_SOLVING,
+                        expected_user_interest=0.8
+                    ))
+        
+        # 5. Interest deepening based on learning goals
+        current_interests = self._get_current_learning_interests()
+        for interest_topic in current_interests:
+            if interest_topic.lower() in user_lower:
+                opportunities.append(LearningOpportunity(
+                    opportunity_type=LearningOpportunityType.INTEREST_DEEPENING,
+                    topic=interest_topic,
+                    context=user_input,
+                    user_input=user_input,
+                    confidence=0.6,
+                    suggested_research=f"Deepen knowledge of {interest_topic}",
+                    permission_strategy=ResearchPermissionStrategy.INTEREST_BUILDING,
+                    expected_user_interest=0.9
+                ))
+        
+        return opportunities
+    
+    def detect_correction_attempt(self, user_input: str, previous_assistant_response: str) -> Optional[Tuple[str, str]]:
+        """Detect if user is correcting previous information."""
+        user_lower = user_input.lower()
+        
+        # Check for correction patterns
+        for pattern in self.correction_patterns:
+            if re.search(pattern, user_lower):
+                # Extract what they're correcting
+                original_info = self._extract_corrected_info(previous_assistant_response)
+                corrected_info = self._extract_new_info(user_input)
+                
+                if original_info and corrected_info:
+                    return (original_info, corrected_info)
+        
+        return None
+    
+    def request_research_permission(self, opportunity: LearningOpportunity) -> str:
+        """Generate a permission request based on the opportunity."""
+        strategy = opportunity.permission_strategy
+        templates = self.permission_templates[strategy]
+        
+        # Choose template based on user's emotional state and personality
+        emotional_context = self.memory.current_emotional_context
+        
+        if emotional_context and emotional_context.detected_emotion.value in ['playful', 'curious']:
+            # Use more enthusiastic templates
+            template = random.choice(templates)
+        else:
+            # Use more measured templates
+            template = templates[0]  # Use first (usually most direct)
+        
+        # Fill in template variables
+        filled_template = self._fill_permission_template(template, opportunity)
+        
+        return filled_template
+    
+    def generate_curiosity_question(self, topic: str, context: str) -> str:
+        """Generate a curious follow-up question about a topic."""
+        # Consider user's learning style and emotional state
+        emotional_context = self.memory.current_emotional_context
+        
+        # Get related topics from user's interests
+        related_topics = self._find_related_learning_topics(topic)
+        
+        # Choose appropriate curiosity template
+        template = random.choice(self.curiosity_templates)
+        
+        # Fill in the template
+        question = template.format(
+            topic=topic,
+            related_topic=related_topics[0] if related_topics else "other interests"
+        )
+        
+        return question
+    
+    def record_research_session(self, opportunity: LearningOpportunity, permission_granted: bool) -> int:
+        """Record a research session in the database."""
+        current_time = time.time()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                INSERT INTO research_sessions 
+                (topic, user_input, permission_requested, permission_granted, 
+                 research_conducted, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                opportunity.topic,
+                opportunity.user_input,
+                current_time,
+                int(permission_granted),
+                0,  # Not conducted yet
+                current_time
+            ))
+            
+            session_id = cursor.lastrowid
+            
+        return session_id
+    
+    def record_user_correction(self, original_info: str, corrected_info: str, 
+                             context: str, user_input: str) -> int:
+        """Record when user corrects Penny's information."""
+        current_time = time.time()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                INSERT INTO user_corrections 
+                (original_statement, corrected_statement, context, user_input,
+                 confidence_before, confidence_after, learned_from, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                original_info,
+                corrected_info,
+                context,
+                user_input,
+                0.5,  # Assumed confidence before
+                0.8,  # Higher confidence after correction
+                1,    # Learned from this
+                current_time
+            ))
+            
+            correction_id = cursor.lastrowid
+            
+        # Add to recent corrections to avoid repetition
+        self.memory.recent_corrections.append(corrected_info)
+        if len(self.memory.recent_corrections) > 10:
+            self.memory.recent_corrections.pop(0)
+            
+        return correction_id
+    
+    def update_research_session(self, session_id: int, research_results: str, 
+                              user_feedback: Optional[str] = None, 
+                              feedback_rating: Optional[int] = None):
+        """Update research session with results and feedback."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                UPDATE research_sessions 
+                SET research_conducted = 1, research_results = ?, 
+                    user_feedback = ?, feedback_rating = ?
+                WHERE id = ?
+            """, (research_results, user_feedback, feedback_rating, session_id))
+    
+    def get_learning_context_for_llm(self) -> str:
+        """Get learning context to include in LLM prompts."""
+        context_parts = []
+        
+        # Recent corrections to incorporate
+        if hasattr(self.memory, 'recent_corrections') and self.memory.recent_corrections:
+            corrections_context = "Recent learnings: " + ", ".join(self.memory.recent_corrections[-3:])
+            context_parts.append(corrections_context)
+        
+        # Current learning goals with permission
+        if hasattr(self.memory, 'learning_goals'):
+            permitted_topics = [
+                goal.topic for goal in self.memory.learning_goals.values()
+                if goal.exploration_permission and goal.user_interest_level > 0.5
+            ]
+            if permitted_topics:
+                learning_context = f"User interested in learning about: {', '.join(permitted_topics[:3])}"
+                context_parts.append(learning_context)
+        
+        # Pending research topics
+        if hasattr(self.memory, 'pending_research_topics') and self.memory.pending_research_topics:
+            pending_context = f"Pending research: {', '.join(self.memory.pending_research_topics[:2])}"
+            context_parts.append(pending_context)
+        
+        return "\n".join(context_parts)
+    
+    # Helper methods
+    def _extract_topic_from_text(self, text: str) -> Optional[str]:
+        """Extract topic from text after research indicators."""
+        # Simple extraction - take first few meaningful words
+        words = text.split()[:4]
+        topic_words = [w for w in words if len(w) > 2 and w.isalpha()]
+        return " ".join(topic_words) if topic_words else None
+    
+    def _extract_main_topic(self, text: str) -> Optional[str]:
+        """Extract main topic from general text."""
+        # Look for nouns and important terms
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', text)
+        # Filter out common words
+        common_words = {'the', 'and', 'but', 'how', 'why', 'what', 'when', 'where', 'about', 'with', 'that', 'this'}
+        meaningful_words = [w for w in words if w.lower() not in common_words][:3]
+        return " ".join(meaningful_words) if meaningful_words else None
+    
+    def _extract_confusion_topic(self, text: str) -> Optional[str]:
+        """Extract what the user is confused about."""
+        # Look for topics after confusion indicators
+        patterns = [r'understand (.+)', r'confused about (.+)', r'difference between (.+)']
+        for pattern in patterns:
+            match = re.search(pattern, text.lower())
+            if match:
+                return match.group(1).strip()[:50]
+        return self._extract_main_topic(text)
+    
+    def _extract_decision_topic(self, text: str) -> Optional[str]:
+        """Extract decision/problem topic."""
+        # Look for topics after decision indicators
+        patterns = [r'figure out (.+)', r'decide (.+)', r'choose (.+)', r'best way to (.+)']
+        for pattern in patterns:
+            match = re.search(pattern, text.lower())
+            if match:
+                return match.group(1).strip()[:50]
+        return self._extract_main_topic(text)
+    
+    def _get_current_learning_interests(self) -> List[str]:
+        """Get current learning interests from memory."""
+        if hasattr(self.memory, 'learning_goals'):
+            return [goal.topic for goal in self.memory.learning_goals.values() 
+                    if goal.user_interest_level > 0.4]
+        return []
+    
+    def _extract_corrected_info(self, previous_response: str) -> Optional[str]:
+        """Extract information that was corrected from previous response."""
+        # Simple extraction of factual statements
+        sentences = previous_response.split('.')[:2]  # First two sentences
+        return '. '.join(sentences).strip() if sentences else None
+    
+    def _extract_new_info(self, user_input: str) -> Optional[str]:
+        """Extract the corrected information from user input."""
+        # Look for corrective statements
+        user_input = user_input.strip()
+        # Remove correction indicators
+        for pattern in self.correction_patterns:
+            user_input = re.sub(pattern, '', user_input, flags=re.IGNORECASE)
+        return user_input.strip() if user_input.strip() else None
+    
+    def _fill_permission_template(self, template: str, opportunity: LearningOpportunity) -> str:
+        """Fill in permission template with opportunity details."""
+        # Get related context
+        related_interests = self._find_related_learning_topics(opportunity.topic)
+        
+        # Basic template filling
+        filled = template.format(
+            topic=opportunity.topic,
+            specific_aspect=f"the practical applications of {opportunity.topic}",
+            speculation=f"this connects to {related_interests[0] if related_interests else 'your other interests'}",
+            hook=f"It seems really relevant to what you're thinking about",
+            aspect="the real-world applications",
+            specific_help="current options and best practices",
+            problem="your decision",
+            related_interest=related_interests[0] if related_interests else "technology",
+            connection=related_interests[0] if related_interests else "your interests"
+        )
+        
+        return filled
+    
+    def _find_related_learning_topics(self, topic: str) -> List[str]:
+        """Find related topics from user's learning history."""
+        # Simple keyword matching for now
+        related = []
+        topic_lower = topic.lower()
+        
+        if hasattr(self.memory, 'learning_goals'):
+            for goal in self.memory.learning_goals.values():
+                if (goal.topic.lower() != topic_lower and 
+                    any(word in goal.topic.lower() for word in topic_lower.split())):
+                    related.append(goal.topic)
+        
+        return related[:2]  # Return top 2 related topics
+
+
+def create_guided_learning_system(emotional_memory_system):
+    """Factory function to create guided learning system."""
+    return GuidedLearningSystem(emotional_memory_system)

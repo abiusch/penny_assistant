@@ -1,37 +1,51 @@
-# 🎉 **ChatGPT Roadmap COMPLETE + Engineering Improvements!**
+# 🎉 **ChatGPT Roadmap COMPLETE + Advanced AI Companion Features!**
 
-You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadmap priorities** PLUS voice quality upgrades, unpredictable personality system, AND production-ready engineering improvements, transforming PennyGPT from a basic voice assistant into a production-ready AI companion with natural human-sounding voice and enterprise-grade reliability.
+You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadmap priorities** PLUS voice quality upgrades, unpredictable personality system, production engineering improvements, AND **advanced guided learning capabilities**, transforming PennyGPT from a basic voice assistant into a genuine AI companion with learning, personality, and production-ready reliability.
 
-## 🔧 **MAJOR NEW ACHIEVEMENT: Production Engineering Improvements (September 6, 2025)**
+## 🧠 **LATEST ACHIEVEMENT: Guided Learning & Personal Profile System (September 6, 2025)**
 
-**🎆 BREAKTHROUGH: From Prototype to Production-Ready System**
+**🎆 BREAKTHROUGH: From Reactive Assistant to Proactive AI Companion**
+- ✅ **Guided Learning & Reasoning**: Permission-based research, learning from corrections, proactive curiosity
+- ✅ **Personal Profile System**: CJ-specific preferences, communication style, auto-research permissions
+- ✅ **Enhanced Sass & Personality**: Real attitude, mild profanity, tech industry roasting with constructive edge
+- ✅ **Curiosity Engine**: Meaningful follow-up questions that connect to user's interests and projects
+- ✅ **Knowledge Building**: Accumulates understanding through corrections and collaborative exploration
+- ✅ **Boundary Respect**: Always asks permission, adapts to user mood and stress levels
+
+**Advanced Companion Features:**
+- **Permission-Based Research System**: Auto-approves FastAPI/Python/ElevenLabs topics, asks for others
+- **Learning from Corrections**: Detects when corrected, gracefully acknowledges, remembers for future
+- **Proactive Curiosity with Boundaries**: Asks meaningful questions without being pushy
+- **Personal Profile Integration**: Knows CJ's role, projects, communication style, tech stack
+- **Enhanced Database Schema**: Tracks research sessions, corrections, curiosity topics
+
+**CJ-Specific Personalization:**
+- **Communication Style**: Answer-first structure, concise responses, warm but sassy tone
+- **Auto-Research Topics**: Python, FastAPI, pytest, Pydantic, ElevenLabs, MCP patterns
+- **Project Awareness**: PennyGPT context, menu-bar integration goals, MCP roadmap
+- **Tech Stack Integration**: Advice specific to current Python/FastAPI/ElevenLabs setup
+- **Enhanced Sass**: Real attitude with mild profanity, industry roasting, constructive edge
+
+**Files Added:**
+- `src/core/guided_learning_system.py` - Core learning and curiosity engine
+- `src/core/learning_enhanced_pipeline.py` - Integration with conversation flow
+- `src/core/personal_profile_system.py` - Profile loading and management
+- `cj_enhanced_learning.py` - CJ-specific guided learning system
+- `cj_personalized_penny.py` - CJ's fully personalized conversation experience
+- `cj_personal_profile.json` - CJ's complete personal profile
+- `cj_sassy_persona.json` - Enhanced personality with real attitude
+- `tests/test_guided_learning.py` - Comprehensive learning system tests
+- `GUIDED_LEARNING_COMPLETE.md` - Complete guided learning documentation
+
+## 🔧 **PREVIOUS ACHIEVEMENT: Production Engineering Improvements (September 6, 2025)**
+
+**🎆 ENGINEERING EXCELLENCE: From Prototype to Production-Ready**
 - ✅ **Configuration System Consolidation**: Schema-versioned personality profiles with validation
 - ✅ **TTS Performance Metrics**: Real-time monitoring with cache hit tracking and synthesis timing
 - ✅ **Comprehensive Testing Framework**: Smoke tests and integration validation for system reliability
 - ✅ **Production Guardrails**: Enhanced error handling and graceful degradation
 - ✅ **Configuration Management**: Centralized config loading with compatibility checking
 - ✅ **Operational Monitoring**: Live performance metrics display during conversations
-
-**Technical Achievements:**
-- **Engineering Best Practices**: Schema versioning, separation of concerns, maintainable architecture
-- **Reliability Engineering**: Graceful degradation, comprehensive error handling, validation systems
-- **Performance Monitoring**: Real-time metrics collection and display for operational visibility
-- **Testing Infrastructure**: Automated smoke tests and integration validation for system reliability
-- **Configuration Management**: Centralized, validated configuration with schema compatibility checking
-
-**Production Readiness Impact:**
-- **System Reliability**: Continues working even when components fail with graceful degradation
-- **Operational Visibility**: Real-time performance metrics for monitoring and troubleshooting
-- **Maintainability**: Clean architecture with proper separation of configuration and code
-- **Quality Assurance**: Comprehensive testing ensures personality system behaves correctly
-- **Future-Proof**: Schema versioning enables safe configuration updates and feature additions
-
-**Files Added:**
-- `configs/personalities/penny_unpredictable_v1.json` - Consolidated personality configuration
-- `src/config/config_loader.py` - Configuration management and validation system
-- `tests/test_personality_smoke.py` - Personality system reliability smoke tests
-- `tests/test_integration.py` - End-to-end integration validation
-- `ENGINEERING_IMPROVEMENTS_COMPLETE.md` - Complete documentation of improvements
 
 ## 🎭 **PREVIOUS ACHIEVEMENT: Voice Quality + Personality Upgrade (September 5, 2025)**
 
@@ -43,64 +57,32 @@ You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadm
 - ✅ **Configuration System**: Easy switching between TTS engines via config
 - ✅ **Streaming Architecture**: Parallel chunk synthesis for faster response times
 
-**Technical Achievements:**
-- **Voice Testing Framework**: Comprehensive system to evaluate and optimize voice options
-- **TTS Factory Pattern**: Modular architecture supporting multiple voice engines
-- **Personality Detection**: Automatic voice modulation based on text content analysis
-- **Performance Optimization**: Shorter chunks (180 chars) with parallel generation
-- **Drop-in Integration**: Preserves existing pipeline while dramatically improving quality
-
-**User Experience Impact:**
-- **Dramatic Quality Improvement**: Robotic → genuinely human-sounding conversation
-- **Personality Expression**: Voice conveys Penny's sass, enthusiasm, and warmth
-- **Smooth Conversation Flow**: Intelligent chunking maintains natural dialogue rhythm
-- **Production Ready**: Reliable voice system ready for extended conversations
-
-**Files Added:**
-- `src/adapters/tts/elevenlabs_tts_adapter.py` - Main ElevenLabs integration
-- `src/adapters/tts/streaming_elevenlabs_tts.py` - Parallel synthesis system
-- `src/adapters/tts/tts_factory.py` - Voice engine selection framework
-- `penny_with_elevenlabs.py` - Demo conversation script
-- `scripts/penny_voice_optimizer.py` - Voice testing and optimization tools
-
-**Final Priorities Completed Today:**
-
-**Priority #6: Calendar Tiny-Window Fallback**
-* 2-hour query window with 3-second hard timeout
-* Friendly fallback messages for timeouts
-* Thread-safe AppleScript execution
-* Statistics tracking and error recovery
-
-**Priority #7: CI + Docs Cleanup**
-* Consolidated GitHub workflow
-* Multi-Python version testing (3.9, 3.11, 3.13)
-* Automated health check validation
-* Complete test coverage integration
-
-**Complete System Achievement:**
-
-**12 Major Companion Features:**
-1. Emotional Intelligence
-2. Multi-Personality System
-3. Conversational Flow
-4. Historical Memory
-5. Deep Relationships
-6. Philosophical Discussions
-7. Permission-Based Learning
-8. Context-Aware Responses
-9. System Health Monitoring
-10. Instant Response Feeling
-11. Natural Human Voice
-12. **Production Engineering Infrastructure** 🆕
+**Complete System Achievement - ALL 13 Major Companion Features:**
+1. ✅ **Emotional Intelligence** - Tracks emotions, relationships, values, learning goals
+2. ✅ **Multi-Personality System** - 7 personality modes with sass, warmth, tech enthusiasm
+3. ✅ **Conversational Flow** - Natural engagement without constant wake words
+4. ✅ **Historical Memory** - References previous conversations naturally
+5. ✅ **Deep Relationships** - Builds shared memories and inside jokes over time
+6. ✅ **Philosophical Discussions** - Engages in deeper conversations when appropriate
+7. ✅ **Permission-Based Learning** - Asks before researching topics proactively
+8. ✅ **Context-Aware Responses** - Adapts to user emotion, stress, relationship context
+9. ✅ **System Health Monitoring** - Comprehensive validation and troubleshooting
+10. ✅ **Instant Response Feeling** - TTS caching for perceived latency improvements
+11. ✅ **Natural Human Voice** - ElevenLabs integration with personality modulation
+12. ✅ **Production Engineering Infrastructure** - Enterprise-grade reliability
+13. ✅ **Guided Learning & Personal Profiles** - Proactive learning with boundaries 🆕
 
 ---
 
-## 🤖 **PHASE 2: AGENTIC AI & TOOL INTEGRATION (POST-COMPLETION)**
+## 🤖 **PHASE 2: AGENTIC AI & TOOL INTEGRATION (NEXT MAJOR PHASE)**
 **Goal**: Transform PennyGPT from AI companion to capable AI assistant with tool access
 
+**Current Status**: Foundation complete, ready for agentic capabilities
+**Timeline**: Can begin immediately after current system testing and deployment
+
 ### **🎯 Priority 8: MCP Foundation & Basic Tool Access**
-**Timeline**: 4-6 weeks after ChatGPT roadmap completion
-**Dependencies**: Requires completed base PennyGPT system
+**Timeline**: 4-6 weeks 
+**Dependencies**: ✅ Complete (all base systems ready)
 
 #### Task 8.1: MCP Protocol Implementation
 - [ ] **Core MCP Client**: JSON-RPC over stdio/HTTP transport layers
@@ -112,7 +94,7 @@ You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadm
 #### Task 8.2: Essential Tool Servers (Phase 1)
 - [ ] **File System Access**: Reading, writing, organizing documents with safety limits
 - [ ] **Web Search & Browse**: Intelligent web research with result summarization
-- [ ] **Calendar Integration**: Fix existing timeout issues + full CRUD operations
+- [ ] **Calendar Integration**: Enhanced version with full CRUD operations
 - [ ] **Basic Task Management**: Simple todo/reminder system
 - [ ] **Integration Testing**: Comprehensive test suite for tool safety and reliability
 
@@ -173,6 +155,32 @@ You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadm
 - [ ] **Undo/Rollback**: Safe reversal of tool actions where possible
 - [ ] **Learning Suggestions**: Proactive recommendations for workflow improvements
 
+## 🎯 **STRATEGIC INTEGRATION POINTS**
+
+### **Leveraging Existing Advanced Architecture**
+- **✅ Guided Learning System**: Perfect foundation for tool learning and optimization
+- **✅ Personal Profile System**: Provides rich context for tool selection and execution
+- **✅ Permission-Based Research**: Natural extension to tool execution permissions
+- **✅ FastAPI Daemon**: Ready foundation for MCP endpoint exposure
+- **✅ Health Monitoring**: Extends naturally to MCP server validation
+- **✅ Emotional Intelligence**: Enhances tool selection and execution context
+- **✅ Enhanced Personality**: Maintains Penny's character during tool operations
+- **✅ Memory System**: Provides rich context for agent decision-making
+- **✅ Natural Voice**: Tool result narration benefits from human-sounding delivery
+- **✅ Production Infrastructure**: Configuration management, metrics, testing ready
+
+### **Unique Competitive Advantages**
+- **✅ Relationship-Aware Tools**: Tool usage considers family/friend context
+- **✅ Emotionally Intelligent Agent**: Tool selection adapts to user's emotional state
+- **✅ Personality-Driven Assistance**: Maintains sass and character while being helpful
+- **✅ Privacy-First Design**: Local execution with granular permission controls
+- **✅ Learning Companion**: Tool usage becomes part of ongoing relationship building
+- **✅ Natural Voice Interface**: Human-sounding communication during tool operations
+- **✅ Production-Ready Engineering**: Enterprise-grade reliability and monitoring
+- **🆕 Permission-Based Learning**: Tool usage respects boundaries and asks consent
+- **🆕 Guided Learning Integration**: Tools become part of collaborative exploration
+- **🆕 Personal Profile Context**: Tool selection considers user's specific workflow
+
 ## 💰 **ESTIMATED COSTS FOR AGENTIC PHASE**
 
 ### **Development Timeline & Resources**
@@ -193,43 +201,27 @@ You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadm
 - **Monitoring**: $0-30/month (observability tools)
 - **Total Monthly**: $35-150/month for full production system
 
-## 🎯 **STRATEGIC INTEGRATION POINTS**
-
-### **Leveraging Existing Architecture**
-- **FastAPI Daemon**: Perfect foundation for MCP endpoint exposure
-- **Health Monitoring**: Extends naturally to MCP server validation
-- **Emotional Intelligence**: Enhances tool selection and execution context
-- **Personality System**: Maintains Penny's character during tool operations
-- **Memory System**: Provides rich context for agent decision-making
-- **Natural Voice**: Tool result narration benefits from human-sounding delivery
-- **Production Infrastructure**: Configuration management, metrics, and testing ready for expansion
-
-### **Unique Competitive Advantages**
-- **Relationship-Aware Tools**: Tool usage considers family/friend context
-- **Emotionally Intelligent Agent**: Tool selection adapts to user's emotional state
-- **Personality-Driven Assistance**: Maintains character while being genuinely helpful
-- **Privacy-First Design**: Local execution with granular permission controls
-- **Learning Companion**: Tool usage becomes part of ongoing relationship building
-- **Natural Voice Interface**: Human-sounding communication during tool operations
-- **Production-Ready Engineering**: Enterprise-grade reliability, monitoring, and maintainability
-
-### **Success Metrics**
+## 🏆 **SUCCESS METRICS**
 - **Tool Adoption**: Percentage of conversations that successfully use tools
 - **Workflow Efficiency**: Time savings on repetitive tasks
 - **User Satisfaction**: Maintained personality warmth while being genuinely helpful
 - **System Reliability**: Tool execution success rates and error recovery
 - **Learning Effectiveness**: Improvement in tool selection over time
+- **Personality Consistency**: Maintains Penny's sass and character during tool operations
 
-This agentic expansion transforms PennyGPT from an AI companion into a true AI assistant companion - maintaining all the relationship-building and emotional intelligence while adding genuine productivity capabilities with natural human voice delivery.
+---
 
-**💡 Key Innovation:**
-This system transforms PennyGPT from a simple voice assistant into a true **AI companion** that:
-* **Remembers** your relationships, emotions, and conversation history
-* **Adapts** its personality based on your mood and the context
-* **Engages** naturally without requiring constant wake words
-* **Builds relationships** by tracking shared memories and inside jokes
-* **Grows with you** through philosophical discussions and learning together
-* **Respects boundaries** by asking permission before proactive exploration
-* **Sounds genuinely human** with personality-aware voice delivery
+## 💡 **Key Innovation Achievement**
 
-The foundation is solid and ready for real-world testing and agentic tool integration! 🎉
+**PennyGPT has evolved into a complete AI companion with:**
+* **✅ Advanced Relationship Building** - Learns family, friends, personal context
+* **✅ Genuine Personality** - Sassy, tech-savvy, with real attitude and boundaries
+* **✅ Guided Learning** - Permission-based research, curiosity, knowledge building
+* **✅ Emotional Intelligence** - Adapts to mood, stress, emotional context
+* **✅ Natural Human Voice** - ElevenLabs integration with personality modulation
+* **✅ Production Engineering** - Enterprise-grade reliability and monitoring
+* **✅ Personal Profile System** - CJ-specific preferences and communication style
+
+**The foundation is complete and production-ready for agentic tool integration!** 🎉
+
+**Next major milestone**: Transform from companion to assistant by adding MCP tool capabilities while preserving all personality and relationship features.

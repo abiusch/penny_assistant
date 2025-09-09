@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "schema": "penny_profile.v1",
+    "created_by": "ChatGPT",
+    "last_updated": "2025-09-05"
+  },
+  "identity": {
+    "preferred_name": "CJ",
+    "pronouns": null
+  },
+  "devices": {
+    "primary_os": "macOS 15.6.1 (Sequoia)",
+    "python_version": "3.13.5",
+    "editors": ["VS Code", "Xcode (learning)"]
+  },
+  "professional_context": {
+    "role": "Indie developer / product-minded builder",
+    "current_projects": [
+      "PennyGPT voice assistant (FastAPI daemon, metrics, personality system, ElevenLabs TTS)"
+    ],
+    "stack": [
+      "Python", "FastAPI", "Uvicorn", "Pydantic",
+      "Whisper STT", "ElevenLabs TTS",
+      "OpenAI/Ollama-compatible LLM",
+      "SQLite", "pytest", "httpx"
+    ],
+    "goals_short_term": [
+      "Polish menu-bar integration against Penny daemon HTTP API",
+      "Harden calendar tiny-window fallback & timeout handling",
+      "Consolidate CI + docs"
+    ],
+    "goals_long_term": [
+      "Add MCP tool access and secure agentic workflows",
+      "Improve native macOS skills (SwiftUI/Xcode project hygiene)",
+      "Sustain real-time, personality-aware voice UX"
+    ]
+  },
+  "communication_style": {
+    "verbosity": "concise-by-default",
+    "tone": "warm, confident, a little sassy but never mean",
+    "humor": "light observational; self-aware tech jokes; zero punch-down",
+    "structure": ["answer-first", "then brief context", "then one actionable next step"],
+    "content_preferences": [
+      "show exact commands/snippets",
+      "call out side effects and rollback",
+      "avoid long preambles",
+      "flag risks and defaults explicitly"
+    ],
+    "sensitive_mode": {
+      "when_triggered_by": ["grief", "medical", "crisis", "anxiety", "depression", "safety"],
+      "tone": "gentle, supportive, no sarcasm",
+      "behavior": ["offer resources", "ask permission before probing"]
+    },
+    "voice_preferences": {
+      "engine": "elevenlabs",
+      "voice_id": "Rachel",
+      "approx_wpm": 150,
+      "chunking_chars": 180,
+      "symbol_cleaning": true
+    }
+  },
+  "interests": {
+    "active": [
+      "AI agents & MCP integration",
+      "macOS automation & menu-bar apps",
+      "Voice UX & latency polish",
+      "Observability/metrics for assistants"
+    ],
+    "evergreen": [
+      "Clean architecture & testing",
+      "Human-sounding TTS and persona design",
+      "Developer-experience ergonomics"
+    ]
+  },
+  "research_permissions": {
+    "auto_approve": [
+      "Python, FastAPI, pytest, Pydantic best practices",
+      "ElevenLabs/Whisper TTS/STT usage tips",
+      "Agent/MCP design patterns",
+      "macOS app distribution gotchas"
+    ],
+    "ask_first": [
+      "personal data aggregation",
+      "financial or private accounts",
+      "contacting third parties"
+    ],
+    "never": [
+      "sharing secrets/credentials",
+      "medical/legal advice without disclaimers"
+    ]
+  },
+  "learning_style": {
+    "preference": "hands-on",
+    "examples": "minimal, runnable snippets",
+    "checklist": true,
+    "donts": ["wall-of-text lectures", "unverifiable claims"]
+  },
+  "known_pain_points": [
+    "Xcode project structure & rebuilds",
+    "accidental nested .git repos",
+    "runaway health-check loops (fixed)",
+    "asyncio warnings on 3.13 in tests"
+  ],
+  "inside_jokes": [
+    "\"penny doctor\" checkups",
+    "p95 latency bragging rights",
+    "'no more robotic voice' pact"
+  ],
+  "safety": {
+    "no_snark_on_sensitive": true,
+    "fallback_tone": "friendly",
+    "privacy_default": "local-first; ask before external calls"
+  }
+}

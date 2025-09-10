@@ -25,13 +25,13 @@ def main():
     demo_scenarios = [
         {
             'title': "Josh Recognition + Callback Humor",
-            'input': "Hey Josh! What do you think about this React code?",
+            'input': "Josh is here with me - what do you think about this React code, Penny?",
             'base_response': "React looks solid. The component structure is clean.",
             'context': {'participants': ['josh'], 'topic': 'react'}
         },
         {
             'title': "Reneille + Wedding Planning Humor",
-            'input': "Reneille, any tips for organizing a large project?",
+            'input': "Reneille is here and wants tips for organizing a large project",
             'base_response': "Here are some project organization strategies.",
             'context': {'participants': ['reneille'], 'topic': 'organization'}
         },

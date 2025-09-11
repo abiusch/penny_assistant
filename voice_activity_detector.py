@@ -67,16 +67,19 @@ class VoiceActivityDetector:
                 if chunk_volume > self.silence_threshold:
                     # Speech detected
                     self.last_speech_time = current_time
-                    print("🗣️", end="", flush=True)  # Visual feedback
+                    print(f"🗣️{chunk_volume:.4f}", end="", flush=True)  # Show volume level
                 else:
                     # Silence detected
                     silence_duration = current_time - self.last_speech_time
                     
-                    # Only stop if we've had some speech first
+                    # Only stop if we've had some speech first and enough silence
                     speech_duration = self.last_speech_time - self.recording_start
-                    if speech_duration > 0.5 and silence_duration > self.silence_duration:
-                        print(" (silence detected - processing...)")
+                    if speech_duration > 0.3 and silence_duration > self.silence_duration:
+                        print(f" (silence {silence_duration:.1f}s - processing...)")
                         break
+                    # Show silence counter only occasionally to avoid spam
+                    elif silence_duration > 0.5 and int(silence_duration * 10) % 3 == 0:
+                        print(f"⏸️{silence_duration:.1f}s", end="", flush=True)
                 
                 # Safety timeout
                 total_duration = current_time - self.recording_start

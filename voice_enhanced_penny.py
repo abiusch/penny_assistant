@@ -9,6 +9,7 @@ import json
 import sys
 import os
 import time
+import numpy as np
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -49,13 +50,6 @@ def main():
 
     # Set microphone to MacBook (now working)
     sd.default.device = 1  # MacBook Pro Microphone
-    
-    # Initialize voice activity detection
-    voice_detector = create_voice_detector(
-        silence_threshold=0.015,  # Slightly higher threshold for better detection
-        silence_duration=1.8,     # Wait 1.8 seconds of silence before processing
-        max_recording_time=30.0   # Max 30 seconds per turn
-    )
 
     # Initialize enhanced personality system
     print("🧠 Initializing Enhanced Revolutionary Personality System...")
@@ -79,19 +73,22 @@ def main():
         return
 
     def capture_and_respond():
-        print("\n🎤 Ready to listen... (speak naturally, I'll respond when you pause)")
+        print("\n🎤 Ready to speak (6-second recording)")
         
-        # Record audio using voice activity detection
+        # Simple timed recording that actually works
         with time_operation(OperationType.STT):
-            audio_data = voice_detector.record_until_silence(device=1)
+            print("🔴 Recording...")
+            audio_data = sd.rec(int(6 * 16000), samplerate=16000, channels=1, device=1)
+            sd.wait()
+            print("⏹️ Recording complete")
         
         if len(audio_data) == 0:
-            print("🤷 No audio detected. Try speaking a bit louder.")
+            print("🤷 No audio recorded.")
             return
         
-        # Show recording stats
-        stats = voice_detector.get_recording_stats()
-        print(f"📊 Recorded {stats.get('duration_seconds', 0):.1f}s (max vol: {stats.get('max_volume', 0):.3f})")
+        # Show basic stats
+        max_vol = np.max(np.abs(audio_data))
+        print(f"📊 Recorded 6.0s (max vol: {max_vol:.3f})")
         
         # Transcribe
         text = transcribe_audio(audio_data)
@@ -105,48 +102,38 @@ def main():
         # Generate enhanced response
         try:
             with time_operation(OperationType.LLM):
-                # Get enhanced personality prompt with current state
-                context = {
-                    'topic': 'conversation',
-                    'emotion': 'neutral',
-                    'participants': []
-                }
-                
-                # Detect context from user input
+                # Context detection
+                context = {'topic': 'conversation', 'emotion': 'neutral', 'participants': []}
                 text_lower = text.lower()
+                
+                # Detect personal topics
+                if 'feeling' in text_lower or 'how are' in text_lower:
+                    context['topic'] = 'personal'
+                    context['emotion'] = 'curious'
+                
+                # Detect development/programming topics
+                elif any(word in text_lower for word in ['code', 'programming', 'development', 'debugging', 'fix', 'break', 'improvements']):
+                    context['topic'] = 'programming'
+                    if any(word in text_lower for word in ['break', 'broken', 'frustrat', 'backward']):
+                        context['emotion'] = 'frustrated'
+                    elif any(word in text_lower for word in ['ability', 'can you', 'write']):
+                        context['emotion'] = 'curious'
+                
+                # Detect participants
                 if any(name in text_lower for name in ['josh', 'brochacho']):
                     context['participants'].append('josh')
                 if 'reneille' in text_lower:
                     context['participants'].append('reneille')
                 
-                # Detect emotion
-                if any(word in text_lower for word in ['frustrated', 'annoyed', 'angry']):
-                    context['emotion'] = 'frustrated'
-                elif any(word in text_lower for word in ['excited', 'awesome', 'amazing']):
-                    context['emotion'] = 'excited'
-                
-                # Detect topics
-                if any(word in text_lower for word in ['microservice', 'architecture']):
-                    context['topic'] = 'architecture'
-                elif any(word in text_lower for word in ['debug', 'error', 'broken']):
-                    context['topic'] = 'debugging'
-                elif any(word in text_lower for word in ['fastapi', 'python', 'code']):
-                    context['topic'] = 'programming'
-                
-                # Get enhanced personality prompt
+                # Get enhanced personality prompt with current state
                 personality_prompt = enhanced_penny.get_enhanced_personality_prompt(context)
-                
-                # Build complete prompt
-                full_prompt = f"""{personality_prompt}
-
-User: {text}
-
-Respond as Penny with your enhanced revolutionary personality:"""
                 
                 # Apply enhanced pragmatic personality processing
                 enhanced_response = enhanced_penny.generate_pragmatically_aware_response(
                     text, context
                 )
+                
+                print(f"DEBUG: Generated response before cleanup: '{enhanced_response[:100]}...'")
             
             print(f"🤖 Penny: {enhanced_response}")
             
@@ -191,20 +178,19 @@ Respond as Penny with your enhanced revolutionary personality:"""
     print("   • Relationship awareness (Josh, Reneille)")
     print("   • Performance monitoring and optimization")
     print("   • Complete graceful degradation")
-    print("   • Voice activity detection (responds when you pause)")
-    print("\nPress Enter to start conversation, Ctrl+C to exit")
-    print("Tip: Speak naturally - Penny will respond when you finish talking")
+    print("   • Conversational pragmatics (ask me anything detection)")
+    print("\nPress Enter to start talking (6-second recordings), Ctrl+C to exit")
     
     # Test with enhanced greeting
     print("\n🔊 Testing enhanced personality system...")
     try:
-        greeting_context = {'topic': 'greeting', 'emotion': 'excited'}
+        greeting_context = {'topic': 'greeting', 'emotion': 'neutral'}  # Changed from 'excited'
         greeting_prompt = enhanced_penny.get_enhanced_personality_prompt(greeting_context)
         
         # Generate enhanced greeting
         test_greeting = enhanced_penny.generate_pragmatically_aware_response(
             "Hello Penny!",
-            {'topic': 'greeting', 'emotion': 'excited'}
+            {'topic': 'greeting', 'emotion': 'neutral'}  # Changed from 'excited'
         )
         
         print(f"🤖 Enhanced Greeting: {test_greeting}")

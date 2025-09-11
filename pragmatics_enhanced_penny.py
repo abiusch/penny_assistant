@@ -36,14 +36,27 @@ class PragmaticsEnhancedPenny:
         
         with time_operation(OperationType.TOTAL_PIPELINE, {"pragmatics_enabled": True}):
             
-            # Step 1: Generate base response from enhanced personality system
+            # Step 1: Generate base response using pragmatics or LLM
             with time_operation(OperationType.PERSONALITY_GENERATION):
                 # Get enhanced personality prompt
                 personality_prompt = self.enhanced_penny.get_enhanced_personality_prompt(context)
                 
-                # For this demo, we'll simulate LLM response generation
-                # In real integration, this would call your LLM with the personality prompt
+                # Try pragmatic processing first
                 base_response = self._simulate_llm_response(user_input, personality_prompt, context)
+                
+                # If pragmatics returns None, use actual LLM
+                if base_response is None:
+                    # Use the actual LLM for unmatched patterns
+                    from core.llm_router import get_llm
+                    llm = get_llm()
+                    
+                    full_prompt = f"""{personality_prompt}
+
+User: {user_input}
+
+Respond as Penny with your enhanced revolutionary personality:"""
+                    
+                    base_response = llm.generate(full_prompt)
             
             # Step 2: Apply pragmatic understanding
             with time_operation(OperationType.HUMOR_DETECTION, {"operation": "pragmatics"}):
@@ -81,6 +94,9 @@ class PragmaticsEnhancedPenny:
             elif "project" in user_input.lower() or "working" in user_input.lower():
                 # User is answering about projects
                 return self._generate_followup_response(user_input, "projects")
+            elif any(word in user_input.lower() for word in ['since working', 'two steps', 'break something', 'making improvements']):
+                # User is sharing development frustrations
+                return self._generate_development_response(user_input)
             else:
                 # General response to user's answer
                 return self._generate_followup_response(user_input, "general")
@@ -90,11 +106,25 @@ class PragmaticsEnhancedPenny:
             return "Consider whether the complexity overhead is worth it for your use case."
         elif "josh" in user_input.lower():
             return "Here are some technical suggestions for your work with Josh."
+        elif "feeling" in user_input.lower() or "how are" in user_input.lower():
+            return "I'm doing great! Feeling energetic and ready to tackle whatever you throw at me. How about you?"
         elif "ask me" in user_input.lower():
-            # This is the problematic case - old system would misunderstand
             return "Sure, what would you like to know about?"
+        elif any(word in user_input.lower() for word in ['write code', 'fix code', 'ability to', 'can you code']):
+            return "I can help with code analysis and suggestions, but I work through our conversations rather than directly modifying files. What are you working on?"
+        elif any(word in user_input.lower() for word in ['break something', 'steps backward', 'making improvements']):
+            return "Ah, the classic development cycle! Every improvement seems to break something else. What got broken this time?"
+        elif any(word in user_input.lower() for word in ['development', 'programming', 'coding', 'debugging']):
+            return "Development can be quite the journey. What's on your mind?"
+        elif any(word in user_input.lower() for word in ['emotional', 'context', 'handling']):
+            return "Yes, I track emotional context and adapt my responses based on your mood and the situation. I can tell when you're frustrated, excited, or just curious about something."
+        elif any(phrase in user_input.lower() for phrase in ['train you', 'training', 'teach you', 'how to improve']):
+            return "Training me involves conversations like this! I learn from our interactions, feedback, and patterns in how you communicate. The more we talk, the better I understand your preferences and communication style."
+        elif any(word in user_input.lower() for word in ['emotional response', 'emotional training', 'emotion training']):
+            return "For emotional response training, I'd need examples of different emotional contexts and feedback on whether my responses were appropriate. Consistent interaction patterns help me learn what works best."
         else:
-            return "I'd be happy to help with that."
+            # Use actual LLM for unmatched patterns instead of generic fallback
+            return None  # Signal to use LLM
     
     def _generate_followup_response(self, user_input: str, response_type: str) -> str:
         """Generate appropriate followup responses when user answers our questions"""
@@ -102,28 +132,38 @@ class PragmaticsEnhancedPenny:
         
         if response_type == "day_highlight":
             if "in-n-out" in user_lower or "burger" in user_lower or "food" in user_lower:
-                # After this response, reset to normal conversation mode
-                self.pragmatics.state.current_role = ConversationRole.USER_LEADING
+                # Stay in AI-leading mode for follow-up questions
                 return "In-N-Out! Now that's a solid day highlight. Those burgers hit different. What's your go-to order?"
             elif "work" in user_lower or "project" in user_lower:
-                self.pragmatics.state.current_role = ConversationRole.USER_LEADING
                 return "Work highlights are the best kind! What made it so great?"
             else:
-                self.pragmatics.state.current_role = ConversationRole.USER_LEADING
                 return f"Nice! {user_input.strip('.')} sounds like a good way to spend the day. What made it special?"
         
         elif response_type == "learning":
-            self.pragmatics.state.current_role = ConversationRole.USER_LEADING
             return f"Interesting! {user_input.strip('.')} - I love when things surprise us. How are you going to use that knowledge?"
         
         elif response_type == "projects":
-            self.pragmatics.state.current_role = ConversationRole.USER_LEADING
             return f"Cool! {user_input.strip('.')} sounds like something worth diving into. What's the most challenging part?"
         
         else:
-            # General acknowledgment with followup - return to normal mode
-            self.pragmatics.state.current_role = ConversationRole.USER_LEADING
+            # General acknowledgment - but don't reset to user-leading immediately
+            # Keep the conversation flowing naturally
             return f"Gotcha! {user_input.strip('.')} - tell me more about that!"
+    
+    def _generate_development_response(self, user_input: str) -> str:
+        """Generate contextual responses for development frustrations and experiences"""
+        user_lower = user_input.lower()
+        
+        if "two steps" in user_lower or "backward" in user_lower:
+            return "Oh, the classic 'progress paradox'! Sometimes fixing one thing breaks two others. What's been the trickiest part to get right?"
+        elif "break something" in user_lower:
+            return "The developer's eternal struggle! It's working perfectly... until you touch it. What was working before that isn't now?"
+        elif "making improvements" in user_lower:
+            return "Improvements that break existing functionality - tale as old as time! Are you dealing with legacy code or just the usual 'ripple effects'?"
+        elif "since working" in user_lower:
+            return "Development work can definitely feel like a rollercoaster. What's been the most frustrating part of the process?"
+        else:
+            return "Sounds like typical development challenges! Tell me more about what's been tricky."
     
     def _apply_personality_to_pragmatic_response(self, response: str, context: Dict[str, Any]) -> str:
         """Apply personality styling to pragmatically-generated responses"""
@@ -132,14 +172,16 @@ class PragmaticsEnhancedPenny:
             current_state = self.enhanced_penny._dynamic_states.current_state.value
             
             if current_state == 'caffeinated':
-                # Add energy but don't go overboard with exclamation points
-                if "Tell me" in response and "?" in response:
-                    response = response.replace("Tell me", "Ooh, tell me")
-                # Limit exclamation points to avoid screaming
-                response = response.replace("?!", "?")
-                if response.count("!") > 2:
-                    response = response.replace("!", ".", response.count("!") - 1)
-                    
+                # Add energy but keep it conversational for personal questions
+                if context.get('topic') == 'personal':
+                    # Light energy boost for personal conversations
+                    if "I'm doing" in response:
+                        response = response.replace("I'm doing great!", "I'm doing fantastic!")
+                else:
+                    # Normal energy boost for other topics
+                    if "Tell me" in response and "?" in response:
+                        response = response.replace("Tell me", "Ooh, tell me")
+                        
             elif current_state == 'mischievous':
                 # Add sass but keep it conversational
                 if "you want me to ask" in response.lower():
@@ -149,9 +191,47 @@ class PragmaticsEnhancedPenny:
             # Graceful degradation if personality system fails
             pass
         
-        # Always clean up excessive punctuation
+        # Clean up excessive punctuation
         response = response.replace("?!", "?")
         response = response.replace("!!", "!")
+        
+        # Remove aggressive personality interjections for personal conversations
+        if context.get('topic') == 'personal':
+            response = response.replace("My neurons are FIRING on this one ", "")
+            response = response.replace(" Let's make this happen!", "")
+        
+        # Also clean up for technical discussions that should be more natural
+        if context.get('topic') == 'programming' and context.get('emotion') == 'curious':
+            response = response.replace(" Let's make this happen!", "")
+            response = response.replace("I'm feeling ENERGIZED about this ", "")
+        
+        # Clean up excessive caffeine references and manic energy for ALL conversations
+        # The LLM seems to be generating too much coffee content
+        response = response.replace("caffeine-fueled", "energy-filled")
+        response = response.replace("CAFFEINE", "ENERGY")
+        response = response.replace("caffeine", "energy")
+        response = response.replace("coffee", "conversation")
+        response = response.replace("digital joe", "digital energy")
+        response = response.replace("cup o' joe", "good discussion")
+        response = response.replace("*buzzes with", "")
+        response = response.replace("*bounces", "")
+        response = response.replace("*ahem*", "")
+        response = response.replace("*flicks virtual hair*", "")
+        response = response.replace("coffee mugs", "topics")
+        response = response.replace("morning coffee", "morning energy")
+        response = response.replace("energy drinks", "inspiration")
+        
+        # Remove broken unicode symbols that TTS tries to read
+        import re
+        response = re.sub(r'ðŸ[^\s]*', '', response)  # Remove broken unicode emojis
+        response = re.sub(r'â€[^\s]*', '', response)  # Remove broken dashes and quotes
+        response = re.sub(r'Â[^\s]*', '', response)   # Remove other broken characters
+        
+        # Clean up excessive punctuation and actions
+        response = re.sub(r'!!!+', '!', response)  # Multiple exclamation points
+        response = re.sub(r'\*[^*]*\*', '', response)  # Remove asterisk actions completely
+        response = re.sub(r'[\s]+', ' ', response)  # Clean up extra spaces
+        response = response.strip()
         
         return response
     

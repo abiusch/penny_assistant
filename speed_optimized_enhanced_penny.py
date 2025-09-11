@@ -175,29 +175,19 @@ class SpeedOptimizedEnhancedPenny:
             self._dynamic_states.process_interaction(user_input, response, context or {})
     
     def get_enhanced_personality_prompt(self, context: Dict[str, Any] = None) -> str:
-        """Get enhanced personality prompt that includes both ML and state info."""
+        """Get enhanced personality prompt - simplified to prevent manic energy."""
         if not self._systems_initialized:
             self._ensure_systems()
         
         if not self._systems_initialized:
             return "You are Penny, CJ's AI companion."
         
-        # Get base ML prompt
+        # Get base ML prompt only - NO STATE MOOD INJECTION
         ml_prompt = self._ml_personality.generate_personality_prompt(context)
         
-        # Add current state information
-        current_state = self._dynamic_states.current_state
-        state_info = f"\n\nCURRENT MOOD: {current_state.value.upper()}"
-        
-        # Add state-specific instructions
-        if current_state.value == 'mischievous':
-            state_info += "\nBe extra sassy and ready to roast tech industry nonsense."
-        elif current_state.value == 'protective':
-            state_info += "\nBe fiercely supportive and defensive of the user."
-        elif current_state.value == 'contemplative':
-            state_info += "\nProvide deeper insights and philosophical perspectives."
-        
-        return ml_prompt + state_info
+        # The dynamic states will modify the response after LLM generation
+        # instead of influencing the prompt directly
+        return ml_prompt
     
     def get_comprehensive_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics from all systems."""

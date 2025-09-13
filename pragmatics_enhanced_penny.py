@@ -85,9 +85,14 @@ Respond as Penny with your enhanced revolutionary personality:"""
         
         if pragmatic_state['current_role'] == 'ai_leading':
             # We're in AI-leading mode, user is likely answering our question
-            if "highlight" in user_input.lower() or "day" in user_input.lower():
-                # User is answering about their day
-                return self._generate_followup_response(user_input, "day_highlight")
+            if "highlight" in user_input.lower() or "day" in user_input.lower() or "donuts" in user_input.lower():
+                # User is sharing about their day - engage with the content
+                if "donuts" in user_input.lower():
+                    return "Donuts! Now that's a solid day highlight. What kind did you get? And hosting friends sounds lovely - tell me about them!"
+                elif "friend" in user_input.lower() and "host" in user_input.lower():
+                    return "Hosting friends is always special! Are these the friends I should know about? What are you planning for them?"
+                else:
+                    return self._generate_followup_response(user_input, "day_highlight")
             elif "learned" in user_input.lower() or "surprised" in user_input.lower():
                 # User is answering about learning
                 return self._generate_followup_response(user_input, "learning")
@@ -98,8 +103,11 @@ Respond as Penny with your enhanced revolutionary personality:"""
                 # User is sharing development frustrations
                 return self._generate_development_response(user_input)
             else:
-                # General response to user's answer
-                return self._generate_followup_response(user_input, "general")
+                # General response to user's answer - be more specific
+                if len(user_input.split()) < 4:
+                    return "That's intriguing! Can you elaborate a bit more?"
+                else:
+                    return self._generate_followup_response(user_input, "general")
         
         # Normal processing for non-AI-leading scenarios
         if "microservice" in user_input.lower():
@@ -109,7 +117,18 @@ Respond as Penny with your enhanced revolutionary personality:"""
         elif "feeling" in user_input.lower() or "how are" in user_input.lower():
             return "I'm doing great! Feeling energetic and ready to tackle whatever you throw at me. How about you?"
         elif "ask me" in user_input.lower():
-            return "Sure, what would you like to know about?"
+            # Only trigger role reversal if it's actually "ask me anything" or similar
+            if any(phrase in user_input.lower() for phrase in ['ask me anything', 'ask me something', 'ask me a question']):
+                return "You want me to ask YOU something? I like it! What's been the highlight of your day so far? And what's something you've learned recently that surprised you?"
+            else:
+                # They're asking us to ask them something specific, different response
+                return "Sure! What would you like me to ask you about?"
+        elif any(phrase in user_input.lower() for phrase in ['what do you know about me', 'know about me', 'what do you remember']):
+            # Memory-specific questions should get memory responses
+            return None  # Use LLM with memory context
+        elif user_input.lower().strip() in ['what do you wanna know', 'what do you want to know', 'what else']:
+            # Follow-up questions for more info
+            return "I'm curious about your current projects, your friends, and what's got you excited lately. Pick whatever feels interesting to share!"
         elif any(word in user_input.lower() for word in ['write code', 'fix code', 'ability to', 'can you code']):
             return "I can help with code analysis and suggestions, but I work through our conversations rather than directly modifying files. What are you working on?"
         elif any(word in user_input.lower() for word in ['break something', 'steps backward', 'making improvements']):
@@ -219,7 +238,11 @@ Respond as Penny with your enhanced revolutionary personality:"""
         response = response.replace("*flicks virtual hair*", "")
         response = response.replace("coffee mugs", "topics")
         response = response.replace("morning coffee", "morning energy")
-        response = response.replace("energy drinks", "inspiration")
+        # Tone down excessive energy expressions
+        response = response.replace("OH HO HO", "Oh")
+        response = response.replace("OH BOY", "Oh")
+        response = response.replace("ITALIAN BABY", "Italian food")
+        response = response.replace("Well, well, well!", "Well,")
         
         # Remove broken unicode symbols that TTS tries to read
         import re

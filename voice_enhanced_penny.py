@@ -14,7 +14,7 @@ import numpy as np
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from pragmatics_enhanced_penny import create_pragmatics_enhanced_penny
+from memory_enhanced_penny import create_memory_enhanced_penny
 from voice_activity_detector import create_voice_detector
 from performance_monitor import time_operation, OperationType, get_performance_summary
 
@@ -51,10 +51,22 @@ def main():
     # Set microphone to MacBook (now working)
     sd.default.device = 1  # MacBook Pro Microphone
 
-    # Initialize enhanced personality system
-    print("🧠 Initializing Enhanced Revolutionary Personality System...")
+    # Initialize memory-enhanced personality system
+    print("🧠 Initializing Memory-Enhanced Revolutionary Personality System...")
     try:
-        enhanced_penny = create_pragmatics_enhanced_penny()
+        enhanced_penny = create_memory_enhanced_penny()
+        
+        # Start voice conversation session
+        session_id = enhanced_penny.start_conversation_session("voice")
+        print(f"   📝 Started voice session: {session_id}")
+        
+        # Check what we remember about the user
+        relationship_summary = enhanced_penny.get_relationship_summary()
+        if "still getting to know" not in relationship_summary:
+            print(f"   🤝 Memory: {relationship_summary[:100]}...")
+        else:
+            print("   🌱 Fresh start - ready to learn about you!")
+        
         llm = get_llm()
         
         # TTS with enhanced personality
@@ -62,7 +74,8 @@ def main():
         print(f"   Voice: {tts_info['will_use']} (Rachel)")
         tts = create_tts_adapter(config)
         
-        print("   ✅ Enhanced personality system ready!")
+        print("   ✅ Memory-enhanced personality system ready!")
+        print("   🧠 Cross-session memory active!")
         print("   🎭 Dynamic states + ML learning active!")
         print("   ⚡ Production-ready optimizations enabled!")
         
@@ -102,7 +115,7 @@ def main():
         # Generate enhanced response
         try:
             with time_operation(OperationType.LLM):
-                # Context detection
+                # Enhanced context detection with memory awareness
                 context = {'topic': 'conversation', 'emotion': 'neutral', 'participants': []}
                 text_lower = text.lower()
                 
@@ -119,17 +132,19 @@ def main():
                     elif any(word in text_lower for word in ['ability', 'can you', 'write']):
                         context['emotion'] = 'curious'
                 
+                # Detect memory-related queries
+                elif any(word in text_lower for word in ['remember', 'recall', 'know about me', 'what do you know']):
+                    context['topic'] = 'memory'
+                    context['emotion'] = 'curious'
+                
                 # Detect participants
                 if any(name in text_lower for name in ['josh', 'brochacho']):
                     context['participants'].append('josh')
                 if 'reneille' in text_lower:
                     context['participants'].append('reneille')
                 
-                # Get enhanced personality prompt with current state
-                personality_prompt = enhanced_penny.get_enhanced_personality_prompt(context)
-                
-                # Apply enhanced pragmatic personality processing
-                enhanced_response = enhanced_penny.generate_pragmatically_aware_response(
+                # Generate memory-aware response instead of basic pragmatic response
+                enhanced_response = enhanced_penny.generate_memory_aware_response(
                     text, context
                 )
                 
@@ -154,77 +169,81 @@ def main():
         except Exception as e:
             print(f"❌ Speech error: {e}")
         
-        # Learn from this interaction (simulated feedback for now)
+        # Enhanced learning from voice interaction
         try:
-            # In real usage, you'd get actual user feedback
-            # For now, simulate neutral feedback
-            enhanced_penny.learn_from_pragmatic_interaction(
-                text, enhanced_response, None, context
-            )
+            # The memory system automatically learns from the conversation
+            # No need for separate learning call - it's integrated into generate_memory_aware_response
+            pass
         except Exception as e:
-            print(f"⚠️ Learning failed: {e}")
+            print(f"⚠️ Memory learning failed: {e}")
         
         # Show performance stats
         perf_summary = get_performance_summary()
         if perf_summary.get('total_operations', 0) > 0:
             print(f"📊 Performance: {perf_summary.get('averages_ms', {})}")
 
-    print("🎭 Enhanced Revolutionary Personality System Ready!")
+    print("🎭 Memory-Enhanced Revolutionary Personality System Ready!")
     print("🎯 Features Active:")
-    print("   • Dynamic personality states with contextual transitions")
+    print("   • Persistent memory across voice conversations")
+    print("   • Cross-session relationship building")
+    print("   • Dynamic personality states with memory context")
     print("   • Machine learning adaptation from interactions")
-    print("   • Blended ML + state personality configuration")
-    print("   • Context-aware response generation")
-    print("   • Relationship awareness (Josh, Reneille)")
-    print("   • Performance monitoring and optimization")
-    print("   • Complete graceful degradation")
-    print("   • Conversational pragmatics (ask me anything detection)")
+    print("   • Context-aware response generation with memory")
+    print("   • Relationship awareness (Josh, Reneille) with facts")
+    print("   • Automatic fact extraction and storage")
+    print("   • Conversational pragmatics with memory integration")
+    print("   • Production-ready optimizations")
     print("\nPress Enter to start talking (6-second recordings), Ctrl+C to exit")
     
-    # Test with enhanced greeting
-    print("\n🔊 Testing enhanced personality system...")
+    # Test with memory-enhanced greeting
+    print("\n🔊 Testing memory-enhanced personality system...")
     try:
-        greeting_context = {'topic': 'greeting', 'emotion': 'neutral'}  # Changed from 'excited'
-        greeting_prompt = enhanced_penny.get_enhanced_personality_prompt(greeting_context)
+        greeting_context = {'topic': 'greeting', 'emotion': 'neutral'}
         
-        # Generate enhanced greeting
-        test_greeting = enhanced_penny.generate_pragmatically_aware_response(
-            "Hello Penny!",
-            {'topic': 'greeting', 'emotion': 'neutral'}  # Changed from 'excited'
+        # Generate memory-aware greeting instead of basic pragmatic greeting
+        test_greeting = enhanced_penny.generate_memory_aware_response(
+            "Hi Penny, I'm back!",
+            greeting_context
         )
         
-        print(f"🤖 Enhanced Greeting: {test_greeting}")
+        print(f"🤖 Memory-Enhanced Greeting: {test_greeting}")
         success = tts.speak(test_greeting)
         
         if success:
-            print("✅ Enhanced personality system test successful!")
+            print("✅ Memory-enhanced personality system test successful!")
         else:
             print("❌ TTS test failed")
             
     except Exception as e:
-        print(f"❌ Enhanced system test error: {e}")
+        print(f"❌ Memory-enhanced system test error: {e}")
     
     try:
         while True:
             input("\nPress Enter to start talking: ")
             capture_and_respond()
     except KeyboardInterrupt:
-        print("\n👋 Enhanced Penny session complete!")
+        print("\n👋 Memory-Enhanced Penny session complete!")
+        
+        # End conversation session with summary
+        try:
+            enhanced_penny.end_conversation_session("Voice conversation completed")
+            print("💾 Conversation memories saved!")
+        except Exception as e:
+            print(f"⚠️ Session cleanup error: {e}")
         
         # Show final stats
         try:
-            final_stats = enhanced_penny.get_comprehensive_stats()
-            print(f"📊 Final System Stats:")
-            if 'ml_current_humor_level' in final_stats:
-                print(f"   ML Humor Level: {final_stats['ml_current_humor_level']}")
-            if 'ml_current_sass_level' in final_stats:
-                print(f"   ML Sass Level: {final_stats['ml_current_sass_level']}")
-            if 'state_current_state' in final_stats:
-                print(f"   Current State: {final_stats['state_current_state']}")
-            if 'ml_interaction_count' in final_stats:
-                print(f"   Learning Interactions: {final_stats['ml_interaction_count']}")
-        except:
-            pass
+            print(f"📊 Final Session Stats:")
+            relationship_summary = enhanced_penny.get_relationship_summary()
+            print(f"   🤝 What I learned: {relationship_summary[:100]}...")
+            
+            # Show memory stats
+            memory_stats = enhanced_penny.memory.get_memory_stats()
+            total_memories = sum(memory_stats.values())
+            print(f"   🧠 Total memories stored: {total_memories}")
+            
+        except Exception as e:
+            print(f"   ⚠️ Stats error: {e}")
         
         try:
             tts.stop()

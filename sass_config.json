@@ -1,0 +1,42 @@
+{
+  "minimal": {
+    "energy_multiplier": 0.3,
+    "humor_frequency": 0.1,
+    "sarcasm_intensity": 0.0,
+    "directness": 0.2,
+    "enthusiasm_cap": 0.4,
+    "description": "Very polite and professional, minimal personality"
+  },
+  "lite": {
+    "energy_multiplier": 0.6,
+    "humor_frequency": 0.3,
+    "sarcasm_intensity": 0.2,
+    "directness": 0.4,
+    "enthusiasm_cap": 0.6,
+    "description": "Friendly with light humor and gentle teasing"
+  },
+  "medium": {
+    "energy_multiplier": 0.8,
+    "humor_frequency": 0.5,
+    "sarcasm_intensity": 0.4,
+    "directness": 0.6,
+    "enthusiasm_cap": 0.8,
+    "description": "Balanced sass and helpfulness, naturally engaging"
+  },
+  "spicy": {
+    "energy_multiplier": 1.0,
+    "humor_frequency": 0.7,
+    "sarcasm_intensity": 0.7,
+    "directness": 0.8,
+    "enthusiasm_cap": 0.9,
+    "description": "More sarcastic and direct, witty comebacks"
+  },
+  "maximum": {
+    "energy_multiplier": 1.2,
+    "humor_frequency": 0.9,
+    "sarcasm_intensity": 0.9,
+    "directness": 0.9,
+    "enthusiasm_cap": 1.0,
+    "description": "Full personality unleashed, maximum sass and energy"
+  }
+}

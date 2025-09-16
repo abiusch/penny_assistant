@@ -583,5 +583,6 @@ def main():
         print(f"  {key}: {value}")
 
 
-if __name__ == "__main__":
-    main()
+class PennyMemory(MemoryManager):
+    """Alias for MemoryManager to match expected import name."""
+    pass

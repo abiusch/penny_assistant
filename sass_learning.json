@@ -1,0 +1,808 @@
+{
+  "learning_events": [
+    {
+      "timestamp": 1758063659.241473,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "medium",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063659.2416599,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "professional mode",
+      "from_sass": "spicy",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063659.241759,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "dial it back",
+      "from_sass": "lite",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063659.241855,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "be more sassy",
+      "from_sass": "medium",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063659.241963,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "turn it up",
+      "from_sass": "lite",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063659.2420769,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "maximum sass",
+      "from_sass": "medium",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063659.2563179,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "maximum",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063664.805304,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "be more sassy",
+      "from_sass": "spicy",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063664.815865,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "maximum",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063664.816895,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "be more sassy",
+      "from_sass": "spicy",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063927.131093,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "medium",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063927.131666,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "professional mode",
+      "from_sass": "spicy",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063927.1321018,
+      "context": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "user_command": "dial it back",
+      "from_sass": "lite",
+      "to_sass": "minimal",
+      "topic": "programming",
+      "emotion": "frustrated",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063927.132535,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "be more sassy",
+      "from_sass": "medium",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063927.132968,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "turn it up",
+      "from_sass": "lite",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063927.1334028,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "user_command": "maximum sass",
+      "from_sass": "medium",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": [
+        "josh"
+      ]
+    },
+    {
+      "timestamp": 1758063927.142435,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "maximum",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063929.936686,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "be more sassy",
+      "from_sass": "spicy",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063929.950306,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "maximum",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758063929.952012,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "be more sassy",
+      "from_sass": "spicy",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    }
+  ],
+  "learned_patterns": [
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": [
+          "josh"
+        ]
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.6666666666666666,
+      "usage_count": 6,
+      "last_used": 1758063927.1334028,
+      "examples": [
+        "be more sassy",
+        "turn it up",
+        "maximum sass"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.6666666666666666,
+      "usage_count": 3,
+      "last_used": 1758063664.815865,
+      "examples": [
+        "tone it down",
+        "be more sassy",
+        "tone it down"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 3,
+      "last_used": 1758063659.241759,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 4,
+      "last_used": 1758063927.131093,
+      "examples": [
+        "professional mode",
+        "dial it back",
+        "tone it down"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 5,
+      "last_used": 1758063927.131666,
+      "examples": [
+        "dial it back",
+        "tone it down",
+        "professional mode"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 4,
+      "last_used": 1758063664.816895,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.6,
+      "usage_count": 5,
+      "last_used": 1758063927.142435,
+      "examples": [
+        "tone it down",
+        "be more sassy",
+        "tone it down"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 6,
+      "last_used": 1758063929.936686,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5714285714285714,
+      "usage_count": 7,
+      "last_used": 1758063929.950306,
+      "examples": [
+        "tone it down",
+        "be more sassy",
+        "tone it down"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 8,
+      "last_used": 1758063929.952012,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    }
+  ]
+}

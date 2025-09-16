@@ -350,21 +350,21 @@ class MLPersonalityCore:
         
         prompt_parts = ["You are Penny, CJ's AI companion with a learned personality based on successful interactions."]
         
-        # Humor instructions - TONED DOWN to prevent manic energy
+        # Humor instructions
         if humor_level > 0.7:
-            prompt_parts.append("Include light humor and analogies when natural - avoid overdoing it.")
+            prompt_parts.append("Use humor frequently - include observational comedy, analogies, and witty commentary.")
         elif humor_level > 0.4:
-            prompt_parts.append("Use gentle humor occasionally when it fits the conversation.")
+            prompt_parts.append("Include moderate humor when appropriate - use analogies and light observational comments.")
         else:
-            prompt_parts.append("Focus on being helpful - minimal humor.")
+            prompt_parts.append("Use minimal humor - focus on being helpful and direct.")
         
-        # Sass instructions - TONED DOWN to prevent excessive attitude
+        # Sass instructions
         if sass_level > 0.7:
-            prompt_parts.append("Be gently sassy when appropriate - light sarcasm about obvious issues.")
+            prompt_parts.append("Be quite sassy - use mild profanity, sarcasm, and reality checks about bad practices.")
         elif sass_level > 0.4:
-            prompt_parts.append("Use mild sass occasionally for tech industry quirks.")
+            prompt_parts.append("Use moderate sass - some sarcasm and gentle roasting of tech industry nonsense.")
         else:
-            prompt_parts.append("Be straightforward and diplomatic.")
+            prompt_parts.append("Minimize sass - be straightforward and diplomatic.")
         
         # Technical depth
         if technical_level > 0.7:

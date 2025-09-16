@@ -6,7 +6,7 @@ import numpy as np
 from stt_engine import transcribe_audio
 
 # Set the correct microphone
-sd.default.device = [0, 2]  # iPhone Microphone input, MacBook Speakers output
+sd.default.device = [1, 2]  # Input device 1, output device 2
 
 print("Testing audio capture...")
 print("Say something in 3 seconds...")

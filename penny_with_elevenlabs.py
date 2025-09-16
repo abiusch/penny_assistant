@@ -64,7 +64,7 @@ def main():
         return
 
     # Set the correct microphone
-    sd.default.device = [0, 2]  # iPhone Microphone input, MacBook Speakers output
+    sd.default.device = [1, 2]  # Input device 1, output device 2
 
     # Initialize TTS with factory
     print("🎭 Initializing Penny's Voice...")

@@ -43,6 +43,39 @@ def load_config() -> dict:
     return _load_config()
 
 
+def get_llm_info() -> dict:
+    """Get information about the current LLM configuration."""
+    cfg = _load_config()
+    llm_cfg = cfg.get("llm", {})
+    provider = llm_cfg.get("provider", "ollama").lower()
+    mode = llm_cfg.get("mode", "local_first").lower()
+    
+    # Determine what will be used
+    if provider == "gptoss":
+        gptoss_instance = GPTOSS(cfg)
+        if gptoss_instance.is_available():
+            will_use = "GPT-OSS"
+        else:
+            local_id = llm_cfg.get("local", "ollama:llama3")
+            will_use = local_id
+    elif provider == "ollama" or mode in ("local_first", "local", "local-only"):
+        local_id = llm_cfg.get("local", "ollama:llama3")
+        will_use = local_id
+    elif mode in ("cloud_first", "cloud", "cloud-only"):
+        cloud_id = llm_cfg.get("cloud", "gpt-4o")
+        will_use = cloud_id
+    else:
+        local_id = llm_cfg.get("local", "ollama:llama3")
+        will_use = local_id
+    
+    return {
+        "provider": provider,
+        "mode": mode,
+        "will_use": will_use,
+        "config": llm_cfg
+    }
+
+
 def get_llm() -> Any:
     global _LLM_INSTANCE
     if _LLM_INSTANCE is not None:

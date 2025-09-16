@@ -251,6 +251,38 @@ class SassController:
             if "that's" in response.lower() and "interesting" in response.lower():
                 response = response.replace("That's interesting", "That's... interesting")
         
+        # AGGRESSIVE COFFEE/CAFFEINE CLEANUP (for all responses)
+        response = response.replace("*buzzing with caffeine*", "")
+        response = response.replace("*buzzing with", "")
+        response = response.replace("buzzing with caffeine", "excited")
+        response = response.replace("caffeinated AI", "AI")
+        response = response.replace("caffeinated", "energetic")
+        response = response.replace("caffeine", "energy")
+        response = response.replace("CAFFEINE", "ENERGY")
+        response = response.replace("coffee", "conversation")
+        response = response.replace("COFFEE", "CONVERSATION")
+        response = response.replace("whole lot of coffee", "whole lot of enthusiasm")
+        response = response.replace("rapid-fire", "quick")
+        response = response.replace("ENERGIZED", "excited")
+        response = response.replace("OH BOY, I'M READY", "I'm ready")
+        response = response.replace("OH BOY", "Oh")
+        response = response.replace("ALL ABOUT YOU, HUMAN", "about you")
+        response = response.replace("HUMAN!", "friend!")
+        response = response.replace("extra sassy and ready", "ready")
+        response = response.replace("OH BOY, IT'S YOUR BOI", "Hey there")
+        
+        # Remove asterisk actions completely
+        import re
+        response = re.sub(r'\*[^*]*\*', '', response)
+        
+        # Clean up excessive punctuation
+        response = response.replace("!!!", "!")
+        response = re.sub(r'!{2,}', '!', response)  # Multiple exclamation points
+        
+        # Clean up extra spaces and formatting
+        response = re.sub(r'\s+', ' ', response)
+        response = response.strip()
+        
         return response
 
 def create_sass_controller() -> SassController:

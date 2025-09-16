@@ -19,7 +19,7 @@ try:
     
     # Import all the same systems used in voice interface
     print("🔄 Importing performance monitor...")
-    from performance_monitor import time_operation, OperationType
+    from core.performance_monitor import time_operation, OperationType
     print("✅ Performance monitor imported")
     
     print("🔄 Importing pragmatics system...")

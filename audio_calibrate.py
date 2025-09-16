@@ -6,7 +6,7 @@ import numpy as np
 import time
 
 # Set the correct microphone
-sd.default.device = [0, 2]  # iPhone Microphone input, MacBook Speakers output
+sd.default.device = [1, 2]  # Input device 1, output device 2
 
 def monitor_audio_levels(duration=10):
     """Monitor audio levels in real-time."""

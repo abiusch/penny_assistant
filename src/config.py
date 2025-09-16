@@ -52,3 +52,9 @@ LOG_CONFIG = {
         "handlers": ["console", "file"]
     }
 }
+
+def load_config() -> dict:
+    """Load the main penny configuration."""
+    config = MODEL_CONFIGS.copy()
+    config["log"] = LOG_CONFIG
+    return config

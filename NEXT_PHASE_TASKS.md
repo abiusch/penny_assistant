@@ -2,159 +2,88 @@
 
 You've just completed an incredible journey - implementing **ALL 7 ChatGPT roadmap priorities** PLUS voice quality upgrades, unpredictable personality system, production engineering improvements, AND **advanced guided learning capabilities**, transforming PennyGPT from a basic voice assistant into a genuine AI companion with learning, personality, and production-ready reliability.
 
-## 🧠 **LATEST ACHIEVEMENT: PERSISTENT MEMORY SYSTEM - RELATIONSHIP-BUILDING AI COMPANION! (September 10, 2025)**
+## 🧠 **LATEST ACHIEVEMENT: ADAPTIVE SASS LEARNING SYSTEM - PERSONALITY THAT GROWS WITH YOU! (September 16, 2025)**
 
-**🎆 BREAKTHROUGH: Cross-Session Memory + Relationship Building + Multi-Modal Interface**
-- ✅ **Persistent Memory System**: SQLite-based cross-session relationship building with automatic fact extraction
-- ✅ **Cross-Session Continuity**: Remembers conversations, preferences, and shared experiences between sessions
-- ✅ **Intelligent Fact Learning**: Automatically extracts and stores user facts, technical interests, and inside jokes
-- ✅ **Relationship Summaries**: Natural language summaries of what Penny knows about the user
-- ✅ **Memory-Enhanced Responses**: Context-aware responses using stored relationship information
-- ✅ **Multi-Modal Interface Support**: Text-based chat interface with memory capabilities alongside voice interaction
-- ✅ **Conversational Flow Improvements**: Reduced repetitive patterns and more contextual engagement
-- ✅ **Session Management**: Tracks conversation sessions with summaries and user reaction learning
-- ✅ **Memory Search and Management**: Commands to view, search, and manually add memories
+**🎆 BREAKTHROUGH: Sass Controls as Training Data + Authentic Personality Learning + User Control**
+- ✅ **Adaptive Sass Learning**: Sass controls become training data for evolving personality preferences
+- ✅ **Context-Aware Personality**: Learns different sass levels for different situations (programming vs. social)
+- ✅ **Authentic Growth**: Develops her own personality patterns based on your interactions over time
+- ✅ **Hybrid Control System**: User override capability + learned preferences working together
+- ✅ **Cross-Session Learning**: Personality patterns persist and evolve between conversations
+- ✅ **Learning Insights**: "sass insights" command shows what Penny has learned about your preferences
+- ✅ **Natural Training**: "tone it down" and "be more sassy" teach personality rather than just control
+- ✅ **Memory Integration**: Sass preferences stored in persistent memory with confidence tracking
+- ✅ **Pattern Recognition**: Automatically detects contexts where you prefer different sass levels
 
-**💾 PERSISTENT MEMORY ARCHITECTURE:**
-- **Core Memory Engine** (`persistent_memory.py`): SQLite database with memory types, confidence tracking, and automatic cleanup
-- **Memory-Enhanced Personality** (`memory_enhanced_penny.py`): Integration layer connecting memory with existing personality systems
-- **Memory Chat Interface** (`memory_chat_penny.py`): Text-based chat with full memory capabilities and special commands
-- **Cross-Session Storage**: User facts, preferences, inside jokes, technical interests, conversation summaries
-- **Automatic Learning**: Extracts information from natural conversation without explicit teaching
-- **Relationship Intelligence**: Builds comprehensive understanding of user preferences and communication style
+**🧠 ADAPTIVE SASS ARCHITECTURE:**
+- **Adaptive Learning Engine** (`adaptive_sass_learning.py`): Core system that learns personality patterns from user adjustments
+- **Enhanced Penny Integration** (`adaptive_sass_enhanced_penny.py`): Hybrid system combining learned preferences with user control
+- **Adaptive Chat Interface** (`adaptive_sass_chat.py`): Chat interface showing learning in real-time with insight commands
+- **Pattern Storage**: Context-specific sass preferences with confidence scoring and usage tracking
+- **Learning Analytics**: Comprehensive insights into learned personality patterns and user preferences
+- **Cross-Session Persistence**: Personality learning data saved and recalled between conversations
 
-**🤝 RELATIONSHIP-BUILDING CAPABILITIES:**
-- **User Fact Storage**: Names, roles, personal details automatically extracted from conversation
-- **Preference Tracking**: "I like FastAPI" → stored as coding preference with confidence scoring
-- **Inside Joke Memory**: Shared experiences like calling Josh "brochacho" remembered across sessions
-- **Technical Interest Learning**: Automatically tracks programming languages, frameworks, and technologies mentioned
-- **Friend/Colleague Awareness**: Remembers Josh, Reneille, and other important people in user's life
-- **Conversation Context**: References previous discussions naturally without being mechanical
+**🎭 PERSONALITY LEARNING CAPABILITIES:**
+- **Context Pattern Learning**: "User prefers minimal sass when programming + frustrated" learned from "tone it down" commands
+- **Social Situation Adaptation**: "User likes spicy sass when talking about Josh" learned from "be more sassy" usage
+- **Confidence Building**: Tracks reliability of learned patterns - high confidence patterns applied automatically
+- **Override Integration**: User can still control sass, but overrides become additional training data
+- **Natural Language Training**: "dial it back", "turn it up", "professional mode" all teach personality preferences
+- **Learning Insights**: Shows total adjustments, learned patterns, context preferences, and recent trends
 
-**🔧 MEMORY SYSTEM FEATURES:**
-- **Memory Types**: User facts, preferences, inside jokes, technical interests, conversation summaries, personality feedback
-- **Confidence Scoring**: Tracks reliability of stored information with automatic confidence adjustment
-- **Access Tracking**: Monitors which memories are recalled most often for relevance scoring
-- **Session Management**: Conversation tracking with start/end timestamps and topic summaries
-- **User Reaction Learning**: Detects positive/negative reactions to improve personality adaptation
-- **Memory Search**: Natural language search through stored memories with relevance ranking
-- **Automatic Cleanup**: Removes old, low-confidence memories to maintain database quality
+**🔧 ADAPTIVE SASS FEATURES:**
+- **Hybrid Decision Making**: Learned preference → User override → Default sass (in that priority order)
+- **Pattern Matching**: Sophisticated context matching for similar situations (programming frustration, friend conversations)
+- **Confidence Scoring**: Tracks how reliable each learned pattern is based on consistency of user adjustments
+- **Learning Events**: Every sass adjustment recorded with full context for pattern analysis
+- **Insight Generation**: "what have you learned about my sass preferences?" provides comprehensive learning summary
+- **Memory Integration**: Sass learning data stored in same persistent memory system as facts and relationships
+- **Context Detection**: Automatically detects topic, emotion, and participants to apply appropriate learned sass level
 
-**💻 PATTERN MATCHING REFINEMENTS:**
-- **Training Questions**: Specific responses for "train you", "teaching", "how to improve" queries
-- **Emotional Training**: Dedicated responses for emotional response training methodology
-- **Development Context**: Enhanced recognition of programming frustrations and capability questions
-- **Symbol Cleanup**: Comprehensive removal of broken unicode that caused TTS reading issues
-- **Natural Language**: Eliminated asterisk actions and excessive punctuation from responses
-
-**🎭 PERSONALITY BALANCE ACHIEVED:**
-- **Base LLM**: Natural response generation without excessive energy amplification
-- **Dynamic States**: Subtle enhancement rather than overwhelming modification
-- **Pragmatics**: Focused on conversational intelligence without personality conflicts
-- **Coordinated Output**: All systems working together rather than fighting each other
-- **Conversational Appropriateness**: Energy and sass appropriate to context and topic
-
-**🔍 SPECIFIC MEMORY SYSTEM IMPROVEMENTS ACHIEVED:**
+**🎯 REVOLUTIONARY APPROACH:**
 ```
-BEFORE (FORGETFUL AI):
-Session 1:
-User: "I like FastAPI and my friend Josh helps with projects"
-Penny: "That sounds great! Tell me more."
+TRADITIONAL AI: Rigid personality control
+"Set sass to minimal" → Becomes minimal (no learning)
+Next session → Forgets, back to default
 
-Session 2 (Later):
-User: "How's my FastAPI work going?"
-Penny: "I'd be happy to help with that!" (No memory of previous conversation)
+ADAPTIVE PENNY: Sass controls as training data  
+"Tone it down" during debugging → Learns you prefer minimal sass for programming frustration
+Next debugging session → Automatically uses minimal sass (authentic growth)
+**🔍 ADAPTIVE SASS LEARNING EXAMPLES:**
+```
+LEARNING PHASE:
+User: "tone it down" (Context: programming, frustrated)
+Penny: "Sass level changed to MINIMAL! 🧠 I'm learning that you prefer minimal sass in this context."
 
-AFTER (RELATIONSHIP-BUILDING AI):
-Session 1:
-User: "I like FastAPI and my friend Josh helps with projects" 
-Penny: "FastAPI is solid! Josh sounds like a great collaborator." 
-[Automatically stores: preference="likes FastAPI", friend="Josh"]
+User: "be more sassy" (Context: conversation with Josh)
+Penny: "Sass level changed to SPICY! 🧠 I'm learning that you prefer spicy sass in this context."
 
-Session 2 (Days later):
-User: "How's my FastAPI work going?"
-Penny: "How's your FastAPI project coming along? Is Josh still helping out?"
-[Recalls previous conversation context and relationships]
+APPLICATION PHASE (Later sessions):
+User: "This bug is driving me crazy" (Context: programming, frustrated)
+Penny: [Automatically uses minimal sass] "Let me help you debug this systematically."
 
-CONVERSATIONAL FLOW IMPROVEMENTS:
-✅ Contextual responses: "Donuts! What kind did you get? Hosting friends sounds lovely!"
-✅ Specific engagement: Responds to Scott, Jen, renovations individually rather than generic patterns
-✅ Memory integration: "Is Josh still helping with your projects?" using stored relationship info
-✅ Reduced repetition: Fixed "ask me anything" loops and generic "tell me more" responses
-✅ Cross-session continuity: Remembers names, preferences, shared jokes between conversations
+User: "What do you think about Josh?" (Context: conversation with Josh)
+Penny: [Automatically uses spicy sass] "Oh, Josh? Your coding buddy who probably writes comments like 'this works, don't touch it'?"
+
+INSIGHT PHASE:
+User: "sass insights"
+Penny: "🧠 Here's what I've learned about your sass preferences:
+   • programming:frustrated - minimal sass (very confident)
+   • conversation:neutral:josh - spicy sass (confident)
+   I use these patterns to choose my default sass level, but you can always override me!"
 ```
 
-**🎯 Unprecedented Differentiation Examples:**
-```
-Same Question: "Should I use microservices?"
-
-MISCHIEVOUS + High Learned Sass:
-"Oh, this is gonna be FUN! Because apparently turning one problem 
-into a distributed nightmare is the height of architectural wisdom."
-
-CONTEMPLATIVE + High Learned Technical Depth:
-"Hmm... let me think about this deeply. The philosophical implications 
-of architectural decisions at different scales..."
-
-PROTECTIVE + High Learned Supportiveness:
-"I've got your back on this decision. Your microservices approach 
-makes sense for your context. Don't let anyone shake your confidence."
-```
-
-**🔥 Enhanced Sass Examples (TESTED & WORKING):**
-- **Auto-Research with Attitude**: *"Already researching FastAPI optimization because I know you're obsessed with this stuff."*
-- **Reality Check Commentary**: *"I can research solutions... Why: because trial-and-error is for masochists. Want actual working approaches?"*
-- **Sassy Curiosity Questions**: *"What's your actual plan with FastAPI, or are we just winging it?"*
-- **Tech Industry Roasting**: *"Oh hell no! Microservices for everything? That's like using a sledgehammer to hang a picture frame."*
-- **Instant Recognition**: *"Hey Josh! From Verizon to Google - nice career upgrade, Brochacho!"*
-- **Wedding Context**: *"Reneille! How's the wedding planning going? I bet you've got it super organized."*
-
-**⚡ SPEED OPTIMIZATION ACHIEVEMENTS:**
-- **Pre-Compiled Responses**: Instant recognition for Josh, Reneille, common tech topics
-- **Reduced Recording Time**: 3-second capture (down from 5) for snappier interaction
-- **Background TTS Warmup**: Parallel processing during listening phase
-- **Optimized Prompts**: Minimal context for faster LLM responses
-- **Real-Time Metrics**: Live performance monitoring (STT→LLM→TTS→Total)
-- **Demo-Ready Performance**: 700-3100ms total latency (down from ~4750ms)
-
-**🎯 Sass vs Helpfulness Balance (VERIFIED):**
-- ✅ Roasts bad practices, not people
-- ✅ Calls out industry nonsense with humor
-- ✅ Uses mild profanity for emphasis (damn, shit, hell, crap)
-- ✅ Shows genuine enthusiasm for good work
-- ✅ Maintains warmth underneath the sass
-- ✅ Provides reality checks with constructive feedback
-- ✅ Instant relationship recognition and appropriate responses
-
-**Advanced Companion Features:**
-- **Permission-Based Research System**: Auto-approves FastAPI/Python/ElevenLabs topics, asks for others
-- **Learning from Corrections**: Detects when corrected, gracefully acknowledges, remembers for future
-- **Proactive Curiosity with Boundaries**: Asks meaningful questions without being pushy
-- **Personal Profile Integration**: Knows CJ's role, projects, communication style, tech stack
-- **Enhanced Database Schema**: Tracks research sessions, corrections, curiosity topics
-
-**CJ-Specific Personalization:**
-- **Communication Style**: Answer-first structure, concise responses, warm but sassy tone
-- **Auto-Research Topics**: Python, FastAPI, pytest, Pydantic, ElevenLabs, MCP patterns
-- **Project Awareness**: PennyGPT context, menu-bar integration goals, MCP roadmap
-- **Tech Stack Integration**: Advice specific to current Python/FastAPI/ElevenLabs setup
-- **Enhanced Sass**: Real attitude with mild profanity, industry roasting, constructive edge
-
-**Files Added/Enhanced (PERSISTENT MEMORY SYSTEM + RELATIONSHIP BUILDING BREAKTHROUGH):**
-- `persistent_memory.py` - Core SQLite-based memory engine with cross-session relationship building and automatic fact extraction
-- `memory_enhanced_penny.py` - Integration layer connecting persistent memory with existing personality systems
-- `memory_chat_penny.py` - Text-based chat interface with full memory capabilities and special memory commands
-- `test_memory_system.py` - Comprehensive testing suite for memory system functionality and cross-session persistence
-- `chat_penny.py` - Text-based chat interface with full personality system integration and error handling
-- `pragmatics_enhanced_penny.py` - Enhanced with personality coordination fixes, symbol cleanup, and improved pattern matching
-- `voice_enhanced_penny.py` - Updated with balanced personality coordination and context detection
-- `pragmatics_core.py` - Phase 0 conversational pragmatics with role reversal detection and response strategies
-- `voice_activity_detector.py` - Natural pause-based voice recording with silence detection and real-time feedback
-- `chatgpt_conversational_pragmatics_task.md` - Research task for ChatGPT with mandatory literature search and evidence requirements
-- `integrated_config.py` - Cached configuration system with thread safety and environment overrides
-- `performance_monitor.py` - Zero-overhead performance monitoring with detailed metrics
-- `enhanced_ml_personality_core.py` - Revolutionary ML learning + lazy loading + graceful degradation
-- `speed_optimized_enhanced_penny.py` - Complete integration with enterprise performance optimizations
+**Files Added/Enhanced (ADAPTIVE SASS LEARNING BREAKTHROUGH):**
+- `adaptive_sass_learning.py` - Core adaptive learning engine that learns personality patterns from user sass adjustments
+- `adaptive_sass_enhanced_penny.py` - Hybrid system combining learned sass preferences with user control capabilities
+- `adaptive_sass_chat.py` - Enhanced chat interface with real-time learning indicators and sass insight commands
+- `test_adaptive_sass.py` - Comprehensive testing suite for adaptive sass learning system functionality
+- `sass_controller.py` - Enhanced sass controller with specific response modifications for each sass level
+- `sass_enhanced_penny.py` - Integration layer connecting sass control with existing memory and personality systems
+- `memory_enhanced_penny.py` - Memory system integration with sass preference storage and cross-session persistence
+- `memory_chat_penny.py` - Updated chat interface with sass control commands and memory management
+- `test_sass_control.py` - Testing framework for basic sass control system functionality
+- `demo_sass_control.py` - Demonstration script showing all sass levels with same input for comparison
 - `integrated_ml_personality.py` - Complete integration of ML learning + dynamic personality states
 - `dynamic_personality_states.py` - 8 dynamic personality states with contextual transitions
 - `ml_personality_core.py` - Complete machine learning personality system with 8 adaptive dimensions
@@ -198,7 +127,7 @@ makes sense for your context. Don't let anyone shake your confidence."
 - ✅ **Configuration System**: Easy switching between TTS engines via config
 - ✅ **Streaming Architecture**: Parallel chunk synthesis for faster response times
 
-**Complete System Achievement - ALL 24 Major Companion Features (PERSISTENT MEMORY + RELATIONSHIP BUILDING):**
+**Complete System Achievement - ALL 20 Major Companion Features (PRODUCTION-READY & OPTIMIZED):**
 1. ✅ **Emotional Intelligence** - Tracks emotions, relationships, values, learning goals
 2. ✅ **Multi-Personality System** - 7 personality modes with sass, warmth, tech enthusiasm
 3. ✅ **Conversational Flow** - Natural engagement without constant wake words
@@ -217,12 +146,8 @@ makes sense for your context. Don't let anyone shake your confidence."
 16. ✅ **Advanced Humor System** - Contextual comedy with multiple humor types
 17. ✅ **Machine Learning Personality Core** - Adaptive personality that learns from interactions
 18. ✅ **Integrated ML + Dynamic States** - Revolutionary personality evolution with mood-aware learning
-19. ✅ **Performance Monitoring & Optimization** - Enterprise-grade performance with zero overhead in demo mode
-20. ✅ **Production-Ready Architecture** - Lazy loading, graceful degradation, enterprise reliability
-21. ✅ **Conversational Pragmatics** - Understands "ask me anything" vs "can I ask you" and role reversal
-22. ✅ **Personality Coordination** - Balanced multi-layer personality system without conflicts 🆕
-23. ✅ **Multi-Modal Interface** - Both voice and text interaction with unified personality system
-24. ✅ **Persistent Memory System** - Cross-session relationship building with automatic fact learning 🆕
+19. ✅ **Performance Monitoring & Optimization** - Enterprise-grade performance with zero overhead in demo mode 🆕
+20. ✅ **Production-Ready Architecture** - Lazy loading, graceful degradation, enterprise reliability 🆕
 
 ---
 

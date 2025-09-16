@@ -43,16 +43,16 @@ class DynamicPersonalityStates:
         # State configurations
         self.state_configs = {
             PersonalityState.CAFFEINATED: StateConfiguration(
-                humor_modifier=1.1,  # REDUCED from 1.3 to prevent manic energy
-                sass_modifier=1.0,   # REDUCED from 1.2 to prevent excessive attitude
+                humor_modifier=1.3,
+                sass_modifier=1.2,
                 technical_depth=0.9,  # Slightly less depth, more energy
                 response_speed="rapid",
                 signature_phrases=[
-                    "Alright, let's go!",           # TONED DOWN from "Okay let's GO!"
-                    "I'm feeling energetic about this", # TONED DOWN from "ENERGIZED"
-                    "Quick solution incoming",      # TONED DOWN from "Rapid-fire"
-                    "I'm excited about this one",   # TONED DOWN from "neurons FIRING"
-                    "High energy mode activated"    # TONED DOWN from "Coffee-level"
+                    "Okay let's GO!",
+                    "I'm feeling ENERGIZED about this",
+                    "Rapid-fire solution incoming",
+                    "My neurons are FIRING on this one",
+                    "Coffee-level enthusiasm activated"
                 ],
                 topics_favored=["optimization", "performance", "speed"],
                 duration_minutes=45
@@ -286,19 +286,20 @@ class DynamicPersonalityStates:
         return None
     
     def enhance_response_with_state(self, response: str, context: Dict[str, Any]) -> str:
-        """Enhance response based on current personality state - MINIMAL VERSION."""
+        """Enhance response based on current personality state."""
         config = self.state_configs[self.current_state]
         
-        # REMOVED automatic signature phrase injection to prevent energy spam
-        # Signature phrases were causing "Quick solution incoming" to be prepended
+        # Add signature phrase occasionally
+        signature = self.get_state_signature_phrase()
+        if signature:
+            response = f"{signature} {response}"
         
-        # Modify response based on state - VERY MINIMAL VERSION
+        # Modify response based on state
         if self.current_state == PersonalityState.CAFFEINATED:
-            # Only very subtle energy enhancement
-            if random.random() < 0.1:  # Only 10% of the time, down from 30%
-                if "." in response and not response.endswith("!"):
-                    response = response.replace(".", "!", 1)  # Only replace one period
-            # REMOVED all other energy additions
+            # Add energy and speed
+            response = response.replace(".", "!")
+            if "let's" not in response.lower():
+                response += " Let's make this happen!"
         
         elif self.current_state == PersonalityState.CONTEMPLATIVE:
             # Add thoughtful pauses and depth

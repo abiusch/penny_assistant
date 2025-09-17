@@ -303,6 +303,34 @@
       "topic": "conversation",
       "emotion": "neutral",
       "participants": []
+    },
+    {
+      "timestamp": 1758130310.6911201,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "tone it down",
+      "from_sass": "maximum",
+      "to_sass": "spicy",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
+    },
+    {
+      "timestamp": 1758130310.692142,
+      "context": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "user_command": "be more sassy",
+      "from_sass": "spicy",
+      "to_sass": "maximum",
+      "topic": "conversation",
+      "emotion": "neutral",
+      "participants": []
     }
   ],
   "learned_patterns": [
@@ -798,6 +826,70 @@
       "confidence": 0.5,
       "usage_count": 8,
       "last_used": 1758063929.952012,
+      "examples": [
+        "be more sassy",
+        "tone it down",
+        "be more sassy"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5555555555555556,
+      "usage_count": 9,
+      "last_used": 1758130310.6911201,
+      "examples": [
+        "tone it down",
+        "be more sassy",
+        "tone it down"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "programming",
+        "emotion": "frustrated",
+        "participants": []
+      },
+      "preferred_sass": "minimal",
+      "confidence": 1.0,
+      "usage_count": 6,
+      "last_used": 1758063927.1321018,
+      "examples": [
+        "tone it down",
+        "professional mode",
+        "dial it back"
+      ]
+    },
+    {
+      "context_pattern": {
+        "topic": "conversation",
+        "emotion": "neutral",
+        "participants": []
+      },
+      "preferred_sass": "spicy",
+      "confidence": 0.5,
+      "usage_count": 10,
+      "last_used": 1758130310.692142,
       "examples": [
         "be more sassy",
         "tone it down",

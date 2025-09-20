@@ -1,0 +1,18 @@
+{"timestamp": "2025-09-20T07:13:03.952317", "reason": "voice_command: Voice emergency phrase: 'emergency stop'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:13:04.965883", "reason": "voice_command: Voice emergency phrase: 'emergency stop'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.238464", "reason": "voice_command: Voice emergency phrase: 'emergency stop'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.239003", "reason": "voice_command: Voice emergency phrase: 'halt penny'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.239522", "reason": "voice_command: Voice emergency phrase: 'abort'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.239998", "reason": "voice_command: Voice emergency phrase: 'stop everything'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.240444", "reason": "voice_command: Repeated emergency words detected in voice input", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.241261", "reason": "voice_command: Repeated emergency words detected in voice input", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.241992", "reason": "voice_command: Repeated emergency words detected in voice input", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:44.243586", "reason": "user_manual: Manual emergency signal (SIGUSR1)", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:45.250261", "reason": "resource_limit: High memory usage: 29707.8MB", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:46.250420", "reason": "user_manual: Test emergency", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:47.251885", "reason": "resource_limit: High memory usage: 29707.3MB", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:47.254810", "reason": "voice_command: Voice emergency phrase: 'emergency stop'", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:47.255595", "reason": "user_manual: Manual emergency signal (SIGUSR1)", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:47.258325", "reason": "user_manual: Test recovery", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:49.260584", "reason": "resource_limit: High memory usage: 29696.3MB", "action": "emergency_stop_activated"}
+{"timestamp": "2025-09-20T07:14:49.265648", "reason": "voice_command: Voice emergency phrase: 'emergency stop'", "action": "emergency_stop_activated"}

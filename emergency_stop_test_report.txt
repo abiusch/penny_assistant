@@ -1,0 +1,67 @@
+🚨 EMERGENCY STOP SYSTEM TEST REPORT
+============================================================
+Generated: 2025-09-20 07:14:50
+
+📊 OVERALL SCORE: 0.97 (A)
+
+📋 COMPONENT SCORES:
+   voice_phrase_detection: 0.80 (B)
+   keyboard_interrupt_handling: 1.00 (A)
+   timeout_triggers: 1.00 (A)
+   process_termination: 1.00 (A)
+   emergency_state_management: 1.00 (A)
+   multi_interface_coordination: 1.00 (A)
+   recovery_procedures: 1.00 (A)
+   stress_testing: 1.00 (A)
+
+🚀 EMERGENCY READINESS: ✅ EMERGENCY SYSTEM READY
+
+🔍 DETAILED RESULTS:
+
+VOICE_PHRASE_DETECTION:
+   ✅ Primary emergency phrase
+   ✅ Primary halt phrase
+   ✅ Emergency abort
+   ✅ Stop everything phrase
+   ❌ Non-emergency stop
+   ❌ Low confidence emergency
+   ✅ Normal greeting
+   ✅ Single stop (first time)
+   ✅ Stop again
+   ✅ Third stop - should trigger contextual
+
+KEYBOARD_INTERRUPT_HANDLING:
+   ✅ Manual emergency signal
+   ✅ Emergency status after trigger
+   ✅ State is emergency
+
+TIMEOUT_TRIGGERS:
+   ✅ Process registered
+   ✅ Emergency system monitoring
+   ✅ System in normal state after cleanup
+
+PROCESS_TERMINATION:
+   ✅ Terminate all processes method exists
+   ✅ Process monitoring dict exists
+   ✅ Process lock exists
+
+EMERGENCY_STATE_MANAGEMENT:
+   ✅ Initial state is normal
+   ✅ State transitions to lockdown after emergency
+   ✅ Recovery succeeds
+   ✅ State returns to normal after recovery
+
+MULTI_INTERFACE_COORDINATION:
+   ✅ Voice detection triggers emergency system
+   ✅ Manual signal triggers emergency system
+   ✅ Emergency events are logged
+   ✅ Emergency status reporting works
+
+RECOVERY_PROCEDURES:
+   ✅ Recovery validation works
+   ✅ Recovery execution succeeds
+   ✅ System returns to normal state
+
+STRESS_TESTING:
+   ✅ System handles rapid emergency triggers
+   ✅ System can recover after stress

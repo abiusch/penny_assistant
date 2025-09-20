@@ -381,7 +381,122 @@ Want to talk through how to approach him, or would it help to brainstorm ways to
 - Enhanced user satisfaction with emotional support and social guidance
 - Maintained personality authenticity while adding social sophistication
 
-## 🤖 **PHASE 2: AGENTIC AI & TOOL INTEGRATION (READY TO BEGIN)**
+## 🛡️ **PHASE 1.75: SECURITY & ETHICS ENHANCEMENT (CRITICAL BEFORE AGENTIC PHASE)**
+**Goal**: Implement production-grade security and ethical safeguards before tool access
+
+**Current Status**: Foundation security system implemented, needs operational enhancements
+**Timeline**: 3 weeks for complete security hardening before Phase 2
+
+### **🚨 Phase A: Critical Security Foundations (Week 1) - ESSENTIAL BEFORE TOOL ACCESS**
+**Timeline**: 7 days
+**Dependencies**: ✅ Complete (security foundation exists, needs enhancement)
+
+#### Task A1: Command Whitelist System (Days 1-2)
+- [ ] **Operation Classification**: Create taxonomy of all possible operations (file, network, system, external)
+- [ ] **Approved Operations List**: Define specific allowed operations with parameter restrictions
+- [ ] **Restricted Operations Registry**: Catalog dangerous operations that require elevated permissions
+- [ ] **Pre-Execution Permission Checking**: Validate every operation against whitelist before execution
+- [ ] **Whitelist Violation Handling**: Generate appropriate responses for blocked operations
+- [ ] **Dynamic Whitelist Updates**: Allow secure modification of permissions during runtime
+
+#### Task A2: Multi-Channel Emergency Stop (Days 3-4)
+- [ ] **Voice Phrase Detection**: Implement "emergency stop", "halt penny", "abort" recognition in voice interface
+- [ ] **Keyboard Interrupt Enhancement**: Expand Ctrl+C handling to immediate process termination
+- [ ] **Timeout-Based Triggers**: Auto-stop after 30 seconds of no response during operations
+- [ ] **Process Termination Capabilities**: Safely halt all running operations and tool executions
+- [ ] **Emergency State Management**: Prevent restart until manual safety verification
+- [ ] **Multi-Interface Coordination**: Ensure emergency stop works across voice, text, and future GUI
+
+#### Task A3: Enhanced Security Logging (Days 5-7)
+- [ ] **Detailed Audit Trail**: Log every security decision with full context and reasoning
+- [ ] **Trigger Analysis Logging**: Record what specifically caused boundary violations for learning
+- [ ] **Security Event Classification**: Categorize events by severity, type, and response needed
+- [ ] **Structured Log Storage**: Use searchable format for security event analysis
+- [ ] **Log Review Tools**: Create utilities for analyzing security patterns and false positives
+- [ ] **Privacy-Preserving Logs**: Ensure audit trails don't leak sensitive user information
+
+### **🔒 Phase B: Operational Security (Week 2)**
+**Timeline**: 7 days
+**Dependencies**: Phase A completion
+
+#### Task B1: Rate Limiting & Resource Controls (Days 1-3)
+- [ ] **Operation Frequency Limits**: Prevent spam/loops with configurable rate limits per operation type
+- [ ] **Resource Usage Monitoring**: Track CPU, memory, disk, and network usage during operations
+- [ ] **Automatic Throttling**: Slow down or pause operations approaching resource limits
+- [ ] **Runaway Process Detection**: Identify and terminate processes consuming excessive resources
+- [ ] **Adaptive Rate Limiting**: Adjust limits based on system performance and user patterns
+- [ ] **Resource Quota Management**: Set daily/hourly limits for different operation categories
+
+#### Task B2: Rollback & Recovery Systems (Days 4-5)
+- [ ] **File Operation Tracking**: Log all file modifications with timestamps and checksums
+- [ ] **Automatic Backup Creation**: Create recovery points before any destructive operations
+- [ ] **One-Click Rollback**: Implement instant reversion to previous state
+- [ ] **Recovery Validation**: Verify rollback success and system integrity
+- [ ] **Incremental Backup System**: Efficient storage of multiple recovery points
+- [ ] **Cross-Operation Rollback**: Undo complex multi-step operations atomically
+
+#### Task B3: Advanced Authentication (Days 6-7)
+- [ ] **Voice Pattern Baseline**: Establish CJ's unique vocal characteristics for comparison
+- [ ] **Interaction Style Fingerprinting**: Learn typing patterns, command preferences, conversation style
+- [ ] **Session Validation Improvements**: Continuous authentication during long interactions
+- [ ] **Multi-Factor Verification Chains**: Combine knowledge + behavior + biometric factors
+- [ ] **Adaptive Authentication**: Adjust security requirements based on operation sensitivity
+- [ ] **Authentication Degradation**: Graceful handling when biometric verification fails
+
+### **🧠 Phase C: Intelligence Integration (Week 3)**
+**Timeline**: 7 days
+**Dependencies**: Phase B completion
+
+#### Task C1: Context-Aware Security (Days 1-3)
+- [ ] **Social Situation Security**: Adjust permissions based on detected social context (work vs personal)
+- [ ] **Relationship-Based Permissions**: Different access levels when Josh/Reneille are involved
+- [ ] **Emotional State Security**: Heightened caution during high-stress or extreme emotional states
+- [ ] **Context-Dependent Approval**: Smart authorization based on who, what, when, where
+- [ ] **Time-Based Security**: Different permissions for work hours vs personal time
+- [ ] **Location-Aware Security**: Enhanced verification for sensitive operations
+
+#### Task C2: Learning Security Patterns (Days 4-5)
+- [ ] **Security Decision Learning**: Learn from user feedback on security choices
+- [ ] **Adaptive Threat Detection**: Evolve recognition of suspicious patterns over time
+- [ ] **Behavioral Anomaly Recognition**: Detect when interactions don't match normal patterns
+- [ ] **Personalized Security Calibration**: Adjust security sensitivity to user preferences
+- [ ] **False Positive Learning**: Reduce unnecessary security blocks through pattern learning
+- [ ] **Security Preference Memory**: Remember user choices about security vs convenience tradeoffs
+
+#### Task C3: Security Transparency (Days 6-7)
+- [ ] **Security Decision Explanations**: Clear explanations of why operations were blocked/allowed
+- [ ] **Security Reasoning Visibility**: Show the decision chain for security choices
+- [ ] **Trust-Building Transparency**: Help users understand and trust security decisions
+- [ ] **User Override Mechanisms**: Allow informed overrides with explicit acknowledgment
+- [ ] **Security Education**: Teach users about risks and best practices through interactions
+- [ ] **Confidence Indicators**: Express uncertainty about security decisions when appropriate
+
+**✅ COMPLETED FOUNDATION TASKS:**
+- ✅ **Basic Security Foundation**: Identity verification, ethical boundaries, security context
+- ✅ **Ethical Principles Framework**: Hard-coded principles with violation detection
+- ✅ **Emergency Stop Protocol**: Basic emergency shutdown capabilities
+- ✅ **Security Logging**: Initial audit trail and event recording
+- ✅ **Integration Architecture**: Security layer integrated with enhanced context and calibration systems
+
+**🎯 SUCCESS CRITERIA FOR AGENTIC READINESS:**
+- Command whitelist prevents unauthorized operations
+- Multi-channel emergency stop works reliably
+- All security decisions are logged and auditable
+- Rate limiting prevents resource abuse
+- Rollback system can undo any operation
+- Context-aware security adapts to social situations
+- User can understand and trust security decisions
+
+**📋 IMPLEMENTATION STRATEGY FOR CLAUDE CODE:**
+**Phase A1 Example Request:** "Create a command whitelist system that categorizes operations into approved/restricted lists, checks permissions before execution, and integrates with the existing SecurityEthicsFoundation class. Include file operations, network access, system modifications, and external communications as categories."
+
+**Delivery Priority:**
+- Phase A (all) - Critical before tool access
+- Phase B1-B2 - Essential for file/system operations
+- Phase B3 - Important but can be enhanced iteratively
+- Phase C - Optimization after core security works
+
+## 🤖 **PHASE 2: AGENTIC AI & TOOL INTEGRATION (AFTER SECURITY HARDENING)**
 **Goal**: Transform socially intelligent Penny into capable AI assistant with tool access
 
 **Current Status**: ✅ READY TO BEGIN - Social intelligence foundation complete

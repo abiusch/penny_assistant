@@ -26,7 +26,7 @@ import json
 
 # Import existing security components
 try:
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from rate_limiting_resource_control import RateLimitingResourceControl
 except ImportError as e:
     print(f"Warning: Could not import security components: {e}")

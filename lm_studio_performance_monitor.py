@@ -33,7 +33,7 @@ import queue
 
 # Import existing security components
 try:
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from integrated_security_optimizer import IntegratedSecurityOptimizer
 except ImportError as e:
     print(f"Warning: Could not import security components: {e}")

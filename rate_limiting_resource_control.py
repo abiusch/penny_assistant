@@ -30,7 +30,7 @@ import weakref
 # Import existing security components
 try:
     from command_whitelist_system import CommandWhitelistSystem, OperationType, PermissionLevel, SecurityRisk
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from lm_studio_performance_monitor import LMStudioPerformanceMonitor
 except ImportError as e:
     print(f"Warning: Could not import security components: {e}")

@@ -3160,3 +3160,9 @@
 2025-09-20 07:11:12,610 - INFO - Security check: process_execute - ALLOWED - Permission granted
 2025-09-20 07:11:12,614 - INFO - Permission level changed: guest -> trusted
 2025-09-20 07:11:12,616 - INFO - Permission level changed: guest -> trusted
+2025-09-21 12:04:30,932 - INFO - Enhanced signal handlers registered successfully
+2025-09-21 12:04:30,933 - INFO - Multi-channel emergency stop system initialized
+2025-09-21 12:10:35,431 - INFO - Enhanced signal handlers registered successfully
+2025-09-21 12:10:35,431 - INFO - Multi-channel emergency stop system initialized
+2025-09-21 12:10:35,437 - INFO - Enhanced Security Logger initialized
+2025-09-21 12:10:35,533 - INFO - Threat detection and response system monitoring started

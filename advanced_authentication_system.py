@@ -29,7 +29,7 @@ import statistics
 
 # Import existing security components
 try:
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from rollback_recovery_system import RollbackRecoverySystem
     from command_whitelist_system import CommandWhitelistSystem, PermissionLevel, SecurityRisk
     from rate_limiting_resource_control import RateLimitingResourceControl, OperationType

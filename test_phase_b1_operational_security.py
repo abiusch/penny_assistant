@@ -17,6 +17,7 @@ import os
 import time
 import psutil
 from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
 from unittest.mock import Mock, AsyncMock, patch
 
 # Import components to test

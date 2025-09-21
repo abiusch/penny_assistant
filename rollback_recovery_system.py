@@ -31,7 +31,7 @@ import tempfile
 
 # Import existing security components
 try:
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from rate_limiting_resource_control import RateLimitingResourceControl, OperationType
     from command_whitelist_system import CommandWhitelistSystem, PermissionLevel, SecurityRisk
 except ImportError as e:

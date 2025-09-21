@@ -31,7 +31,7 @@ try:
         ResourceType, OperationType, QuotaPeriod, ThrottleAction
     )
     from runaway_process_detector import RunawayProcessDetector
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from lm_studio_performance_monitor import LMStudioPerformanceMonitor
     from command_whitelist_system import CommandWhitelistSystem, PermissionLevel, SecurityRisk
 except ImportError as e:

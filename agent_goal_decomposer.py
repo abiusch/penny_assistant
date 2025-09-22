@@ -15,6 +15,10 @@ from dataclasses import dataclass, asdict
 # Import existing security components with fallbacks
 try:
     from tool_server_foundation import ToolServerType, SecurityLevel
+    from command_whitelist_system import CommandWhitelistSystem
+    from multi_channel_emergency_stop import MultiChannelEmergencyStop
+    from enhanced_security_logging import EnhancedSecurityLogging
+    SECURITY_AVAILABLE = True
 except ImportError:
     # Fallback definitions for standalone testing
     from enum import Enum
@@ -30,6 +34,21 @@ except ImportError:
         MEDIUM = "medium"
         HIGH = "high"
         CRITICAL = "critical"
+
+    # Mock security classes for testing
+    class CommandWhitelistSystem:
+        async def is_command_allowed(self, command): return True
+        async def initialize(self): return True
+
+    class MultiChannelEmergencyStop:
+        def is_emergency_active(self): return False
+        async def initialize(self): return True
+
+    class EnhancedSecurityLogging:
+        async def log_security_event(self, event_type, details): pass
+        async def initialize(self): return True
+
+    SECURITY_AVAILABLE = False
 
 
 class RequestCategory(Enum):
@@ -50,6 +69,11 @@ class PlanningComplexity(Enum):
     MODERATE = "moderate"    # 3-5 steps
     COMPLEX = "complex"      # 6-10 steps
     ADVANCED = "advanced"    # 10+ steps
+
+
+class SecurityError(Exception):
+    """Exception raised when security validation fails"""
+    pass
 
 
 @dataclass
@@ -91,10 +115,46 @@ class ExecutionPlan:
 
 
 class GoalDecomposer:
-    """Core goal decomposition engine"""
+    """Core goal decomposition engine with security integration"""
 
-    def __init__(self):
-        self.logger = None  # Will be set during initialization
+    def __init__(self,
+                 command_whitelist: Optional[CommandWhitelistSystem] = None,
+                 emergency_system: Optional[MultiChannelEmergencyStop] = None,
+                 security_logger: Optional[EnhancedSecurityLogging] = None):
+
+        # Initialize all security components that validation methods expect
+        self.command_whitelist = command_whitelist
+        self.whitelist_system = command_whitelist  # Alias for consistent access
+        self.emergency_system = emergency_system
+        self.emergency_stop = emergency_system  # Alias for consistent access
+        self.security_logger = security_logger
+        self.security_logging = security_logger  # Alias for consistent access
+        self.logger = security_logger  # Primary logger reference
+
+        # Initialize missing security components if not provided
+        if SECURITY_AVAILABLE and not self.command_whitelist:
+            try:
+                self.command_whitelist = CommandWhitelistSystem()
+                self.whitelist_system = self.command_whitelist
+            except Exception:
+                pass  # Fallback gracefully
+
+        if SECURITY_AVAILABLE and not self.emergency_system:
+            try:
+                self.emergency_system = MultiChannelEmergencyStop()
+                self.emergency_stop = self.emergency_system
+            except Exception:
+                pass  # Fallback gracefully
+
+        if SECURITY_AVAILABLE and not self.security_logger:
+            try:
+                self.security_logger = EnhancedSecurityLogging()
+                self.security_logging = self.security_logger
+                self.logger = self.security_logger
+            except Exception:
+                pass  # Fallback gracefully
+
+        self.security_initialized = False
 
         # Available tool operations mapped by server type
         self.available_operations = {
@@ -244,13 +304,132 @@ class GoalDecomposer:
             }
         }
 
+    async def initialize_security(self) -> bool:
+        """Initialize security components if available"""
+        if not SECURITY_AVAILABLE:
+            return True
+
+        try:
+            if self.command_whitelist:
+                await self.command_whitelist.initialize()
+
+            if self.emergency_system:
+                await self.emergency_system.initialize()
+
+            if self.security_logger:
+                await self.security_logger.initialize()
+
+            self.security_initialized = True
+            return True
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Security initialization failed: {e}")
+            return False
+
+    async def validate_plan_security(self, plan: ExecutionPlan, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """Validate entire plan through security components"""
+        validation_result = {
+            "valid": True,
+            "security_errors": [],
+            "security_warnings": [],
+            "emergency_status": False
+        }
+
+        # Check emergency stop first
+        if self.emergency_system and self.emergency_system.is_emergency_active():
+            validation_result["valid"] = False
+            validation_result["emergency_status"] = True
+            validation_result["security_errors"].append("Emergency stop active - planning suspended")
+            return validation_result
+
+        # Validate each step through security components
+        for step in plan.steps:
+            step_validation = await self.validate_step_security(step)
+            if not step_validation["valid"]:
+                validation_result["valid"] = False
+                validation_result["security_errors"].extend(step_validation["errors"])
+
+            validation_result["security_warnings"].extend(step_validation["warnings"])
+
+        # Log planning activity
+        if self.security_logger:
+            await self.security_logger.log_security_event(
+                "goal_planning",
+                {
+                    "user_goal": plan.user_goal,
+                    "step_count": len(plan.steps),
+                    "category": plan.category.value,
+                    "complexity": plan.complexity.value,
+                    "security_valid": validation_result["valid"],
+                    "user_id": plan.user_id
+                }
+            )
+
+        return validation_result
+
+    async def validate_step_security(self, step: PlanStep) -> Dict[str, Any]:
+        """Validate individual step through security components"""
+        validation_result = {
+            "valid": True,
+            "errors": [],
+            "warnings": []
+        }
+
+        # Check command whitelist
+        if self.command_whitelist:
+            command_key = f"{step.tool_server.value}:{step.operation}"
+            try:
+                if not await self.command_whitelist.is_command_allowed(command_key):
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(
+                        f"Operation {command_key} not in command whitelist"
+                    )
+            except Exception as e:
+                validation_result["warnings"].append(
+                    f"Command whitelist check failed: {e}"
+                )
+
+        # Check security levels
+        if step.security_level in [SecurityLevel.HIGH, SecurityLevel.CRITICAL]:
+            validation_result["warnings"].append(
+                f"Step {step.step_id} requires {step.security_level.value} security clearance"
+            )
+
+        # Validate parameters for security risks
+        if step.tool_server == ToolServerType.FILE_SYSTEM:
+            if "path" in step.parameters:
+                path = step.parameters["path"]
+                if any(blocked in str(path) for blocked in ["/etc", "/usr", "/bin", "/sys"]):
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(f"Blocked path access: {path}")
+
+        elif step.tool_server == ToolServerType.WEB_SEARCH:
+            if "url" in step.parameters:
+                url = step.parameters["url"]
+                if any(blocked in url.lower() for blocked in ["localhost", "127.0.0.1", "file://"]):
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(f"Blocked URL access: {url}")
+
+        return validation_result
+
+    async def check_emergency_status(self) -> bool:
+        """Check if emergency stop is active"""
+        if self.emergency_system:
+            return self.emergency_system.is_emergency_active()
+        return False
+
     async def decompose_goal(self,
                            user_goal: str,
                            user_id: Optional[str] = None,
                            context: Optional[Dict[str, Any]] = None) -> ExecutionPlan:
         """
-        Main entry point: decompose a user goal into executable steps
+        Main entry point: decompose a user goal into executable steps with security validation
         """
+        # Emergency stop check before any planning
+        if await self.check_emergency_status():
+            raise Exception("Emergency stop active - goal decomposition suspended")
+
         plan_id = f"plan_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
 
         # Step 1: Categorize the request
@@ -271,10 +450,22 @@ class GoalDecomposer:
         # Step 5: Calculate timing
         total_time = sum(step.estimated_time for step in steps)
 
-        # Step 6: Add fallback options
+        # Step 6: Intelligent dependency analysis (Fix #2)
+        steps = self._analyze_step_dependencies(steps)
+
+        # Validate dependency graph for cycles
+        if not self._validate_dependency_graph(steps):
+            if self.logger:
+                self.logger.warning(f"Dependency cycle detected in plan for user {user_id}, falling back to simplified dependencies")
+            # Reset to minimal dependencies if cycle detected
+            for i, step in enumerate(steps):
+                step.depends_on = [steps[i-1].step_id] if i > 0 else []
+
+        # Step 7: Add fallback options
         fallback_options = self._generate_fallback_options(user_goal, category)
 
-        return ExecutionPlan(
+        # Step 8: Create initial plan for security validation
+        plan = ExecutionPlan(
             plan_id=plan_id,
             user_goal=user_goal,
             category=category,
@@ -286,6 +477,19 @@ class GoalDecomposer:
             context=context,
             fallback_options=fallback_options
         )
+
+        # Step 8: Security validation with real security components
+        security_validation = await self.validate_plan_security(plan, user_id)
+        if not security_validation["valid"]:
+            error_msg = f"Security validation failed: {', '.join(security_validation['errors'])}"
+            self.logger.error(f"Goal decomposition blocked for user {user_id}: {error_msg}")
+            raise SecurityError(error_msg)
+
+        # Log successful plan creation
+        if self.logger:
+            self.logger.info(f"Goal decomposition completed for user {user_id}: {len(steps)} steps, complexity {complexity.value}")
+
+        return plan
 
     def _categorize_request(self, user_goal: str) -> RequestCategory:
         """Categorize user request based on pattern matching"""
@@ -354,10 +558,18 @@ class GoalDecomposer:
                 operation=operation,
                 parameters=parameters,
                 reason=reason,
-                depends_on=[f"step_{i}"] if i > 0 else [],
+                depends_on=[],  # Dependencies will be analyzed intelligently
                 security_level=security_level,
                 estimated_time=estimated_time
             )
+
+            # Security validation for individual step
+            step_validation = await self.validate_step_security(step)
+            if not step_validation["valid"]:
+                # Skip invalid step but log warning
+                if self.logger:
+                    self.logger.warning(f"Step {step_id} failed security validation: {step_validation['errors']}")
+                continue
 
             steps.append(step)
 
@@ -373,22 +585,28 @@ class GoalDecomposer:
 
         # Analyze goal for key operations needed
         if category == RequestCategory.RESEARCH:
-            steps.extend(self._create_research_steps(user_goal, context))
+            research_steps = await self._create_research_steps(user_goal, context)
+            steps.extend([step for step in research_steps if step is not None])
 
         elif category == RequestCategory.FILE_MANAGEMENT:
-            steps.extend(self._create_file_management_steps(user_goal, context))
+            file_steps = await self._create_file_management_steps(user_goal, context)
+            steps.extend([step for step in file_steps if step is not None])
 
         elif category == RequestCategory.SCHEDULING:
-            steps.extend(self._create_scheduling_steps(user_goal, context))
+            schedule_steps = await self._create_scheduling_steps(user_goal, context)
+            steps.extend([step for step in schedule_steps if step is not None])
 
         elif category == RequestCategory.TASK_ORGANIZATION:
-            steps.extend(self._create_task_organization_steps(user_goal, context))
+            task_steps = await self._create_task_organization_steps(user_goal, context)
+            steps.extend([step for step in task_steps if step is not None])
 
         elif category == RequestCategory.CONTENT_CREATION:
-            steps.extend(self._create_content_creation_steps(user_goal, context))
+            content_steps = await self._create_content_creation_steps(user_goal, context)
+            steps.extend([step for step in content_steps if step is not None])
 
         else:  # MIXED or other categories
-            steps.extend(self._create_general_steps(user_goal, context))
+            general_steps = await self._create_general_steps(user_goal, context)
+            steps.extend([step for step in general_steps if step is not None])
 
         # Ensure we have at least one step
         if not steps:
@@ -396,7 +614,132 @@ class GoalDecomposer:
 
         return steps
 
-    def _create_research_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_secure_step(self,
+                                 step_id: str,
+                                 tool_server: ToolServerType,
+                                 operation: str,
+                                 parameters: Dict[str, Any],
+                                 reason: str,
+                                 depends_on: List[str] = None,
+                                 security_level: SecurityLevel = SecurityLevel.MEDIUM,
+                                 estimated_time: float = 30.0) -> Optional[PlanStep]:
+        """Create a step with security validation"""
+        if depends_on is None:
+            depends_on = []
+
+        step = PlanStep(
+            step_id=step_id,
+            tool_server=tool_server,
+            operation=operation,
+            parameters=parameters,
+            reason=reason,
+            depends_on=depends_on,
+            security_level=security_level,
+            estimated_time=estimated_time
+        )
+
+        # Security validation
+        step_validation = await self.validate_step_security(step)
+        if not step_validation["valid"]:
+            if self.logger:
+                self.logger.warning(f"Step {step_id} failed security validation: {step_validation['errors']}")
+            return None
+
+        return step
+
+    def _analyze_step_dependencies(self, steps: List[PlanStep]) -> List[PlanStep]:
+        """
+        Analyze data flow between steps and set intelligent dependencies
+        Replaces simple linear chains with smart data flow analysis
+        """
+        # Data flow patterns: what data each operation type produces/consumes
+        data_producers = {
+            "search": ["search_results", "web_data"],
+            "list_directory": ["file_list", "directory_contents"],
+            "get_events": ["calendar_data", "availability_info"],
+            "list_tasks": ["task_list", "project_info"],
+            "read_file": ["file_content", "document_data"],
+            "get_availability": ["time_slots", "calendar_info"]
+        }
+
+        data_consumers = {
+            "create_file": ["file_content", "document_data", "search_results"],
+            "write_file": ["file_content", "document_data", "search_results"],
+            "create_directory": ["file_list"],  # May need to know existing structure
+            "create_event": ["availability_info", "time_slots", "calendar_data"],
+            "create_task": ["search_results", "project_info", "task_list"],
+            "create_project": ["task_list", "project_info"],
+            "organize_files": ["file_list", "directory_contents"],
+            "move_file": ["file_list", "directory_contents"],
+            "delete_file": ["file_list", "directory_contents"]
+        }
+
+        # Analyze each step and determine real dependencies
+        for i, step in enumerate(steps):
+            real_dependencies = []
+
+            # What data does this step need?
+            needed_data = data_consumers.get(step.operation, [])
+
+            # Look through previous steps for data providers
+            for j in range(i):
+                prev_step = steps[j]
+                produced_data = data_producers.get(prev_step.operation, [])
+
+                # Check if previous step produces data this step needs
+                if any(data_type in produced_data for data_type in needed_data):
+                    real_dependencies.append(prev_step.step_id)
+
+                # Special dependency rules based on server types
+                if (step.tool_server == prev_step.tool_server and
+                    step.operation in ["create_file", "write_file", "delete_file"] and
+                    prev_step.operation in ["list_directory", "read_file"]):
+                    real_dependencies.append(prev_step.step_id)
+
+                # Calendar operations dependency logic
+                if (step.operation == "create_event" and
+                    prev_step.operation in ["get_events", "get_availability"]):
+                    real_dependencies.append(prev_step.step_id)
+
+                # Task management dependencies
+                if (step.operation in ["create_task", "update_task"] and
+                    prev_step.operation == "list_tasks"):
+                    real_dependencies.append(prev_step.step_id)
+
+            # Remove duplicates and update step dependencies
+            step.depends_on = list(set(real_dependencies))
+
+        return steps
+
+    def _validate_dependency_graph(self, steps: List[PlanStep]) -> bool:
+        """Validate that dependency graph has no cycles"""
+        def has_cycle(step_id: str, visited: set, path: set) -> bool:
+            if step_id in path:
+                return True
+            if step_id in visited:
+                return False
+
+            visited.add(step_id)
+            path.add(step_id)
+
+            # Find step with this ID
+            step = next((s for s in steps if s.step_id == step_id), None)
+            if step:
+                for dep_id in step.depends_on:
+                    if has_cycle(dep_id, visited, path):
+                        return True
+
+            path.remove(step_id)
+            return False
+
+        visited = set()
+        for step in steps:
+            if step.step_id not in visited:
+                if has_cycle(step.step_id, visited, set()):
+                    return False
+        return True
+
+    async def _create_research_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create steps for research-focused goals"""
         steps = []
 
@@ -404,7 +747,7 @@ class GoalDecomposer:
         search_terms = self._extract_search_terms(user_goal)
 
         # Step 1: Web search
-        steps.append(PlanStep(
+        search_step = await self._create_secure_step(
             step_id="step_1",
             tool_server=ToolServerType.WEB_SEARCH,
             operation="search",
@@ -412,23 +755,25 @@ class GoalDecomposer:
             reason="Conduct initial research",
             security_level=SecurityLevel.LOW,
             estimated_time=15
-        ))
+        )
+        steps.append(search_step)
 
         # Step 2: Create research folder if needed
         if "save" in user_goal.lower() or "organize" in user_goal.lower():
-            steps.append(PlanStep(
+            folder_step = await self._create_secure_step(
                 step_id="step_2",
                 tool_server=ToolServerType.FILE_SYSTEM,
                 operation="create_directory",
                 parameters={"path": f"research_{int(datetime.now().timestamp())}"},
                 reason="Create folder for research materials",
-                depends_on=["step_1"],
+                depends_on=[],  # Will be analyzed by dependency system
                 security_level=SecurityLevel.MEDIUM,
                 estimated_time=5
-            ))
+            )
+            steps.append(folder_step)
 
         # Step 3: Create task to track research
-        steps.append(PlanStep(
+        task_step = await self._create_secure_step(
             step_id=f"step_{len(steps)+1}",
             tool_server=ToolServerType.TASK_MANAGEMENT,
             operation="create_task",
@@ -440,14 +785,15 @@ class GoalDecomposer:
                 }
             },
             reason="Track research progress",
-            depends_on=["step_1"],
+            depends_on=[],  # Will be analyzed by dependency system
             security_level=SecurityLevel.MEDIUM,
             estimated_time=10
-        ))
+        )
+        steps.append(task_step)
 
         return steps
 
-    def _create_file_management_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_file_management_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create steps for file management goals"""
         steps = []
 
@@ -471,7 +817,7 @@ class GoalDecomposer:
                 operation="create_directory",
                 parameters={"path": "organized_files"},
                 reason="Create organization structure",
-                depends_on=["step_1"],
+                depends_on=[],  # Will be analyzed by dependency system
                 security_level=SecurityLevel.MEDIUM,
                 estimated_time=5
             ))
@@ -492,7 +838,7 @@ class GoalDecomposer:
 
         return steps
 
-    def _create_scheduling_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_scheduling_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create steps for scheduling goals"""
         steps = []
 
@@ -515,7 +861,7 @@ class GoalDecomposer:
                 operation="create_event",
                 parameters=self._extract_event_parameters(user_goal),
                 reason="Create calendar event",
-                depends_on=["step_1"],
+                depends_on=[],  # Will be analyzed by dependency system
                 security_level=SecurityLevel.HIGH,
                 estimated_time=20
             ))
@@ -534,7 +880,7 @@ class GoalDecomposer:
 
         return steps
 
-    def _create_task_organization_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_task_organization_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create steps for task organization goals"""
         steps = []
 
@@ -558,7 +904,7 @@ class GoalDecomposer:
                 operation="create_project",
                 parameters={"project": {"name": project_name, "description": user_goal}},
                 reason="Create new project",
-                depends_on=["step_1"],
+                depends_on=[],  # Will be analyzed by dependency system
                 security_level=SecurityLevel.MEDIUM,
                 estimated_time=15
             ))
@@ -576,14 +922,14 @@ class GoalDecomposer:
                     }
                 },
                 reason="Create new task",
-                depends_on=["step_1"],
+                depends_on=[],  # Will be analyzed by dependency system
                 security_level=SecurityLevel.MEDIUM,
                 estimated_time=10
             ))
 
         return steps
 
-    def _create_content_creation_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_content_creation_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create steps for content creation goals"""
         steps = []
 
@@ -614,7 +960,7 @@ class GoalDecomposer:
                 "content": f"# {content_type.title()}\n\nGoal: {user_goal}\n\n[Content to be added]"
             },
             reason=f"Create {content_type} file",
-            depends_on=[steps[-1].step_id] if steps else [],
+            depends_on=[],  # Will be analyzed by dependency system
             security_level=SecurityLevel.MEDIUM,
             estimated_time=8
         ))
@@ -632,14 +978,14 @@ class GoalDecomposer:
                 }
             },
             reason="Track content creation progress",
-            depends_on=[step_id],
+            depends_on=[],  # Will be analyzed by dependency system
             security_level=SecurityLevel.MEDIUM,
             estimated_time=10
         ))
 
         return steps
 
-    def _create_general_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[PlanStep]:
+    async def _create_general_steps(self, user_goal: str, context: Optional[Dict[str, Any]]) -> List[Optional[PlanStep]]:
         """Create general steps for mixed or unclear goals"""
         steps = []
 
@@ -668,7 +1014,7 @@ class GoalDecomposer:
                 }
             },
             reason="Track goal progress",
-            depends_on=[steps[-1].step_id] if steps else [],
+            depends_on=[],  # Will be analyzed by dependency system
             security_level=SecurityLevel.MEDIUM,
             estimated_time=10
         ))

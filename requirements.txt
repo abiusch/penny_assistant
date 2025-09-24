@@ -37,6 +37,10 @@ click==8.1.8
     #   uvicorn
 distro==1.9.0
     # via openai
+docker==7.1.0
+    # via -r requirements.in
+docker-pycreds==0.4.0
+    # via docker
 fastapi==0.116.1
     # via -r requirements.in
 filelock==3.19.1
@@ -144,6 +148,8 @@ pyobjc-framework-quartz==11.1
     #   pyobjc-framework-coretext
 pytest==8.4.1
     # via -r requirements.in
+pytest-asyncio==0.25.0
+    # via -r requirements.in
 python-dotenv==1.1.1
     # via uvicorn
 pyyaml==6.0.2
@@ -197,6 +203,8 @@ watchfiles==1.1.0
     # via uvicorn
 webrtcvad==2.0.10
     # via -r requirements.in
+websocket-client==1.8.0
+    # via docker
 websockets==15.0.1
     # via uvicorn
 yarl==1.20.1

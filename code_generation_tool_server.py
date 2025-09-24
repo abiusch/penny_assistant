@@ -8,8 +8,7 @@ import asyncio
 import ast
 import json
 import os
-import subprocess
-import tempfile
+import logging
 import time
 import uuid
 from datetime import datetime
@@ -17,6 +16,26 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 import sys
 import importlib.util
+
+try:
+    from docker_security_container import (
+        DockerSecurityContainerManager,
+        DockerSecurityError,
+        DockerRuntimeError,
+    )
+except ImportError:
+    DockerSecurityContainerManager = None  # type: ignore
+
+    class DockerSecurityError(RuntimeError):
+        pass
+
+    class DockerRuntimeError(RuntimeError):
+        pass
+
+
+MODULE_ROOT = Path(__file__).resolve().parent
+DEFAULT_DOCKERFILE_PATH = MODULE_ROOT / "docker" / "code_runner" / "Dockerfile"
+LOGGER = logging.getLogger(__name__)
 
 # Import existing MCP and security infrastructure
 try:
@@ -81,236 +100,132 @@ except ImportError:
 
 
 class CodeExecutionSandbox:
-    """Secure sandbox for code execution with resource limits"""
+    """Docker-backed execution sandbox that enforces strict resource policies."""
 
-    def __init__(self,
-                 max_execution_time: float = 10.0,
-                 max_memory_mb: int = 512,
-                 max_output_length: int = 10000):
-        self.max_execution_time = max_execution_time
+    def __init__(
+        self,
+        container_manager: Optional[DockerSecurityContainerManager] = None,
+        max_execution_time: float = 10.0,
+        max_memory_mb: int = 128,
+        max_output_length: int = 10000,
+    ) -> None:
+        self.container_manager = container_manager
+        self.max_execution_time = int(max_execution_time)
         self.max_memory_mb = max_memory_mb
         self.max_output_length = max_output_length
-        self.temp_dir = None
 
     async def __aenter__(self):
-        """Enter sandbox context"""
-        # Create temporary directory for sandbox execution
-        self.temp_dir = tempfile.mkdtemp(prefix="code_sandbox_")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit sandbox context and cleanup"""
-        if self.temp_dir and os.path.exists(self.temp_dir):
-            import shutil
-            try:
-                shutil.rmtree(self.temp_dir)
-            except Exception as e:
-                print(f"Warning: Failed to cleanup sandbox directory: {e}")
+        return False
 
-    async def execute_code(self,
-                          code: str,
-                          language: str = "python",
-                          capture_output: bool = True) -> Dict[str, Any]:
-        """Execute code in sandbox with resource limits"""
-
+    async def execute_code(
+        self,
+        code: str,
+        language: str = "python",
+        capture_output: bool = True,
+    ) -> Dict[str, Any]:
         if language != "python":
             return {
                 "success": False,
-                "error": f"Language {language} not supported in sandbox",
+                "error": f"Language {language} not supported",
                 "output": "",
-                "execution_time": 0
+                "execution_time": 0,
             }
 
-        # Validate Python syntax
         try:
             ast.parse(code)
-        except SyntaxError as e:
+        except SyntaxError as exc:
             return {
                 "success": False,
-                "error": f"Syntax error: {e}",
+                "error": f"Syntax error: {exc}",
                 "output": "",
-                "execution_time": 0
+                "execution_time": 0,
             }
 
-        # Create execution script
-        script_path = os.path.join(self.temp_dir, "sandbox_script.py")
-
-        # Wrap code with safety measures
-        safe_code = self._wrap_code_for_safety(code)
-
-        with open(script_path, 'w') as f:
-            f.write(safe_code)
-
-        # Execute with resource limits
-        start_time = time.time()
+        if not self.container_manager:
+            raise DockerRuntimeError("Docker security container manager is required for execution")
 
         try:
-            # Use subprocess with timeout and limited environment
-            env = {
-                "PYTHONPATH": "",
-                "PATH": "/usr/bin:/bin",  # Minimal PATH
-                "TMPDIR": self.temp_dir
-            }
-
-            process = await asyncio.create_subprocess_exec(
-                sys.executable, script_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self.temp_dir,
-                env=env
+            container_result = await self.container_manager.containerized_code_execution(
+                code,
+                timeout=self.max_execution_time,
+                resource_limits={"mem_limit": f"{self.max_memory_mb}m"},
+                network_enabled=False,
+                metadata={"language": language},
             )
-
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=self.max_execution_time
-                )
-
-                execution_time = time.time() - start_time
-
-                # Decode output
-                output = stdout.decode('utf-8', errors='replace')
-                error_output = stderr.decode('utf-8', errors='replace')
-
-                # Limit output length
-                if len(output) > self.max_output_length:
-                    output = output[:self.max_output_length] + "\n... (output truncated)"
-
-                if len(error_output) > self.max_output_length:
-                    error_output = error_output[:self.max_output_length] + "\n... (error output truncated)"
-
-                success = process.returncode == 0
-
-                return {
-                    "success": success,
-                    "output": output,
-                    "error": error_output if error_output else None,
-                    "execution_time": execution_time,
-                    "return_code": process.returncode
-                }
-
-            except asyncio.TimeoutError:
-                # Kill the process if it times out
-                try:
-                    process.terminate()
-                    await asyncio.wait_for(process.wait(), timeout=1.0)
-                except:
-                    process.kill()
-                    await process.wait()
-
-                return {
-                    "success": False,
-                    "error": f"Code execution timed out after {self.max_execution_time} seconds",
-                    "output": "",
-                    "execution_time": self.max_execution_time
-                }
-
-        except Exception as e:
+        except (DockerSecurityError, DockerRuntimeError) as exc:
             return {
                 "success": False,
-                "error": f"Execution failed: {str(e)}",
+                "error": str(exc),
                 "output": "",
-                "execution_time": time.time() - start_time
+                "execution_time": self.max_execution_time,
             }
 
-    def _wrap_code_for_safety(self, code: str) -> str:
-        """Wrap user code with safety measures"""
-        safety_wrapper = '''
-import sys
-import os
-import signal
+        output = container_result.get("stdout", "") if capture_output else ""
+        error_output = container_result.get("stderr") or ""
 
-# Resource monitoring
-class ResourceMonitor:
-    def __init__(self, max_memory_mb):
-        self.max_memory_mb = max_memory_mb
+        if len(output) > self.max_output_length:
+            output = output[: self.max_output_length] + "\n... (output truncated)"
 
-    def check_memory(self):
-        try:
-            import psutil
-            process = psutil.Process()
-            memory_mb = process.memory_info().rss / 1024 / 1024
-            if memory_mb > self.max_memory_mb:
-                raise MemoryError(f"Memory limit exceeded: {memory_mb:.1f}MB > {self.max_memory_mb}MB")
-        except ImportError:
-            pass  # psutil not available, skip memory monitoring
+        if len(error_output) > self.max_output_length:
+            error_output = error_output[: self.max_output_length] + "\n... (error output truncated)"
 
-# Install resource monitor
-monitor = ResourceMonitor(''' + str(self.max_memory_mb) + ''')
-
-# Override dangerous functions
-def safe_open(filename, mode='r', **kwargs):
-    # Only allow access to files in sandbox directory
-    abs_path = os.path.abspath(filename)
-    sandbox_path = os.path.abspath("''' + self.temp_dir + '''")
-    if not abs_path.startswith(sandbox_path):
-        raise PermissionError(f"File access denied: {filename}")
-    return open(filename, mode, **kwargs)
-
-# Replace built-in open safely
-import builtins
-builtins.open = safe_open
-
-# Disable dangerous modules
-prohibited_modules = ['subprocess', 'os', 'sys', 'importlib', 'socket', 'urllib', 'requests']
-for module in prohibited_modules:
-    sys.modules[module] = None
-
-# User code starts here
-try:
-''' + '\n'.join('    ' + line for line in code.split('\n')) + '''
-
-except Exception as e:
-    print(f"Error: {e}")
-    sys.exit(1)
-'''
-        return safety_wrapper
+        return {
+            "success": container_result.get("success", False),
+            "output": output,
+            "error": error_output or None,
+            "execution_time": container_result.get("execution_time", 0),
+            "return_code": container_result.get("return_code"),
+        }
 
     async def validate_code_security(self, code: str) -> Dict[str, Any]:
         """Validate code for security issues"""
 
-        # Parse AST to analyze code structure
         try:
             tree = ast.parse(code)
-        except SyntaxError as e:
+        except SyntaxError as exc:
             return {
                 "valid": False,
-                "issues": [f"Syntax error: {e}"],
-                "risk_level": "HIGH"
+                "issues": [f"Syntax error: {exc}"],
+                "risk_level": "HIGH",
             }
 
-        issues = []
+        issues: List[str] = []
         risk_level = "LOW"
 
-        # Check for dangerous patterns
+        dangerous_imports = {"os", "sys", "subprocess", "socket", "urllib", "requests"}
+        dangerous_calls = {"exec", "eval", "compile"}
+
         for node in ast.walk(tree):
-            # Check for dangerous imports
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name in ['os', 'sys', 'subprocess', 'socket', 'urllib', 'requests']:
+                    if alias.name in dangerous_imports:
                         issues.append(f"Dangerous import detected: {alias.name}")
                         risk_level = "HIGH"
 
-            # Check for dangerous function calls
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    if node.func.id in ['exec', 'eval', 'compile']:
-                        issues.append(f"Dangerous function call: {node.func.id}")
-                        risk_level = "HIGH"
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if module.split(".")[0] in dangerous_imports:
+                    issues.append(f"Dangerous import detected: {module}")
+                    risk_level = "HIGH"
 
-            # Check for file operations
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name) and node.func.id == 'open':
-                    issues.append("File operation detected - will be sandboxed")
-                    if risk_level == "LOW":
-                        risk_level = "MEDIUM"
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                if node.func.id in dangerous_calls:
+                    issues.append(f"Dangerous function call: {node.func.id}")
+                    risk_level = "HIGH"
+
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open":
+                issues.append("File operation detected - will be sandboxed")
+                if risk_level == "LOW":
+                    risk_level = "MEDIUM"
 
         return {
             "valid": risk_level != "HIGH",
             "issues": issues,
-            "risk_level": risk_level
+            "risk_level": risk_level,
         }
-
 
 class CodeGenerationEngine:
     """AI-powered code generation with security validation"""
@@ -626,7 +541,7 @@ async def create_enhancement():
 class CodeGenerationToolServer(MCPToolServer):
     """Secure code generation MCP tool server"""
 
-    def __init__(self):
+    def __init__(self, container_manager: Optional[DockerSecurityContainerManager] = None):
         # Define available operations
         operations = {
             "generate_code": MCPOperation(
@@ -702,6 +617,8 @@ class CodeGenerationToolServer(MCPToolServer):
 
         # Initialize components
         self.code_generator = CodeGenerationEngine()
+        self.container_manager = container_manager or self._create_default_container_manager()
+        self._container_security_components: Dict[str, Any] = {}
         self.execution_metrics = {
             "total_executions": 0,
             "successful_executions": 0,
@@ -717,12 +634,62 @@ class CodeGenerationToolServer(MCPToolServer):
         self.rollback_system = None
         self.rate_limiter = None
 
+    def _create_default_container_manager(self) -> Optional[DockerSecurityContainerManager]:
+        if DockerSecurityContainerManager is None:
+            LOGGER.warning("Docker security container manager unavailable - docker SDK not installed")
+            return None
+
+        dockerfile_path = DEFAULT_DOCKERFILE_PATH if DEFAULT_DOCKERFILE_PATH.exists() else None
+        docker_context = MODULE_ROOT if dockerfile_path else None
+
+        try:
+            return DockerSecurityContainerManager(
+                dockerfile_path=dockerfile_path,
+                docker_context_path=docker_context,
+            )
+        except Exception as exc:
+            LOGGER.warning("Failed to initialize Docker security container manager: %s", exc)
+            return None
+
+    def _synchronize_container_security_components(self, additional_components: Optional[Dict[str, Any]] = None) -> None:
+        if not self.container_manager:
+            return
+
+        combined: Dict[str, Any] = {}
+        if additional_components:
+            combined.update({k: v for k, v in additional_components.items() if v})
+
+        mappings = {
+            "whitelist": self.whitelist_system,
+            "command_whitelist": self.whitelist_system,
+            "emergency": self.emergency_system,
+            "emergency_system": self.emergency_system,
+            "emergency_stop": self.emergency_system,
+            "logger": self.security_logger,
+            "security_logger": self.security_logger,
+            "rollback": self.rollback_system,
+            "rate_limiter": self.rate_limiter,
+        }
+
+        for key, value in mappings.items():
+            if value:
+                combined[key] = value
+
+        self._container_security_components = combined
+        self.container_manager.security_components = combined
+
+    def _require_container_manager(self) -> DockerSecurityContainerManager:
+        if not self.container_manager:
+            raise DockerRuntimeError("Docker security container manager is not available")
+        return self.container_manager
+
     async def initialize_security_components(self,
                                            whitelist_system: Optional[CommandWhitelistSystem] = None,
                                            emergency_system: Optional[MultiChannelEmergencyStop] = None,
                                            security_logger: Optional[EnhancedSecurityLogging] = None,
                                            rollback_system: Optional[RollbackRecoverySystem] = None,
-                                           rate_limiter: Optional[RateLimitingResourceControl] = None):
+                                           rate_limiter: Optional[RateLimitingResourceControl] = None,
+                                           additional_components: Optional[Dict[str, Any]] = None):
         """Initialize security components"""
 
         self.whitelist_system = whitelist_system
@@ -730,6 +697,7 @@ class CodeGenerationToolServer(MCPToolServer):
         self.security_logger = security_logger
         self.rollback_system = rollback_system
         self.rate_limiter = rate_limiter
+        self._synchronize_container_security_components(additional_components)
 
         if self.security_logger:
             await self.security_logger.log_security_event(
@@ -839,7 +807,12 @@ class CodeGenerationToolServer(MCPToolServer):
             if self.rollback_system:
                 checkpoint_id = await self.rollback_system.create_checkpoint(f"code_exec_{user_id}_{int(time.time())}")
 
-            async with CodeExecutionSandbox(max_execution_time=timeout) as sandbox:
+            manager = self._require_container_manager()
+            async with CodeExecutionSandbox(
+                manager,
+                max_execution_time=timeout,
+                max_memory_mb=128,
+            ) as sandbox:
 
                 # Validate code security first
                 security_validation = await sandbox.validate_code_security(code_content)
@@ -1133,10 +1106,13 @@ class CodeGenerationToolServer(MCPToolServer):
 
 
 # Convenience function for easy integration
-async def create_code_generation_server(security_components: Optional[Dict[str, Any]] = None) -> CodeGenerationToolServer:
+async def create_code_generation_server(
+    security_components: Optional[Dict[str, Any]] = None,
+    container_manager: Optional[DockerSecurityContainerManager] = None,
+) -> CodeGenerationToolServer:
     """Create and initialize code generation tool server"""
 
-    server = CodeGenerationToolServer()
+    server = CodeGenerationToolServer(container_manager=container_manager)
 
     if security_components:
         await server.initialize_security_components(
@@ -1144,7 +1120,8 @@ async def create_code_generation_server(security_components: Optional[Dict[str, 
             emergency_system=security_components.get('emergency'),
             security_logger=security_components.get('logger'),
             rollback_system=security_components.get('rollback'),
-            rate_limiter=security_components.get('rate_limiter')
+            rate_limiter=security_components.get('rate_limiter'),
+            additional_components=security_components
         )
 
     await server.start()

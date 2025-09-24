@@ -1,0 +1,5 @@
+# Runtime dependencies for the secure code execution container
+# Keep this list minimal and pure-Python to avoid native build toolchain requirements.
+pytest==8.4.1
+pytest-asyncio==0.25.0
+requests==2.32.3

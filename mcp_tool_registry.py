@@ -26,7 +26,7 @@ import uuid
 import time
 import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Set, Callable, Union, Tuple
+from typing import Dict, List, Optional, Any, Set, Callable, Union, Tuple, Awaitable
 from enum import Enum, IntEnum
 from dataclasses import dataclass, field, asdict
 from contextlib import asynccontextmanager
@@ -217,6 +217,7 @@ class MCPToolRegistry:
         self.tool_categories: Dict[ToolCategory, List[str]] = {
             category: [] for category in ToolCategory
         }
+        self.inline_executors: Dict[str, Callable[[Dict[str, Any]], Any]] = {}
 
         # Execution tracking
         self.active_executions: Dict[str, ToolExecutionContext] = {}
@@ -393,6 +394,65 @@ class MCPToolRegistry:
             logger.error(f"Tool discovery failed: {e}")
             return {}
 
+    async def register_inline_tool(self,
+                                   tool_name: str,
+                                   description: str,
+                                   input_schema: Dict[str, Any],
+                                   executor: Callable[[Dict[str, Any]], Union[Dict[str, Any], Awaitable[Dict[str, Any]]]],
+                                   *,
+                                   category: ToolCategory = ToolCategory.COMMUNICATION,
+                                   security_risk: SecurityRisk = SecurityRisk.LOW,
+                                   operation_type: OperationType = OperationType.COMMUNICATION,
+                                   required_permissions: Optional[List[PermissionLevel]] = None,
+                                   capabilities: Optional[List[ToolCapabilityType]] = None,
+                                   server_id: Optional[str] = None,
+                                   timeout: float = 30.0) -> bool:
+        """Register an in-process tool executor with the registry"""
+
+        server_identifier = server_id or f"inline:{tool_name}"
+        tool = MCPTool(
+            name=tool_name,
+            description=description,
+            inputSchema=input_schema,
+            server_id=server_identifier,
+            security_risk=security_risk,
+            operation_type=operation_type,
+            required_permissions=required_permissions or [PermissionLevel.AUTHENTICATED]
+        )
+
+        if not await self._validate_tool_registration(tool, server_identifier):
+            return False
+
+        security_profile = ToolSecurityProfile(
+            tool_name=tool_name,
+            category=category,
+            capabilities=capabilities or [ToolCapabilityType.READ_ONLY],
+            security_risk=security_risk,
+            operation_type=operation_type,
+            required_permissions=required_permissions or [PermissionLevel.AUTHENTICATED],
+            max_execution_time=timeout
+        )
+
+        registration = ToolRegistration(
+            tool=tool,
+            server_id=server_identifier,
+            security_profile=security_profile,
+            registration_time=datetime.now()
+        )
+
+        self.registered_tools[tool_name] = registration
+        self.inline_executors[tool_name] = executor
+
+        if category not in self.tool_categories:
+            self.tool_categories[category] = []
+        if tool_name not in self.tool_categories[category]:
+            self.tool_categories[category].append(tool_name)
+
+        await self._save_tool_registration(registration)
+
+        logger.info(f"Inline tool registered: {tool_name}")
+        return True
+
     async def _register_discovered_tool(self, tool: MCPTool, server_id: str) -> None:
         """Register a discovered tool with security validation"""
         try:
@@ -482,7 +542,10 @@ class MCPToolRegistry:
 
             # Execute tool
             start_time = time.time()
-            result = await self._execute_tool_on_server(context)
+            if tool_name in self.inline_executors:
+                result = await self._execute_inline_tool(context)
+            else:
+                result = await self._execute_tool_on_server(context)
             execution_time = time.time() - start_time
 
             # Update metrics
@@ -505,17 +568,18 @@ class MCPToolRegistry:
 
             await self._save_execution_record(execution_record)
 
-            await self._log_security_event(
-                SecurityEventType.TOOL_EXECUTION,
-                f"Tool executed successfully: {tool_name}",
-                {
-                    "execution_id": execution_id,
-                    "tool_name": tool_name,
-                    "server_id": registration.server_id,
-                    "user_id": user_id,
-                    "execution_time": execution_time
-                }
-            )
+            if hasattr(SecurityEventType, "DATA_ACCESS"):
+                await self._log_security_event(
+                    SecurityEventType.DATA_ACCESS,
+                    f"Tool executed successfully: {tool_name}",
+                    {
+                        "execution_id": execution_id,
+                        "tool_name": tool_name,
+                        "server_id": registration.server_id,
+                        "user_id": user_id,
+                        "execution_time": execution_time
+                    }
+                )
 
             return result
 
@@ -548,6 +612,34 @@ class MCPToolRegistry:
         except asyncio.TimeoutError:
             raise RuntimeError(f"Tool execution timed out after {context.timeout}s")
 
+    async def _execute_inline_tool(self, context: ToolExecutionContext) -> Dict[str, Any]:
+        """Execute inline-registered tool via in-process executor"""
+        executor = self.inline_executors.get(context.tool_name)
+        if not executor:
+            raise RuntimeError(f"Inline executor not found for tool: {context.tool_name}")
+
+        try:
+            if asyncio.iscoroutinefunction(executor):
+                result = await asyncio.wait_for(
+                    executor(context.arguments),
+                    timeout=context.timeout
+                )
+            else:
+                loop = asyncio.get_running_loop()
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, executor, context.arguments),
+                    timeout=context.timeout
+                )
+
+            if hasattr(result, "success"):
+                if not getattr(result, "success"):
+                    raise RuntimeError(getattr(result, "error", "Inline tool execution failed"))
+                return getattr(result, "data", {}) or {}
+
+            return result
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"Inline tool execution timed out after {context.timeout}s")
+
     async def get_available_tools(self, category: Optional[ToolCategory] = None,
                                 user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get available tools with security filtering"""
@@ -563,7 +655,8 @@ class MCPToolRegistry:
                 continue
 
             # Server health check
-            if self.server_manager:
+            is_inline = tool_name in self.inline_executors
+            if self.server_manager and not is_inline:
                 server_status = self.server_manager.get_server_status()
                 server_info = server_status.get(registration.server_id, {})
                 if server_info.get("health", {}).get("state") != MCPServerState.HEALTHY.value:
@@ -882,16 +975,17 @@ class MCPToolRegistry:
             await self._save_execution_record(execution_record)
 
             # Log security event
-            await self._log_security_event(
-                SecurityEventType.TOOL_EXECUTION_FAILED,
-                f"Tool execution failed: {context.tool_name}",
-                {
-                    "execution_id": context.execution_id,
-                    "tool_name": context.tool_name,
-                    "error": str(error),
-                    "user_id": context.user_id
-                }
-            )
+            if hasattr(SecurityEventType, "SECURITY_VIOLATION"):
+                await self._log_security_event(
+                    SecurityEventType.SECURITY_VIOLATION,
+                    f"Tool execution failed: {context.tool_name}",
+                    {
+                        "execution_id": context.execution_id,
+                        "tool_name": context.tool_name,
+                        "error": str(error),
+                        "user_id": context.user_id
+                    }
+                )
 
         except Exception as cleanup_error:
             logger.error(f"Error during failure cleanup: {cleanup_error}")
@@ -911,6 +1005,35 @@ class MCPToolRegistry:
         """Save tool registration to database"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            tool_payload = asdict(registration.tool)
+            if isinstance(tool_payload.get("security_risk"), Enum):
+                tool_payload["security_risk"] = tool_payload["security_risk"].value
+            if isinstance(tool_payload.get("operation_type"), Enum):
+                tool_payload["operation_type"] = tool_payload["operation_type"].value
+            if isinstance(tool_payload.get("required_permissions"), list):
+                tool_payload["required_permissions"] = [
+                    perm.value if isinstance(perm, Enum) else perm
+                    for perm in tool_payload["required_permissions"]
+                ]
+
+            profile_payload = asdict(registration.security_profile)
+            if isinstance(profile_payload.get("category"), Enum):
+                profile_payload["category"] = profile_payload["category"].value
+            if isinstance(profile_payload.get("security_risk"), Enum):
+                profile_payload["security_risk"] = profile_payload["security_risk"].value
+            if isinstance(profile_payload.get("operation_type"), Enum):
+                profile_payload["operation_type"] = profile_payload["operation_type"].value
+            if isinstance(profile_payload.get("capabilities"), list):
+                profile_payload["capabilities"] = [
+                    cap.value if isinstance(cap, Enum) else cap
+                    for cap in profile_payload["capabilities"]
+                ]
+            if isinstance(profile_payload.get("required_permissions"), list):
+                profile_payload["required_permissions"] = [
+                    perm.value if isinstance(perm, Enum) else perm
+                    for perm in profile_payload["required_permissions"]
+                ]
+
             cursor.execute("""
                 INSERT OR REPLACE INTO tool_registrations
                 (tool_name, server_id, tool_data, security_profile, registration_time,
@@ -919,8 +1042,8 @@ class MCPToolRegistry:
             """, (
                 registration.tool.name,
                 registration.server_id,
-                json.dumps(asdict(registration.tool)),
-                json.dumps(asdict(registration.security_profile)),
+                json.dumps(tool_payload),
+                json.dumps(profile_payload),
                 registration.registration_time.isoformat(),
                 registration.last_used.isoformat() if registration.last_used else None,
                 registration.usage_count,

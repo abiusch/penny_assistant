@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from speed_optimized_enhanced_penny import create_speed_optimized_enhanced_penny
 from pragmatics_core import create_pragmatics_core, ResponseStrategy, ConversationRole
 from performance_monitor import time_operation, OperationType, get_performance_summary
+from factual_research_manager import ResearchManager, ResearchResult
 
 
 class PragmaticsEnhancedPenny:
@@ -26,6 +27,9 @@ class PragmaticsEnhancedPenny:
         
         # Add pragmatics layer
         self.pragmatics = create_pragmatics_core()
+
+        # Research manager for factual accuracy
+        self.research_manager = ResearchManager()
         
         print("Pragmatics-Enhanced Penny initialized!")
         print("✅ ML personality + dynamic states + conversational pragmatics active")
@@ -33,13 +37,50 @@ class PragmaticsEnhancedPenny:
     def generate_pragmatically_aware_response(self, user_input: str, context: Dict[str, Any] = None) -> str:
         """Generate response with full pragmatic understanding"""
         context = context or {}
-        
+        research_required = False
+        financial_topic = False
+        research_result: Optional[ResearchResult] = None
+
         with time_operation(OperationType.TOTAL_PIPELINE, {"pragmatics_enabled": True}):
             
             # Step 1: Generate base response using pragmatics or LLM
             with time_operation(OperationType.PERSONALITY_GENERATION):
+                research_required = self.research_manager.requires_research(user_input)
+                financial_topic = self.research_manager.is_financial_topic(user_input)
+                research_context = ""
+
+                if research_required:
+                    conversation_history = context.get("conversation_history", [])
+                    research_result = self.research_manager.run_research(user_input, conversation_history)
+
+                    if research_result.success and research_result.summary:
+                        key_insights = "\n".join(f"- {insight}" for insight in research_result.key_insights[:5])
+                        research_context = (
+                            "\n\nVerified research summary:\n"
+                            f"Summary: {research_result.summary}\n"
+                            f"Key insights:\n{key_insights if key_insights else '- No key insights extracted.'}\n"
+                            "Use only the verified information above."
+                        )
+                    else:
+                        research_context = (
+                            "\n\nResearch attempt did not yield verified information. "
+                            "Explain this limitation and avoid speculation."
+                        )
+
+                    context.update({
+                        "research_required": research_required,
+                        "research_success": research_result.success,
+                        "research_summary": research_result.summary if research_result else None,
+                        "research_key_insights": research_result.key_insights[:5] if research_result else [],
+                        "financial_topic": financial_topic,
+                    })
+                else:
+                    context.setdefault("financial_topic", financial_topic)
+
                 # Get enhanced personality prompt
                 personality_prompt = self.enhanced_penny.get_enhanced_personality_prompt(context)
+                if research_context:
+                    personality_prompt = f"{personality_prompt}{research_context}"
                 
                 # Try pragmatic processing first
                 base_response = self._simulate_llm_response(user_input, personality_prompt, context)
@@ -57,6 +98,12 @@ User: {user_input}
 Respond as Penny with your enhanced revolutionary personality:"""
                     
                     base_response = llm.generate(full_prompt)
+
+                if research_required and research_result and not research_result.success:
+                    base_response = (
+                        "I looked for current information but couldn't verify that yet. "
+                        "Let me gather reliable sources before I give a detailed answer."
+                    )
             
             # Step 2: Apply pragmatic understanding
             with time_operation(OperationType.HUMOR_DETECTION, {"operation": "pragmatics"}):
@@ -75,6 +122,9 @@ Respond as Penny with your enhanced revolutionary personality:"""
                 final_response = self._apply_personality_to_pragmatic_response(
                     enhanced_response, context
                 )
+
+            if financial_topic:
+                final_response = self._append_financial_disclaimer(final_response)
             
             return final_response
     
@@ -255,9 +305,18 @@ Respond as Penny with your enhanced revolutionary personality:"""
         response = re.sub(r'\*[^*]*\*', '', response)  # Remove asterisk actions completely
         response = re.sub(r'[\s]+', ' ', response)  # Clean up extra spaces
         response = response.strip()
-        
+
         return response
-    
+
+    def _append_financial_disclaimer(self, response: str) -> str:
+        disclaimer = (
+            "Disclaimer: This conversation is for informational purposes only and does not constitute financial advice. "
+            "Always consult a qualified financial professional before making investment decisions."
+        )
+        if disclaimer.lower() in response.lower():
+            return response
+        return f"{response.rstrip()}\n\n{disclaimer}"
+
     def learn_from_pragmatic_interaction(self, user_input: str, response: str, 
                                        user_reaction: str = None, context: Dict[str, Any] = None):
         """Learn from interaction with pragmatic awareness"""

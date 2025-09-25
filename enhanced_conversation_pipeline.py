@@ -22,6 +22,7 @@ from conversational_flow_system import create_conversational_flow, ConversationS
 from cultural_intelligence_coordinator import CulturalIntelligenceAdapter, CulturalEnhancementResult
 from conversation_telemetry_system import TelemetryClient
 from production_a_b_testing import ProductionABTesting
+from factual_research_manager import ResearchManager
 
 
 # Health monitor with safe fallback
@@ -78,7 +79,10 @@ class EnhancedConversationPipeline(PipelineLoop):
         except Exception as e:
             self.cultural_adapter = None
             print(f"⚠️ Cultural intelligence adapter disabled: {e}")
-        
+
+        # Initialize research manager
+        self.research_manager = ResearchManager()
+
         # Initialize health monitor with safe fallback
         try:
             from health_monitor import PennyGPTHealthMonitor
@@ -126,93 +130,150 @@ class EnhancedConversationPipeline(PipelineLoop):
         """Enhanced think method with full conversational flow integration."""
         if self.state != State.THINKING:
             return ""
-        
-        # Extract actual command (remove wake word if present)
-        actual_command = self.extract_command_from_input(user_text)
-        
-        # Get enhanced memory context (includes emotional intelligence)
-        memory_context = self.memory.get_enhanced_context_for_llm()
-        
-        # Enhanced prompt with memory context
-        if memory_context:
-            enhanced_prompt = f"{memory_context}\n\nUser: {actual_command}"
-        else:
-            enhanced_prompt = actual_command
-        
-        tone = self._route_tone(actual_command)
-        self.telemetry.log_event("thinking_start", {
-            "tone": tone,
-            "has_memory_context": bool(memory_context),
-            "context_length": len(memory_context) if memory_context else 0,
-            "conversation_state": self.conversation_flow.conversation_context.current_state.value,
-            "engagement_level": self.conversation_flow.conversation_context.engagement_level
-        })
-        
-        # Generate response with memory context
-        start_time = time.time()
+
         try:
-            if hasattr(self.llm, 'complete'):
-                reply_raw = self.llm.complete(enhanced_prompt, tone=tone)
+            # Extract actual command (remove wake word if present)
+            actual_command = self.extract_command_from_input(user_text)
+
+            research_required = self.research_manager.requires_research(actual_command)
+            financial_topic = self.research_manager.is_financial_topic(actual_command)
+            research_result = None
+            research_prompt_section = ""
+
+            if research_required:
+                self.telemetry.log_event("factual_research_triggered", {
+                    "query": actual_command,
+                    "financial_topic": financial_topic,
+                    "session_id": self.session_id,
+                })
+                research_result = self.research_manager.run_research(actual_command, self.cultural_history)
+                self.telemetry.log_event("factual_research_result", {
+                    "success": research_result.success,
+                    "insight_count": len(research_result.key_insights),
+                    "has_summary": bool(research_result.summary),
+                    "execution_time_ms": int(research_result.execution_time * 1000),
+                    "error": research_result.error,
+                })
+                if research_result.success and research_result.summary:
+                    insights_formatted = "\n".join(f"- {insight}" for insight in research_result.key_insights[:5])
+                    research_prompt_section = (
+                        "Relevant research findings (verified sources):\n"
+                        f"Summary: {research_result.summary}\n"
+                        f"Key Insights:\n{insights_formatted if insights_formatted else '- No key insights extracted.'}\n"
+                        "Respond using only the information above. If additional details are unknown, state that explicitly."
+                    )
+                else:
+                    research_prompt_section = (
+                        "Research Attempt: Unable to verify the requested facts with available sources. "
+                        "Respond by explaining the limitation and offer to gather trusted information manually."
+                    )
             else:
-                reply_raw = self.llm.generate(enhanced_prompt)
-        except Exception as e:
-            self.telemetry.log_event("llm_error", {"error": str(e)})
-            reply_raw = f"I had trouble processing that. Could you try rephrasing?"
-        
-        response_time_ms = (time.time() - start_time) * 1000
-        
-        # Apply personality with emotional memory integration
-        try:
-            personality_enhanced_reply = self.personality_integration.generate_contextual_response(
-                reply_raw, actual_command
-            )
-            print(f"🎭 Applied Penny personality mode: {self.personality_integration.personality_system.current_mode.value}")
-        except Exception as e:
-            print(f"⚠️ Personality integration failed, using fallback: {e}")
+                self.telemetry.log_event("factual_research_not_required", {
+                    "financial_topic": financial_topic,
+                    "session_id": self.session_id,
+                })
+
+            # Get enhanced memory context (includes emotional intelligence)
+            memory_context = self.memory.get_enhanced_context_for_llm()
+
+            # Enhanced prompt with memory context and research notes
+            prompt_sections = []
+            if memory_context:
+                prompt_sections.append(memory_context)
+            if research_prompt_section:
+                prompt_sections.append(research_prompt_section)
+
+            prompt_sections.append(f"User: {actual_command}")
+            enhanced_prompt = "\n\n".join(prompt_sections)
+
+            tone = self._route_tone(actual_command)
+            self.telemetry.log_event("thinking_start", {
+                "tone": tone,
+                "has_memory_context": bool(memory_context),
+                "context_length": len(memory_context) if memory_context else 0,
+                "conversation_state": self.conversation_flow.conversation_context.current_state.value,
+                "engagement_level": self.conversation_flow.conversation_context.engagement_level,
+                "research_required": research_required,
+                "research_success": bool(research_result and research_result.success)
+            })
+
+            # Generate response with memory context
+            start_time = time.time()
             try:
-                from core.personality import apply as apply_personality
-                personality_enhanced_reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
-            except Exception:
-                personality_enhanced_reply = f"[{tone}] {reply_raw}" if reply_raw else "Say that again?"
-
-        topic_category = self.personality_integration._categorize_topic(actual_command, {})
-        relationship_state = self.conversation_flow.conversation_context.current_state.value
-        cultural_result: Optional[CulturalEnhancementResult] = None
-        response_for_flow = personality_enhanced_reply
-
-        personality_mode = getattr(self.personality_integration.personality_system.current_mode, "value", "balanced")
-        sass_level_setting = getattr(
-            getattr(self.personality_integration.personality_system, "current_mode", None),
-            "sass_level",
-            "medium"
-        )
-        personality_baseline = {
-            "keywords": list(getattr(self.personality_integration.personality_system, "signature_expressions", [])) or [personality_mode]
-        }
-
-        metadata_for_culture = {
-            "topic": topic_category,
-            "relationship": relationship_state,
-            "sass_level": sass_level_setting,
-            "personality_mode": personality_mode,
-            "session_id": self.session_id,
-            "personality_baseline": personality_baseline,
-        }
-
-        if self.cultural_adapter:
-            try:
-                cultural_result = self.cultural_adapter.enhance_response(
-                    user_input=actual_command,
-                    conversation_history=self.cultural_history,
-                    base_response=personality_enhanced_reply,
-                    metadata=metadata_for_culture
-                )
-                response_for_flow = cultural_result.response
+                if hasattr(self.llm, 'complete'):
+                    reply_raw = self.llm.complete(enhanced_prompt, tone=tone)
+                else:
+                    reply_raw = self.llm.generate(enhanced_prompt)
             except Exception as e:
-                print(f"⚠️ Cultural intelligence enhancement failed: {e}")
+                self.telemetry.log_event("llm_error", {"error": str(e)})
+                reply_raw = "I ran into an issue generating that reply. Could you try rephrasing?"
 
-        # Apply conversational flow enhancements
-        try:
+            if research_required and research_result and not research_result.success:
+                reply_raw = (
+                    "I looked for current information but couldn't verify that yet. "
+                    "Let me gather credible sources or manually research this further before providing details."
+                )
+
+            response_time_ms = (time.time() - start_time) * 1000
+
+            # Apply personality with emotional memory integration
+            try:
+                personality_enhanced_reply = self.personality_integration.generate_contextual_response(
+                    reply_raw, actual_command
+                )
+                print(f"🎭 Applied Penny personality mode: {self.personality_integration.personality_system.current_mode.value}")
+            except Exception as e:
+                print(f"⚠️ Personality integration failed, using fallback: {e}")
+                try:
+                    from core.personality import apply as apply_personality
+                    personality_enhanced_reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
+                except Exception:
+                    personality_enhanced_reply = f"[{tone}] {reply_raw}" if reply_raw else "Say that again?"
+
+            topic_category = self.personality_integration._categorize_topic(actual_command, {})
+            relationship_state = self.conversation_flow.conversation_context.current_state.value
+            cultural_result: Optional[CulturalEnhancementResult] = None
+            response_for_flow = personality_enhanced_reply
+
+            personality_mode = getattr(self.personality_integration.personality_system.current_mode, "value", "balanced")
+            sass_level_setting = getattr(
+                getattr(self.personality_integration.personality_system, "current_mode", None),
+                "sass_level",
+                "medium"
+            )
+            personality_baseline = {
+                "keywords": list(getattr(self.personality_integration.personality_system, "signature_expressions", [])) or [personality_mode]
+            }
+
+            metadata_for_culture = {
+                "topic": topic_category,
+                "relationship": relationship_state,
+                "sass_level": sass_level_setting,
+                "personality_mode": personality_mode,
+                "session_id": self.session_id,
+                "personality_baseline": personality_baseline,
+                "research_required": research_required,
+                "research_success": bool(research_result and research_result.success)
+            }
+            if research_result and research_result.summary:
+                metadata_for_culture["research_summary"] = research_result.summary
+            if research_result and research_result.key_insights:
+                metadata_for_culture["research_key_insights"] = research_result.key_insights[:5]
+
+            if self.cultural_adapter:
+                try:
+                    cultural_result = self.cultural_adapter.enhance_response(
+                        user_input=actual_command,
+                        conversation_history=self.cultural_history,
+                        base_response=personality_enhanced_reply,
+                        metadata=metadata_for_culture
+                    )
+                    response_for_flow = cultural_result.response
+                except Exception as e:
+                    print(f"⚠️ Cultural intelligence enhancement failed: {e}")
+
+            # Apply conversational flow enhancements
+            try:
             # Enhance with conversational flow elements
             final_reply = self.conversation_flow.enhance_response_with_flow(
                 response_for_flow, 
@@ -321,8 +382,15 @@ class EnhancedConversationPipeline(PipelineLoop):
             "cultural_enhancement": cultural_result.metrics if cultural_result else None
         })
 
-        self.state = State.SPEAKING
-        return final_reply
+            self.state = State.SPEAKING
+            return final_reply
+
+        except Exception as e:
+            import traceback
+            print(f"❌ Enhanced conversation pipeline failed: {e}")
+            print(f"Full traceback:\n{traceback.format_exc()}")
+            self.state = State.SPEAKING
+            return f"I encountered an issue processing that. Error: {str(e)}"
     
     def get_comprehensive_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics including all system layers."""

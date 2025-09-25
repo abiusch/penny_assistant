@@ -14,7 +14,9 @@ import json
 import os
 import random
 import re
-from typing import Dict, Optional, Union
+from dataclasses import dataclass
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Union
 
 
 # Tone presets
@@ -173,7 +175,54 @@ class PennyPersonalitySystem:
     """Legacy compatibility class."""
     def __init__(self, config_path=None):
         self.config = _load_config()
+        self.current_mode = SimpleNamespace(value="friendly", sass_level="medium")
+        self.signature_expressions: List[str] = []
     
     def apply_personality(self, text: str, context=None) -> str:
         """Legacy method - delegates to apply()"""
-        return apply(text, "friendly")
+        result = apply(text, "friendly")
+        if isinstance(context, PersonalityContext):
+            # Simple heuristic: shift mode based on topics for compatibility
+            topic = context.topic_category
+            if topic in {"technology", "learning"}:
+                self.current_mode.value = "tech"
+            elif topic in {"relationships", "work_stress"}:
+                self.current_mode.value = "supportive"
+            else:
+                self.current_mode.value = "friendly"
+        return result
+
+
+@dataclass
+class PersonalityContext:
+    """Lightweight container for personality context metadata."""
+
+    user_emotion: str
+    conversation_tone: str
+    user_stress_level: float
+    relationship_context: Dict[str, Any]
+    topic_category: str
+    user_preferences: Dict[str, Any]
+    recent_interactions: List[str]
+
+
+def create_personality_context(
+    user_emotion: str,
+    conversation_tone: str,
+    user_stress_level: float,
+    relationship_context: Dict[str, Any],
+    topic_category: str,
+    user_preferences: Dict[str, Any],
+    recent_interactions: List[str],
+) -> PersonalityContext:
+    """Factory helper used by the integration layer to construct context."""
+
+    return PersonalityContext(
+        user_emotion=user_emotion,
+        conversation_tone=conversation_tone,
+        user_stress_level=user_stress_level,
+        relationship_context=relationship_context,
+        topic_category=topic_category,
+        user_preferences=user_preferences,
+        recent_interactions=recent_interactions,
+    )

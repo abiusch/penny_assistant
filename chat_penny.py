@@ -1,174 +1,127 @@
 #!/usr/bin/env python3
 """
-Penny Chat Interface - Text-based conversation with full personality system
-Uses all the same systems as voice interface but with keyboard input/output
+Enhanced Penny Chat Interface (Text)
+Routes every conversation through the EnhancedConversationPipeline so factual
+queries trigger autonomous research, cultural intelligence, and telemetry.
 """
 
-print("🚀 Starting Penny Chat Interface...")
+import logging
+import os
+import sys
+from typing import Dict
 
-try:
-    import sys
-    import os
-    import time
-    from typing import Dict, Any
-    print("✅ Basic imports successful")
-    
-    # Add src to path
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-    print("✅ Path setup complete")
-    
-    # Import all the same systems used in voice interface
-    print("🔄 Importing performance monitor...")
-    from core.performance_monitor import time_operation, OperationType
-    print("✅ Performance monitor imported")
-    
-    print("🔄 Importing pragmatics system...")
-    from pragmatics_enhanced_penny import PragmaticsEnhancedPenny
-    print("✅ Pragmatics system imported")
+# Ensure local packages can be imported when launched via VS Code task
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-except Exception as e:
-    print(f"❌ Import error: {e}")
-    import traceback
-    traceback.print_exc()
-    print("Press Enter to exit...")
-    input()
-    exit(1)
+from core.pipeline import State
+from research_first_pipeline import ResearchFirstPipeline
 
-def create_enhanced_penny():
-    """Initialize the same enhanced personality system used in voice interface"""
+logger = logging.getLogger("chat_penny")
+logging.basicConfig(level=logging.INFO)
+
+HELP_TEXT = """\
+Commands:
+  memory stats            Show a snapshot of Penny's memory and conversation state
+  search memories <term>  Search stored memories for a keyword
+  quit/exit               Leave the conversation
+"""
+
+
+def print_intro(pipeline: ResearchFirstPipeline) -> None:
+    print("🧠 Enhanced Penny Chat Interface")
+    print("=" * 70)
+    print("This interface uses the full research-first pipeline. Factual queries trigger")
+    print("autonomous research, cultural intelligence, and telemetry instrumentation.")
+
     try:
-        print("🧠 Initializing PragmaticsEnhancedPenny...")
-        # Initialize the full pragmatics-enhanced system
-        enhanced_penny = PragmaticsEnhancedPenny()
-        print("🧠 Enhanced personality system initialized successfully")
-        return enhanced_penny
-    except Exception as e:
-        print(f"⚠️ Error initializing enhanced personality: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+        stats = pipeline.base_memory.get_memory_stats()
+        print("\n📊 System snapshot:")
+        print(f"   Memory items: {sum(stats.values())}")
+        print(f"   Research-first mode: enabled")
+        print(f"   Enhanced personality: active")
+    except Exception as exc:  # pragma: no cover - informational only
+        logger.debug("Unable to display initial stats: %s", exc)
 
-def detect_context(text: str) -> Dict[str, Any]:
-    """Same context detection logic as voice interface"""
-    context = {'topic': 'conversation', 'emotion': 'neutral', 'participants': []}
-    text_lower = text.lower()
-    
-    # Detect personal topics
-    if 'feeling' in text_lower or 'how are' in text_lower:
-        context['topic'] = 'personal'
-        context['emotion'] = 'curious'
-    
-    # Detect development/programming topics
-    elif any(word in text_lower for word in ['code', 'programming', 'development', 'debugging', 'fix', 'break', 'improvements']):
-        context['topic'] = 'programming'
-        if any(word in text_lower for word in ['break', 'broken', 'frustrat', 'backward']):
-            context['emotion'] = 'frustrated'
-        elif any(word in text_lower for word in ['ability', 'can you', 'write']):
-            context['emotion'] = 'curious'
-    
-    # Detect participants
-    if any(name in text_lower for name in ['josh', 'brochacho']):
-        context['participants'].append('josh')
-    if 'reneille' in text_lower:
-        context['participants'].append('reneille')
-    
-    return context
+    print("\n" + HELP_TEXT)
+    print("-" * 70)
 
-def main():
-    """Main chat loop"""
-    print("🎭 Penny Chat Interface - Enhanced Personality System")
-    print("="*60)
-    
-    # Initialize enhanced personality system
-    enhanced_penny = create_enhanced_penny()
-    if not enhanced_penny:
-        print("❌ Could not initialize enhanced personality system.")
-        print("Press Enter to exit...")
-        input()
-        return
-    
-    print("\n🎯 Features Active:")
-    print("   • Dynamic personality states with contextual transitions")
-    print("   • Machine learning adaptation from interactions")
-    print("   • Context-aware response generation")
-    print("   • Relationship awareness (Josh, Reneille)")
-    print("   • Conversational pragmatics (ask me anything detection)")
-    print("   • Development-focused pattern matching")
-    print("   • Balanced personality coordination")
-    
-    # Test greeting
-    print("\n🔊 Testing enhanced personality system...")
+
+def handle_memory_stats(pipeline: ResearchFirstPipeline) -> None:
     try:
-        test_context = {'topic': 'conversation', 'emotion': 'neutral', 'participants': []}
-        greeting = enhanced_penny.generate_pragmatically_aware_response(
-            "Hello Penny!", test_context
-        )
-        print(f"🤖 Penny: {greeting}")
-        print("✅ Enhanced personality system test successful!")
-    except Exception as e:
-        print(f"❌ Greeting test failed: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    print("\n💬 Chat Interface Ready! (Type 'quit', 'exit', or Ctrl+C to end)")
-    print("-" * 60)
-    
-    conversation_count = 0
-    
+        stats = pipeline.base_memory.get_memory_stats()
+        summary = pipeline.enhanced_memory.get_relationship_summary()
+        print("\n🧠 Memory statistics:")
+        for key, value in stats.items():
+            print(f"   {key}: {value}")
+        print(f"🤝 Relationship summary: {summary}")
+    except Exception as exc:
+        print(f"❌ Unable to retrieve memory stats: {exc}")
+
+
+def handle_memory_search(pipeline: ResearchFirstPipeline, term: str) -> None:
+    try:
+        results = pipeline.base_memory.search_memories(search_term=term, limit=5)
+        if not results:
+            print(f"🤷 No memories found for '{term}'.")
+            return
+        print(f"🔍 Top memories for '{term}':")
+        for item in results:
+            print(f"   • {item.key}: {item.value}")
+    except Exception as exc:
+        print(f"❌ Memory search failed: {exc}")
+
+
+def run_chat_loop(pipeline: ResearchFirstPipeline) -> None:
+    conversation_turns = 0
     try:
         while True:
-            # Get user input
-            print("\n📝 You: ", end="")
-            user_input = input().strip()
-            
-            # Handle exit commands
-            if user_input.lower() in ['quit', 'exit', 'bye', 'goodbye']:
-                print("\n👋 Penny: Thanks for chatting! See you next time!")
-                break
-            
-            if not user_input:
-                print("💭 (Type something to chat, or 'quit' to exit)")
-                continue
-            
-            conversation_count += 1
-            
-            # Generate response using same pipeline as voice interface
             try:
-                with time_operation(OperationType.LLM):
-                    # Context detection (same as voice interface)
-                    context = detect_context(user_input)
-                    
-                    # Generate enhanced response using full personality system
-                    enhanced_response = enhanced_penny.generate_pragmatically_aware_response(
-                        user_input, context
-                    )
-                
-                print(f"🤖 Penny: {enhanced_response}")
-                
-                # Show performance metrics occasionally
-                if conversation_count % 5 == 0:
-                    print(f"\n📊 Performance: {conversation_count} responses generated")
-                
-            except KeyboardInterrupt:
-                raise  # Let this bubble up to outer handler
-            except Exception as e:
-                print(f"❌ Error generating response: {e}")
-                import traceback
-                traceback.print_exc()
-                print("🔄 Trying again...")
-                
-    except KeyboardInterrupt:
-        print("\n\n👋 Chat ended by user. Goodbye!")
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    print("\n📊 Final Stats:")
-    print(f"   💬 Total conversations: {conversation_count}")
-    print("   🎭 Enhanced personality system: Active")
-    print("   🧠 All advanced features: Enabled")
-    print("\n✨ Thanks for chatting with Penny!")
+                user_input = input("📝 You: ").strip()
+            except EOFError:
+                print()
+                break
+
+            if not user_input:
+                continue
+
+            lowered = user_input.lower()
+            if lowered in {"quit", "exit", "bye"}:
+                break
+
+            if lowered == "memory stats":
+                handle_memory_stats(pipeline)
+                continue
+
+            if lowered.startswith("search memories "):
+                term = user_input[len("search memories "):].strip()
+                if term:
+                    handle_memory_search(pipeline, term)
+                else:
+                    print("⚠️ Provide a search term after 'search memories'.")
+                continue
+
+            pipeline.state = State.THINKING
+            response = pipeline.think(user_input)
+            pipeline.state = State.IDLE
+
+            if not response:
+                response = "I didn't catch that. Could you rephrase?"
+
+            print(f"🤖 Penny: {response}")
+            conversation_turns += 1
+    finally:
+        try:
+            pipeline.shutdown()
+        except Exception as exc:  # pragma: no cover - best effort cleanup
+            logger.debug("Pipeline shutdown error: %s", exc)
+        print("\n👋 Ending Penny session. Take care!")
+
+
+def main():
+    pipeline = ResearchFirstPipeline()
+    print_intro(pipeline)
+    run_chat_loop(pipeline)
+
 
 if __name__ == "__main__":
     main()

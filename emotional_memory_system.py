@@ -60,6 +60,7 @@ class FamilyMember:
     mention_count: int
     emotional_associations: Dict[str, float]  # emotion -> strength
     important_facts: List[str]
+    context: str = ""  # Conversational context for personality integration
     
     
 @dataclass

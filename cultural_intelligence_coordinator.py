@@ -521,6 +521,8 @@ class CulturalIntelligenceCoordinator:
                 "generation": metadata.get("generation", self.default_generation),
                 "region": metadata.get("region", self.default_region),
                 "session_id": session_id,
+                "research_required": metadata.get("research_required"),
+                "research_success": metadata.get("research_success"),
             }
             await self.telemetry.log_cultural_decision(decision, context_payload, metrics)
 
@@ -529,6 +531,8 @@ class CulturalIntelligenceCoordinator:
                 "assistant": chosen_response,
             }]
             flow_metadata = {"session_id": session_id, "decision": decision}
+            flow_metadata["research_required"] = metadata.get("research_required")
+            flow_metadata["research_success"] = metadata.get("research_success")
             flow_metrics = await self.telemetry.measure_conversation_flow(extended_history, flow_metadata)
 
             engagement_payload = {
@@ -537,6 +541,8 @@ class CulturalIntelligenceCoordinator:
                 "latency_ms": metrics.get("latency_ms"),
                 "response_appropriateness": flow_metrics.get("response_appropriateness"),
                 "conversation_stability": flow_metrics.get("conversation_stability"),
+                "research_required": metadata.get("research_required"),
+                "research_success": metadata.get("research_success"),
             }
             await self.telemetry.track_engagement_metrics(session_id, engagement_payload)
 

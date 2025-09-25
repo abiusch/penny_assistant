@@ -102,7 +102,7 @@ class MCPServerConfig:
     max_concurrent_requests: int = 10
 
     # Security
-    required_auth_level: AuthenticationLevel = AuthenticationLevel.BASIC
+    required_auth_level: AuthenticationLevel = AuthenticationLevel.MINIMAL
     allowed_operations: List[str] = field(default_factory=list)
     security_tags: List[str] = field(default_factory=list)
 

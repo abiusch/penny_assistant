@@ -7,6 +7,7 @@ Integrates conversational flow and relationship building with the existing pipel
 import sys
 import os
 import time
+import uuid
 from typing import Optional, Dict, Any
 
 # Add src directory to path
@@ -18,6 +19,9 @@ from memory_system import MemoryManager
 from emotional_memory_system import create_enhanced_memory_system
 from personality_integration import create_personality_integration
 from conversational_flow_system import create_conversational_flow, ConversationState
+from cultural_intelligence_coordinator import CulturalIntelligenceAdapter, CulturalEnhancementResult
+from conversation_telemetry_system import TelemetryClient
+from production_a_b_testing import ProductionABTesting
 
 
 # Health monitor with safe fallback
@@ -41,6 +45,39 @@ class EnhancedConversationPipeline(PipelineLoop):
         self.memory = create_enhanced_memory_system(base_memory)
         self.personality_integration = create_personality_integration(self.memory)
         self.conversation_flow = create_conversational_flow(self.memory, self.personality_integration)
+
+        # Cultural intelligence integration
+        self.cultural_history = []
+        self.session_id = f"session_{uuid.uuid4().hex}"
+        self.telemetry_client: Optional[TelemetryClient] = None
+        self.ab_testing: Optional[ProductionABTesting] = None
+        self.cultural_enabled = True
+        try:
+            self.telemetry_client = TelemetryClient()
+        except Exception as exc:
+            self.telemetry_client = None
+            print(f"⚠️ Telemetry client disabled: {exc}")
+
+        try:
+            self.ab_testing = ProductionABTesting(self.telemetry_client.telemetry) if self.telemetry_client else None
+        except Exception as exc:
+            self.ab_testing = None
+            print(f"⚠️ A/B testing disabled: {exc}")
+
+        try:
+            telemetry = self.telemetry_client.telemetry if self.telemetry_client else None
+            self.cultural_adapter = CulturalIntelligenceAdapter.create(
+                telemetry=telemetry
+            )
+            if self.ab_testing and self.telemetry_client:
+                self.cultural_enabled = self.telemetry_client.run(
+                    self.ab_testing.randomly_assign_cultural_mode("default_user", self.session_id)
+                )
+                self.cultural_adapter.enabled = self.cultural_enabled
+            print("🎨 Cultural intelligence adapter ready")
+        except Exception as e:
+            self.cultural_adapter = None
+            print(f"⚠️ Cultural intelligence adapter disabled: {e}")
         
         # Initialize health monitor with safe fallback
         try:
@@ -137,15 +174,48 @@ class EnhancedConversationPipeline(PipelineLoop):
                 personality_enhanced_reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
             except Exception:
                 personality_enhanced_reply = f"[{tone}] {reply_raw}" if reply_raw else "Say that again?"
-        
+
+        topic_category = self.personality_integration._categorize_topic(actual_command, {})
+        relationship_state = self.conversation_flow.conversation_context.current_state.value
+        cultural_result: Optional[CulturalEnhancementResult] = None
+        response_for_flow = personality_enhanced_reply
+
+        personality_mode = getattr(self.personality_integration.personality_system.current_mode, "value", "balanced")
+        sass_level_setting = getattr(
+            getattr(self.personality_integration.personality_system, "current_mode", None),
+            "sass_level",
+            "medium"
+        )
+        personality_baseline = {
+            "keywords": list(getattr(self.personality_integration.personality_system, "signature_expressions", [])) or [personality_mode]
+        }
+
+        metadata_for_culture = {
+            "topic": topic_category,
+            "relationship": relationship_state,
+            "sass_level": sass_level_setting,
+            "personality_mode": personality_mode,
+            "session_id": self.session_id,
+            "personality_baseline": personality_baseline,
+        }
+
+        if self.cultural_adapter:
+            try:
+                cultural_result = self.cultural_adapter.enhance_response(
+                    user_input=actual_command,
+                    conversation_history=self.cultural_history,
+                    base_response=personality_enhanced_reply,
+                    metadata=metadata_for_culture
+                )
+                response_for_flow = cultural_result.response
+            except Exception as e:
+                print(f"⚠️ Cultural intelligence enhancement failed: {e}")
+
         # Apply conversational flow enhancements
         try:
-            # Determine topic category for flow processing
-            topic_category = self.personality_integration._categorize_topic(actual_command, {})
-            
             # Enhance with conversational flow elements
             final_reply = self.conversation_flow.enhance_response_with_flow(
-                personality_enhanced_reply, 
+                response_for_flow, 
                 actual_command, 
                 topic_category
             )
@@ -165,8 +235,8 @@ class EnhancedConversationPipeline(PipelineLoop):
             
         except Exception as e:
             print(f"⚠️ Conversational flow failed, using personality response: {e}")
-            final_reply = personality_enhanced_reply
-        
+            final_reply = response_for_flow
+
         # Store in memory with emotional processing
         try:
             # Add conversation turn to base memory
@@ -188,15 +258,69 @@ class EnhancedConversationPipeline(PipelineLoop):
             
         except Exception as e:
             print(f"Warning: Failed to save to memory: {e}")
-        
+
+        new_turn = {
+            "user": actual_command,
+            "assistant": final_reply
+        }
+        self.cultural_history.append(new_turn)
+        if len(self.cultural_history) > 12:
+            self.cultural_history = self.cultural_history[-12:]
+
+        if self.telemetry_client and cultural_result and cultural_result.decision == "disabled":
+            decision_context = {
+                "topic": topic_category,
+                "relationship": relationship_state,
+                "session_id": self.session_id,
+            }
+            self.telemetry_client.log_cultural_decision(
+                "disabled",
+                decision_context,
+                cultural_result.metrics,
+            )
+            flow_metrics = self.telemetry_client.measure_conversation_flow(
+                self.cultural_history,
+                {"session_id": self.session_id, "decision": "disabled"}
+            )
+            engagement_payload = {
+                "turn_count": len(self.cultural_history),
+                "cultural_decision": "disabled",
+                "response_appropriateness": flow_metrics.get("response_appropriateness"),
+                "conversation_stability": flow_metrics.get("conversation_stability"),
+            }
+            self.telemetry_client.track_engagement_metrics(self.session_id, engagement_payload)
+            self.telemetry_client.assess_personality_consistency(
+                [personality_enhanced_reply, final_reply],
+                personality_baseline,
+            )
+
+        if self.ab_testing and self.telemetry_client and self.cultural_adapter:
+            ab_metrics = {
+                "response_appropriateness": cultural_result.metrics.get("enhanced_authenticity_score", 0.0) if cultural_result else 0.0,
+                "engagement_improvement": cultural_result.metrics.get("improvement", 0.0) if cultural_result else 0.0,
+                "used_cultural": bool(cultural_result and cultural_result.used_cultural_enhancement),
+                "turn_count": len(self.cultural_history),
+            }
+            try:
+                self.telemetry_client.run(
+                    self.ab_testing.collect_session_metrics(
+                        self.session_id,
+                        self.cultural_enabled,
+                        ab_metrics
+                    )
+                )
+            except Exception as exc:
+                print(f"⚠️ Failed to record A/B metrics: {exc}")
+
         self.telemetry.log_event("thinking_complete", {
             "reply_length": len(final_reply),
             "response_time_ms": response_time_ms,
             "saved_to_memory": True,
             "conversation_state": self.conversation_flow.conversation_context.current_state.value,
-            "personality_mode": self.personality_integration.personality_system.current_mode.value
+            "personality_mode": self.personality_integration.personality_system.current_mode.value,
+            "cultural_enhancement": cultural_result.metrics if cultural_result else None
         })
-        
+
         self.state = State.SPEAKING
         return final_reply
     

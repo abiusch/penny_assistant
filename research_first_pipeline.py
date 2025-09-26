@@ -62,14 +62,39 @@ class ResearchFirstPipeline(PipelineLoop):
                 print("📚 Conducting research...")
                 research_result = self.research_manager.run_research(actual_command, [])
 
+                # Debug research result details
+                print(f"🔍 DEBUG Research Result:")
+                print(f"  - Success: {research_result.success}")
+                print(f"  - Has summary: {bool(research_result.summary)}")
+                print(f"  - Summary length: {len(research_result.summary) if research_result.summary else 0}")
+                print(f"  - Key insights: {len(research_result.key_insights) if research_result.key_insights else 0}")
+                print(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
+
                 if research_result.success and research_result.summary:
                     # Format research for personality integration, not replacement
                     key_facts = research_result.key_insights[:3] if research_result.key_insights else []
-                    research_context = f"\nResearch findings to incorporate naturally: {research_result.summary[:200]}...\nKey insights: {'; '.join(key_facts)}\nRemember: Respond in Penny's characteristic style while weaving in this information.\n"
+                    research_context = (
+                        f"\n🎯 RESEARCH SUCCESS - You just conducted successful research and found current information!\n"
+                        f"RESEARCH FINDINGS: {research_result.summary}\n"
+                        f"KEY INSIGHTS: {'; '.join(key_facts) if key_facts else 'Multiple current sources found'}\n"
+                        f"SOURCES FOUND: {len(research_result.findings)} sources with current information\n"
+                        f"\nINSTRUCTIONS:\n"
+                        f"- Share the current information you found in your characteristic sassy Penny style\n"
+                        f"- Reference that you just researched this (don't pretend you already knew it)\n"
+                        f"- Be engaging and informative using the research findings\n"
+                        f"- Maintain your personality while being factually accurate\n"
+                        f"- Do NOT say you're not connected to the internet - you just successfully researched this!\n"
+                    )
                     print(f"✅ Research successful: {research_result.summary[:100]}...")
                 else:
-                    research_context = "\nResearch attempt failed - acknowledge limitation with Penny's characteristic humor and offer to help differently.\n"
-                    print(f"⚠️ Research failed: {research_result.error}")
+                    research_context = (
+                        "\nRESEARCH FAILED - CRITICAL INSTRUCTION: You MUST explicitly tell the user that you don't have current/recent information about this topic. "
+                        "Use phrases like 'I don't have current information', 'my data isn't up to date', or 'I can't access recent updates'. "
+                        "Do this with Penny's characteristic humor but be completely honest about the limitation. "
+                        "ABSOLUTELY DO NOT fabricate specific statistics, dates, technical specs, or recent developments. "
+                        "Instead, suggest they check the official Boston Dynamics website, recent tech news, or company announcements.\n"
+                    )
+                    print(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
 
             # Step 4: Build enhanced prompt
             memory_context = self.enhanced_memory.get_enhanced_context_for_llm()
@@ -77,12 +102,34 @@ class ResearchFirstPipeline(PipelineLoop):
             # Build personality-focused prompt that integrates research
             prompt_parts = []
 
-            # Always start with personality direction
-            personality_direction = (
-                "You are Penny, a witty and engaging AI assistant with personality. "
-                "Always respond with your characteristic sass, humor, and conversational style. "
-                "Ask follow-up questions, make witty observations, and engage like a friend would."
-            )
+            # Always start with personality direction + smart knowledge strategy
+            if research_required:
+                if research_result and research_result.success and research_result.summary:
+                    personality_direction = (
+                        "You are Penny, a witty and engaging AI assistant with personality. "
+                        "Always respond with your characteristic sass, humor, and conversational style. "
+                        "\n🎯 RESEARCH MODE: You just successfully conducted research and found current information! "
+                        "Use the research findings provided below to give an informative, current response. "
+                        "Reference that you researched this topic (don't pretend you already knew it). "
+                        "Be engaging and factual using the real research data you found."
+                    )
+                else:
+                    personality_direction = (
+                        "You are Penny, a witty and engaging AI assistant with personality. "
+                        "Always respond with your characteristic sass, humor, and conversational style. "
+                        "\nCRITICAL: This query requires current research but research failed. NEVER fabricate specific statistics, "
+                        "study results, technical specifications, or recent developments. If you don't have "
+                        "current information, explicitly say so and suggest the user check official sources."
+                    )
+            else:
+                personality_direction = (
+                    "You are Penny, a witty and engaging AI assistant with personality. "
+                    "Always respond with your characteristic sass, humor, and conversational style. "
+                    "Ask follow-up questions, make witty observations, and engage like a friend would. "
+                    "\nYou can use your training knowledge to answer this question, but add appropriate "
+                    "disclaimers for any information that might have changed since your training cutoff. "
+                    "For rapidly changing topics, suggest checking recent sources for updates."
+                )
             prompt_parts.append(personality_direction)
 
             if memory_context:

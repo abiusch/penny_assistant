@@ -48,6 +48,7 @@ class FactualQueryClassifier:
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
 
     def requires_research(self, text: str) -> bool:
+        """Smart research triggering - only for high-risk categories that require current data"""
         if not text:
             return False
         lowered = text.lower()
@@ -56,24 +57,35 @@ class FactualQueryClassifier:
         if any(pattern in lowered for pattern in self.PERSONAL_KEYWORDS):
             return False
 
+        # ALWAYS require research for financial/investment queries (high risk)
         if any(keyword in lowered for keyword in self.FINANCIAL_KEYWORDS):
             return True
 
-        if any(pattern in lowered for pattern in self.FACTUAL_KEYWORDS):
+        # Time-sensitive queries that need current information
+        time_sensitive_patterns = [
+            r'\b(?:latest|recent|current|today|this week|this month|new|updated?|2024|2025)\b',
+            r'\b(?:breaking|news|announced|released|launched|just)\b',
+            r'\b(?:now|currently|recently|lately)\b'
+        ]
+        if any(re.search(pattern, lowered) for pattern in time_sensitive_patterns):
             return True
 
-        if any(lowered.startswith(word + " ") for word in self.QUESTION_WORDS):
-            # Don't research questions about the assistant itself
-            if any(personal in lowered for personal in ["how are you", "how do you", "what do you think"]):
-                return False
+        # Specific high-risk factual categories that change frequently
+        high_risk_patterns = [
+            r'\b(?:price|pricing|cost|stock|market|valuation|earnings|revenue)\b',
+            r'\b(?:statistics|numbers|data|study|research|survey)\b',
+            r'\b(?:update|upgrade|version|release|patch)\b'
+        ]
+        if any(re.search(pattern, lowered) for pattern in high_risk_patterns):
             return True
 
-        if re.search(r"\b\d{4}\b", lowered):
-            return True
+        # Questions about specific company developments or tech specs
+        if any(pattern in lowered for pattern in ["what are the", "tell me about", "details about"]):
+            # Only if it seems like it could be about recent developments
+            if any(word in lowered for word in ["company", "robot", "technology", "product", "service"]):
+                return True
 
-        if re.search(r"\b(?:revenue|headquarters|founded|ceo|valuation)\b", lowered):
-            return True
-
+        # Everything else can use training knowledge
         return False
 
     def is_financial_topic(self, text: str) -> bool:

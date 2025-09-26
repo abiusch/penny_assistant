@@ -27,11 +27,23 @@ class WebSearchToolServer(BaseToolServer):
     def __init__(self, *args, **kwargs):
         super().__init__(ToolServerType.WEB_SEARCH, *args, **kwargs)
 
-        # Search configuration
+        # Search configuration with Brave Search as primary (best performance)
         self.search_engines = {
+            "brave": {
+                "name": "Brave Search API",
+                "default": True,
+                "requires_api_key": True,
+                "performance": "excellent"
+            },
+            "google_cse": {
+                "name": "Google Custom Search",
+                "requires_api_key": True,
+                "fallback": True
+            },
             "duckduckgo": {
                 "url": "https://api.duckduckgo.com/",
-                "params": {"format": "json", "no_html": "1", "skip_disambig": "1"}
+                "params": {"format": "json", "no_html": "1", "skip_disambig": "1"},
+                "fallback": True
             },
             "serp": {
                 "url": "https://serpapi.com/search",
@@ -216,9 +228,9 @@ class WebSearchToolServer(BaseToolServer):
         return url
 
     async def _search(self, parameters: Dict[str, Any], security_context: SecurityContext) -> Dict[str, Any]:
-        """Perform web search"""
+        """Perform web search with Brave Search as primary and fallback support"""
         query = parameters.get("query", "").strip()
-        engine = parameters.get("engine", "duckduckgo")
+        engine = parameters.get("engine", "brave")  # Default to Brave Search
         max_results = min(parameters.get("max_results", 10), self.max_search_results)
 
         if not query:
@@ -233,28 +245,86 @@ class WebSearchToolServer(BaseToolServer):
         if engine not in self.search_engines:
             raise ValueError(f"Unknown search engine: {engine}")
 
-        search_config = self.search_engines[engine]
-
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.request_timeout)) as session:
-                if engine == "duckduckgo":
+            # Try Brave Search first (best performance)
+            if engine == "brave":
+                results = await self._search_brave(query, max_results)
+                used_engine = "brave"
+            elif engine == "google_cse":
+                results = await self._search_google_cse(query, max_results)
+                used_engine = "google_cse"
+            elif engine == "duckduckgo":
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.request_timeout)) as session:
                     results = await self._search_duckduckgo(session, query, max_results)
-                else:
+                used_engine = "duckduckgo"
+            else:
+                search_config = self.search_engines[engine]
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.request_timeout)) as session:
                     results = await self._search_serp(session, query, max_results, search_config)
+                used_engine = engine
 
-                return {
-                    "query": query,
-                    "engine": engine,
-                    "results": results,
-                    "total_results": len(results),
-                    "timestamp": datetime.now().isoformat()
-                }
+            return {
+                "query": query,
+                "engine": used_engine,
+                "results": results,
+                "total_results": len(results),
+                "timestamp": datetime.now().isoformat()
+            }
 
-        except asyncio.TimeoutError:
-            raise ToolServerSecurityError("Search request timed out")
         except Exception as e:
-            self.logger.error(f"Search failed: {e}")
-            raise
+            # If Brave Search fails and it was the primary choice, try fallbacks
+            if engine == "brave":
+                print(f"⚠️ Brave Search failed ({e}), trying Google CSE fallback...")
+                try:
+                    results = await self._search_google_cse(query, max_results)
+                    return {
+                        "query": query,
+                        "engine": "google_cse_fallback",
+                        "results": results,
+                        "total_results": len(results),
+                        "timestamp": datetime.now().isoformat()
+                    }
+                except Exception as google_error:
+                    print(f"⚠️ Google CSE also failed ({google_error}), trying DuckDuckGo...")
+                    try:
+                        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.request_timeout)) as session:
+                            results = await self._search_duckduckgo(session, query, max_results)
+
+                        return {
+                            "query": query,
+                            "engine": "duckduckgo_fallback",
+                            "results": results,
+                            "total_results": len(results),
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    except Exception as duck_error:
+                        self.logger.error(f"All search engines failed: Brave({e}), Google({google_error}), DuckDuckGo({duck_error})")
+                        raise ToolServerSecurityError(f"All search engines failed: {e}")
+            else:
+                self.logger.error(f"Search failed: {e}")
+                raise
+
+    async def _search_brave(self, query: str, max_results: int) -> List[Dict[str, Any]]:
+        """Search using Brave Search API (primary search engine)"""
+        try:
+            from brave_search_api import brave_search
+            results = await brave_search(query, max_results)
+            print(f"🔍 Brave Search returned {len(results)} results for: '{query}'")
+            return results
+        except Exception as e:
+            print(f"❌ Brave Search failed: {e}")
+            raise ToolServerSecurityError(f"Brave Search failed: {e}")
+
+    async def _search_google_cse(self, query: str, max_results: int) -> List[Dict[str, Any]]:
+        """Search using Google Custom Search Engine"""
+        try:
+            from google_cse_search import google_cse_search
+            results = await google_cse_search(query, max_results)
+            print(f"🔍 Google CSE returned {len(results)} results for: '{query}'")
+            return results
+        except Exception as e:
+            print(f"❌ Google CSE search failed: {e}")
+            raise ToolServerSecurityError(f"Google CSE search failed: {e}")
 
     async def _search_duckduckgo(self, session: aiohttp.ClientSession, query: str, max_results: int) -> List[Dict[str, Any]]:
         """Search using DuckDuckGo API"""

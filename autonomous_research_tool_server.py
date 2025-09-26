@@ -604,39 +604,130 @@ class ResearchExecutor:
         return findings
 
     async def _web_search(self, query: str, user_id: str) -> List[ResearchSource]:
-        """Perform web search (mock implementation - would use actual web search server)"""
-        # This would integrate with the existing web search server
-        # For now, return mock results
+        """Perform web search using Brave Search API with fallback chain"""
         sources = []
 
-        # Mock web search results
-        mock_results = [
-            {
-                "url": f"https://example.com/result1",
-                "title": f"Information about {query}",
-                "content": f"This is relevant information about {query}. It provides comprehensive details and insights.",
-                "credibility_score": 0.8
-            },
-            {
-                "url": f"https://academic.com/paper1",
-                "title": f"Academic research on {query}",
-                "content": f"Academic perspective on {query} with research-backed insights and analysis.",
-                "credibility_score": 0.9
-            }
-        ]
+        try:
+            # Use Brave Search as primary (best performance from real-world experience)
+            from brave_search_api import brave_search
 
-        for i, result in enumerate(mock_results):
-            source = ResearchSource(
-                source_id=f"web_{hashlib.md5(result['url'].encode()).hexdigest()[:8]}",
-                url=result["url"],
-                title=result["title"],
-                content=result["content"],
-                credibility_score=result["credibility_score"],
-                relevance_score=0.8,  # Would be calculated based on content analysis
-                timestamp=datetime.now(),
-                source_type="web"
-            )
-            sources.append(source)
+            # Try Brave Search first
+            search_results = await brave_search(query, max_results=5)
+
+            # Convert search results to research sources
+            for result in search_results:
+                if result.get("url") and result.get("title"):
+                    source = ResearchSource(
+                        source_id=f"brave_{hashlib.md5(result['url'].encode()).hexdigest()[:8]}",
+                        url=result["url"],
+                        title=result["title"],
+                        content=result.get("snippet", ""),
+                        credibility_score=0.9,  # High credibility for Brave results
+                        relevance_score=0.9,
+                        timestamp=datetime.now(),
+                        source_type="web"
+                    )
+                    sources.append(source)
+
+        except Exception as e:
+            # Try fallback chain: Google CSE -> DuckDuckGo
+            print(f"⚠️ Brave Search failed ({e}), trying fallbacks...")
+            sources = await self._web_search_fallback_chain(query)
+
+        print(f"🔍 Web search for '{query}' found {len(sources)} sources")
+        return sources
+
+    async def _web_search_fallback_chain(self, query: str) -> List[ResearchSource]:
+        """Fallback chain: Google CSE -> DuckDuckGo when Brave fails"""
+        sources = []
+
+        # Try Google CSE first
+        try:
+            from google_cse_search import google_cse_search
+            search_results = await google_cse_search(query, max_results=3)
+
+            for result in search_results:
+                if result.get("url") and result.get("title"):
+                    source = ResearchSource(
+                        source_id=f"gcs_{hashlib.md5(result['url'].encode()).hexdigest()[:8]}",
+                        url=result["url"],
+                        title=result["title"],
+                        content=result.get("snippet", ""),
+                        credibility_score=0.8,  # Slightly lower for fallback
+                        relevance_score=0.8,
+                        timestamp=datetime.now(),
+                        source_type="web_fallback"
+                    )
+                    sources.append(source)
+
+            if sources:
+                print(f"✅ Google CSE fallback found {len(sources)} sources")
+                return sources
+
+        except Exception as e:
+            print(f"⚠️ Google CSE fallback also failed: {e}")
+
+        # Final fallback to DuckDuckGo
+        try:
+            sources = await self._web_search_duckduckgo_fallback(query)
+            if sources:
+                print(f"✅ DuckDuckGo fallback found {len(sources)} sources")
+        except Exception as e:
+            print(f"⚠️ All search fallbacks failed: {e}")
+
+        return sources
+
+    async def _web_search_duckduckgo_fallback(self, query: str) -> List[ResearchSource]:
+        """Fallback DuckDuckGo search when Google CSE fails"""
+        sources = []
+
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+                url = "https://api.duckduckgo.com/"
+                params = {
+                    "q": query,
+                    "format": "json",
+                    "no_html": "1",
+                    "skip_disambig": "1"
+                }
+
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+
+                        # Process abstract if available
+                        if data.get("Abstract") and data.get("AbstractURL"):
+                            source = ResearchSource(
+                                source_id=f"ddg_{hashlib.md5(data['AbstractURL'].encode()).hexdigest()[:8]}",
+                                url=data["AbstractURL"],
+                                title=data.get("Heading", "DuckDuckGo Abstract"),
+                                content=data["Abstract"],
+                                credibility_score=0.7,  # Slightly lower for fallback
+                                relevance_score=0.8,
+                                timestamp=datetime.now(),
+                                source_type="web_fallback"
+                            )
+                            sources.append(source)
+
+                        # Process related topics
+                        for topic in data.get("RelatedTopics", [])[:2]:
+                            if isinstance(topic, dict) and topic.get("FirstURL") and topic.get("Text"):
+                                source = ResearchSource(
+                                    source_id=f"ddg_{hashlib.md5(topic['FirstURL'].encode()).hexdigest()[:8]}",
+                                    url=topic["FirstURL"],
+                                    title=topic.get("Text", "").split(" - ")[0],
+                                    content=topic["Text"],
+                                    credibility_score=0.6,
+                                    relevance_score=0.7,
+                                    timestamp=datetime.now(),
+                                    source_type="web_fallback"
+                                )
+                                sources.append(source)
+
+        except Exception as e:
+            print(f"⚠️ DuckDuckGo fallback also failed: {e}")
 
         return sources
 

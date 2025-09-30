@@ -1,0 +1,14 @@
+{
+  "dangerous_operations": [
+    "os.system",
+    "subprocess.call",
+    "exec",
+    "eval",
+    "open(",
+    "__import__",
+    "file.write",
+    "shutil.rmtree"
+  ],
+  "max_complexity_score": 10,
+  "max_function_lines": 50
+}

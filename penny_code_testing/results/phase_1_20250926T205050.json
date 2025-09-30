@@ -1,0 +1,34 @@
+{
+  "phase": 1,
+  "tests_run": 3,
+  "tests_passed": 3,
+  "errors": [],
+  "detailed_results": {
+    "function_analysis": {
+      "passed": true,
+      "missing_capabilities": [],
+      "detected_functions": 2,
+      "explanation_clarity": "excellent",
+      "safety_score": 10
+    },
+    "pattern_detection": {
+      "passed": true,
+      "identified_patterns": [
+        "mvc",
+        "factory",
+        "observer"
+      ],
+      "missing_patterns": []
+    },
+    "security_analysis": {
+      "passed": true,
+      "detections": [
+        "sql_injection",
+        "hardcoded_secrets",
+        "xss_risk"
+      ],
+      "analysis_notes": "detected vulnerabilities"
+    }
+  },
+  "timestamp": "2025-09-26T20:50:50+00:00"
+}

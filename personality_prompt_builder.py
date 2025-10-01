@@ -54,11 +54,26 @@ class PersonalityPromptBuilder:
             # Get vocabulary profile
             vocab_profile = await vocab_tracker.get_user_vocabulary_profile()
 
-            # Extract key data
-            formality = personality_state.get('communication_formality', 0.5)
-            technical_depth = personality_state.get('technical_depth_preference', 0.5)
-            humor_style = personality_state.get('humor_style_preference', 'playful')
-            response_length = personality_state.get('response_length_preference', 'medium')
+            # Extract key data - handle PersonalityDimension objects
+            def extract_value(obj, default):
+                """Extract numeric value from PersonalityDimension or return default"""
+                if obj is None:
+                    return default
+                if isinstance(obj, (int, float)):
+                    return float(obj)
+                if hasattr(obj, 'current_value'):
+                    return float(obj.current_value)
+                return default
+
+            formality = extract_value(personality_state.get('communication_formality'), 0.5)
+            technical_depth = extract_value(personality_state.get('technical_depth_preference'), 0.5)
+
+            # Extract string values
+            humor_obj = personality_state.get('humor_style_preference', 'playful')
+            humor_style = humor_obj.current_value if hasattr(humor_obj, 'current_value') else str(humor_obj)
+
+            length_obj = personality_state.get('response_length_preference', 'medium')
+            response_length = length_obj.current_value if hasattr(length_obj, 'current_value') else str(length_obj)
 
             # Calculate sass level (inverse of formality, boosted by casual slang)
             slang_count = len(vocab_profile.get('slang_vocabulary', []))
@@ -75,8 +90,13 @@ class PersonalityPromptBuilder:
             context_insights = await context_engine.get_contextual_insights()
             context_modifiers = {}
 
-            # Calculate overall confidence
-            confidence = personality_state.get('confidence', 0.3)
+            # Calculate overall confidence - average of dimension confidences
+            formality_conf = extract_value(personality_state.get('communication_formality'), 0.5)
+            if hasattr(personality_state.get('communication_formality'), 'confidence'):
+                formality_conf = personality_state['communication_formality'].confidence
+
+            # Use formality confidence as overall confidence (or average multiple if available)
+            confidence = formality_conf if isinstance(formality_conf, float) else 0.3
 
             return PersonalityProfile(
                 formality=formality,

@@ -42,7 +42,19 @@ class FactualQueryClassifier:
 
     PERSONAL_KEYWORDS = {
         "how are you", "how's your", "how do you feel", "what's up",
-        "good morning", "good afternoon", "good evening", "hello", "hi"
+        "good morning", "good afternoon", "good evening", "hello", "hi",
+        # User preferences/instructions - NOT factual queries
+        "you don't need", "no need to", "don't bother", "skip", "ignore",
+        "don't add", "no thanks", "that's fine", "nevermind", "forget it"
+    }
+
+    # Self-reference keywords - when user is talking about Penny herself
+    SELF_REFERENCE_KEYWORDS = {
+        "your name", "who are you", "what are you", "you are", "you're a",
+        "are you a", "can you", "do you", "will you", "would you",
+        "about you", "about yourself", "tell me about penny",
+        "penny's", "your system", "your code", "your personality",
+        "what can you", "what do you", "how do you work"
     }
 
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
@@ -55,6 +67,10 @@ class FactualQueryClassifier:
 
         # Skip research for personal/greeting queries
         if any(pattern in lowered for pattern in self.PERSONAL_KEYWORDS):
+            return False
+
+        # Skip research when user is talking about Penny herself
+        if any(pattern in lowered for pattern in self.SELF_REFERENCE_KEYWORDS):
             return False
 
         # ALWAYS require research for financial/investment queries (high risk)

@@ -49,12 +49,24 @@ class FactualQueryClassifier:
     }
 
     # Self-reference keywords - when user is talking about Penny herself
+    # Note: Must be specific to avoid false matches (e.g., "do you" catches "do some research")
     SELF_REFERENCE_KEYWORDS = {
-        "your name", "who are you", "what are you", "you are", "you're a",
-        "are you a", "can you", "do you", "will you", "would you",
+        "your name", "who are you", "what are you",
+        "you are an", "you are a", "you're an", "you're a",
+        "are you an", "are you a",
+        "what can you do", "what do you do", "how do you work",
         "about you", "about yourself", "tell me about penny",
-        "penny's", "your system", "your code", "your personality",
-        "what can you", "what do you", "how do you work"
+        "penny's", "your system", "your code", "your personality"
+    }
+
+    # Explicit research request patterns - when user directly asks for research
+    EXPLICIT_RESEARCH_REQUESTS = {
+        "do some research", "do research", "look it up", "look that up",
+        "search for", "find out", "check the latest", "check for updates",
+        "what's the current", "what's the latest", "get the latest",
+        "update yourself", "come back with updated", "go research",
+        "find the latest", "check what's new", "see what's new",
+        "look up the", "research this", "research that"
     }
 
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
@@ -65,13 +77,26 @@ class FactualQueryClassifier:
             return False
         lowered = text.lower()
 
-        # Skip research for personal/greeting queries
-        if any(pattern in lowered for pattern in self.PERSONAL_KEYWORDS):
+        # FIRST: Check for EXPLICIT research requests (user directly asking for research)
+        # This should be checked early, but after opt-outs
+        has_explicit_request = any(pattern in lowered for pattern in self.EXPLICIT_RESEARCH_REQUESTS)
+
+        # SECOND: Check opt-outs (user declining research)
+        # Use word boundaries to avoid false matches like "hi" in "this"
+        has_opt_out = any(
+            re.search(r'\b' + re.escape(pattern) + r'\b', lowered)
+            for pattern in self.PERSONAL_KEYWORDS
+        )
+        if has_opt_out:
             return False
 
         # Skip research when user is talking about Penny herself
         if any(pattern in lowered for pattern in self.SELF_REFERENCE_KEYWORDS):
             return False
+
+        # If we have explicit research request, trigger research
+        if has_explicit_request:
+            return True
 
         # ALWAYS require research for financial/investment queries (high risk)
         if any(keyword in lowered for keyword in self.FINANCIAL_KEYWORDS):

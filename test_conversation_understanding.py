@@ -10,6 +10,16 @@ def test_conversation_understanding():
     classifier = FactualQueryClassifier()
 
     test_cases = [
+        # EXPLICIT RESEARCH REQUESTS - should ALWAYS trigger research (NEW!)
+        ("do some research on this topic", True, "Explicit: do some research"),
+        ("why don't you do some research and come back with your updated answer", True, "Explicit: do research and come back"),
+        ("look it up for me", True, "Explicit: look it up"),
+        ("search for the latest information", True, "Explicit: search for"),
+        ("find out what's new with that", True, "Explicit: find out"),
+        ("check the latest updates", True, "Explicit: check the latest"),
+        ("update yourself on this", True, "Explicit: update yourself"),
+        ("go research that and get back to me", True, "Explicit: go research"),
+
         # User preferences - should NOT trigger research
         ("you don't need to add GPT", False, "User preference/instruction"),
         ("no need to research that", False, "User declining research"),

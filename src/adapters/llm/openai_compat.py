@@ -20,16 +20,51 @@ class OpenAICompatLLM:
             return f"{self.base_url}/chat/completions"
         return f"{self.base_url}/v1/chat/completions"
 
-    def complete(self, prompt: str, tone: str = "") -> str:
+    def complete(self, prompt: str, tone: str = "", system_prompt: str = None) -> str:
+        """
+        Generate completion with optional personality-aware system prompt
+
+        Args:
+            prompt: User message or full conversation prompt
+            tone: Optional tone hint (legacy)
+            system_prompt: Custom system prompt (if None, uses default)
+        """
         try:
+            # Try to import personality prompt builder
+            try:
+                from personality_prompt_builder import get_personality_prompt
+                has_personality = True
+            except ImportError:
+                has_personality = False
+
             url = self._chat_url()
             headers = {"Authorization": f"Bearer {self.api_key}"}
+
+            # Build system prompt with personality if available
+            if system_prompt:
+                # Use provided system prompt
+                final_system_prompt = system_prompt
+            elif has_personality:
+                # Use personality-aware prompt
+                try:
+                    base = "You are Penny, an AI assistant"
+                    if tone:
+                        base += f" with {tone} tone"
+                    final_system_prompt = get_personality_prompt(base, context=None)
+                    print(f"🎭 Personality-enhanced prompt applied (length: {len(final_system_prompt)} chars)")
+                except Exception as e:
+                    print(f"⚠️ Personality prompt failed: {e}, using fallback")
+                    final_system_prompt = f"You are Penny, a sassy and helpful AI assistant. Tone: {tone}".strip()
+            else:
+                # Fallback to basic prompt
+                final_system_prompt = f"You are Penny, a sassy and helpful AI assistant. Tone: {tone}".strip()
+
             body: Dict[str, Any] = {
                 "model": self.model,
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
                 "messages": [
-                    {"role": "system", "content": f"You are PennyGPT. Tone: {tone}".strip()},
+                    {"role": "system", "content": final_system_prompt},
                     {"role": "user", "content": prompt},
                 ],
             }

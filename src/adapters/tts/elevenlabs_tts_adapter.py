@@ -45,6 +45,7 @@ class ElevenLabsTTS:
         # Background playback thread
         self._playback_thread = None
         self._stop_playback = threading.Event()
+        self._last_play_process = None
         
         # Simplified voice settings - focus on quality over personality variations
         self.voice_settings = {
@@ -258,47 +259,100 @@ class ElevenLabsTTS:
             if current_chunk:
                 chunks.append(current_chunk.strip())
             
-            print(f"[ElevenLabs] Splitting long text into {len(chunks)} chunks")
-            
-            # Speak each chunk
-            for i, chunk in enumerate(chunks):
+            print(f"[ElevenLabs] Streaming {len(chunks)} chunks (play while synthesizing)...")
+
+            # Streaming approach: Synthesize first chunk, start playing, then synthesize rest
+            # This gets audio playing ASAP instead of waiting for all chunks
+
+            # Synthesize and play first chunk immediately
+            if chunks:
+                first_chunk = chunks[0].strip()
+                first_audio = self._synthesize_audio(first_chunk, 'default')
+                if not first_audio:
+                    print(f"[ElevenLabs] First chunk synthesis failed")
+                    return False
+
+                # Start playing first chunk
+                try:
+                    first_process = subprocess.Popen(
+                        ["afplay", first_audio],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                    self._last_play_process = first_process
+                    print(f"[ElevenLabs] ▶️  Playing chunk 1/{len(chunks)} (synthesizing rest in background)")
+                except Exception as e:
+                    print(f"[ElevenLabs] First chunk playback error: {e}")
+                    return False
+
+            # Synthesize remaining chunks while first plays
+            remaining_audio_files = []
+            for i, chunk in enumerate(chunks[1:], start=2):
                 if chunk.strip():
-                    print(f"[ElevenLabs] Speaking chunk {i+1}/{len(chunks)}")
-                    success = self._speak_chunk(chunk)
-                    if not success:
-                        print(f"[ElevenLabs] Chunk {i+1} failed")
-                        return False
+                    audio_file = self._synthesize_audio(chunk.strip(), 'default')
+                    if audio_file:
+                        remaining_audio_files.append(audio_file)
+                    else:
+                        print(f"[ElevenLabs] Chunk {i} synthesis failed")
+                        # Continue with what we have
+
+            # Play remaining chunks as they become available
+            for i, audio_file in enumerate(remaining_audio_files, start=2):
+                # Wait for previous chunk to finish
+                if self._last_play_process and self._last_play_process.poll() is None:
+                    self._last_play_process.wait()
+
+                # Start next chunk
+                try:
+                    process = subprocess.Popen(
+                        ["afplay", audio_file],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                    self._last_play_process = process
+                except Exception as e:
+                    print(f"[ElevenLabs] Chunk {i} playback error: {e}")
+
+            # Wait for final chunk to complete
+            if self._last_play_process:
+                self._last_play_process.wait()
+
             return True
         else:
             # Short text - speak normally
             return self._speak_chunk(text)
     
-    def _speak_chunk(self, text: str) -> bool:
-        """Speak a single chunk of text"""
+    def _speak_chunk(self, text: str, play_process=None) -> bool:
+        """Speak a single chunk of text, optionally with overlapped playback"""
         # Detect personality mode from text
         personality = self._detect_personality_mode(text)
-        
+
         # Debug output
         if personality != 'default':
             print(f"[Penny Voice] Using {personality} mode")
-        
+
         # Synthesize with personality
         audio_file = self._synthesize_audio(text, personality)
         if not audio_file:
             return False
-        
-        # Play synchronously
+
+        # If previous chunk is still playing, wait for it to finish
+        if play_process and play_process.poll() is None:
+            try:
+                play_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                play_process.kill()
+
+        # Start playback (non-blocking for smooth transitions)
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 ["afplay", audio_file],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=30
+                stderr=subprocess.DEVNULL
             )
-            return result.returncode == 0
-        except subprocess.TimeoutExpired:
-            print("[ElevenLabs] Chunk playback timeout")
-            return False
+            # Store process for next chunk to wait on
+            self._last_play_process = process
+            return True
         except Exception as e:
             if not self._error_logged:
                 print(f"[ElevenLabs] Chunk playback error: {e}")

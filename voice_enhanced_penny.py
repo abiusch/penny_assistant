@@ -9,6 +9,10 @@ import json
 import sys
 import os
 import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -71,12 +75,38 @@ def main():
         return
 
     def capture_and_respond():
-        print("\n🎤 Listening for 4 seconds...")
-        
-        # Record audio
+        import threading
+        import numpy as np
+
+        print("\n🎤 Recording... Press Enter to stop")
+
+        # Recording control
+        recording = True
+        audio_chunks = []
+
+        def check_for_enter():
+            nonlocal recording
+            input()  # Wait for Enter
+            recording = False
+            print("⏹️  Stopping recording...")
+
+        # Start Enter-detection thread
+        enter_thread = threading.Thread(target=check_for_enter, daemon=True)
+        enter_thread.start()
+
+        # Record in chunks until Enter is pressed
         with time_operation(OperationType.STT):
-            audio_data = sd.rec(int(4 * 16000), samplerate=16000, channels=1)
-            sd.wait()
+            while recording:
+                # Record 0.5 second chunks
+                chunk = sd.rec(int(0.5 * 16000), samplerate=16000, channels=1, blocking=True)
+                if recording:  # Check again in case Enter was pressed during recording
+                    audio_chunks.append(chunk)
+
+            # Combine all chunks
+            if audio_chunks:
+                audio_data = np.concatenate(audio_chunks, axis=0)
+            else:
+                audio_data = np.array([[]])
 
         # Transcribe
         text = transcribe_audio(audio_data)

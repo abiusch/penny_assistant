@@ -191,7 +191,7 @@ class UnpredictablePenny:
         elif mood == "mildly_philosophical":
             return f"{response} Makes you think about the nature of knowledge, doesn't it?"
         elif mood == "slightly_caffeinated":
-            return f"*bouncing slightly* {response} Sorry, too much coffee."
+            return f"*bouncing slightly* {response} Sorry, I'm just amped up right now."
         elif mood == "unexpectedly_sincere":
             return f"You know what? I'm genuinely excited to talk about this. {response}"
         

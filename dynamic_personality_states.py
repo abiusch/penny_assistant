@@ -52,7 +52,7 @@ class DynamicPersonalityStates:
                     "I'm feeling ENERGIZED about this",
                     "Rapid-fire solution incoming",
                     "My neurons are FIRING on this one",
-                    "Coffee-level enthusiasm activated"
+                    "High-energy mode activated"
                 ],
                 topics_favored=["optimization", "performance", "speed"],
                 duration_minutes=45

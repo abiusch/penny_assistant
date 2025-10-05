@@ -57,7 +57,7 @@ class PennyWithEnhancedHumor:
             'stress_detected': [
                 "before we dive into solutions",
                 "but first, take a breath",
-                "after you've had some coffee"
+                "once you've had a moment"
             ],
             'excitement_detected': [
                 "I love the enthusiasm, but",

@@ -5,16 +5,18 @@ Routes every conversation through the EnhancedConversationPipeline so factual
 queries trigger autonomous research, cultural intelligence, and telemetry.
 """
 
+import asyncio
 import logging
 import os
 import sys
-from typing import Dict
+from typing import Dict, Optional
 
 # Ensure local packages can be imported when launched via VS Code task
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from core.pipeline import State
 from research_first_pipeline import ResearchFirstPipeline
+from personality_observer import PersonalityObserver
 
 logger = logging.getLogger("chat_penny")
 logging.basicConfig(level=logging.INFO)
@@ -71,8 +73,18 @@ def handle_memory_search(pipeline: ResearchFirstPipeline, term: str) -> None:
         print(f"❌ Memory search failed: {exc}")
 
 
-def run_chat_loop(pipeline: ResearchFirstPipeline) -> None:
+def run_chat_loop(
+    pipeline: ResearchFirstPipeline,
+    personality_observer: Optional[PersonalityObserver] = None,
+) -> None:
     conversation_turns = 0
+    message_count = 0
+
+    def run_observer_coro(coro, description: str) -> None:
+        try:
+            asyncio.run(coro)
+        except Exception as exc:  # pragma: no cover - observer failure shouldn't stop chat
+            logger.warning("Personality observer %s failed: %s", description, exc)
     try:
         while True:
             try:
@@ -100,6 +112,15 @@ def run_chat_loop(pipeline: ResearchFirstPipeline) -> None:
                     print("⚠️ Provide a search term after 'search memories'.")
                 continue
 
+            if personality_observer is not None:
+                run_observer_coro(
+                    personality_observer.observe_user_message(
+                        user_input,
+                        {"emotion": "neutral", "participants": []},
+                    ),
+                    "observe_user_message",
+                )
+
             pipeline.state = State.THINKING
             response = pipeline.think(user_input)
             pipeline.state = State.IDLE
@@ -109,6 +130,18 @@ def run_chat_loop(pipeline: ResearchFirstPipeline) -> None:
 
             print(f"🤖 Penny: {response}")
             conversation_turns += 1
+
+            if personality_observer is not None:
+                run_observer_coro(
+                    personality_observer.record_penny_response(response),
+                    "record_penny_response",
+                )
+                message_count += 1
+                if message_count % 10 == 0:
+                    run_observer_coro(
+                        personality_observer.get_learning_summary(),
+                        "get_learning_summary",
+                    )
     finally:
         try:
             pipeline.shutdown()
@@ -120,7 +153,8 @@ def run_chat_loop(pipeline: ResearchFirstPipeline) -> None:
 def main():
     pipeline = ResearchFirstPipeline()
     print_intro(pipeline)
-    run_chat_loop(pipeline)
+    observer = PersonalityObserver()
+    run_chat_loop(pipeline, observer)
 
 
 if __name__ == "__main__":

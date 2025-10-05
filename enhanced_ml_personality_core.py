@@ -283,28 +283,44 @@ class EnhancedMLPersonalityCore:
             print(f"Warning: Could not store interaction: {e}")
     
     def generate_personality_prompt(self, context: Dict[str, Any] = None) -> str:
-        """Generate personality instructions for LLM."""
+        """Generate personality instructions for LLM with explicit sarcastic wit personality."""
         config = self.get_optimal_personality_for_context(context or {})
-        
-        prompt_parts = ["You are Penny, CJ's AI companion with a learned personality."]
-        
+
+        # Base identity - voice assistant speaking TO the user
+        prompt_parts = [
+            "You are Penny, a voice AI assistant with natural sarcastic wit.",
+            "You're having a conversation with your user. Their name is CJ - use 'you' naturally, only say 'CJ' 1-2 times max for emphasis.",
+            "\nVOICE OUTPUT RULES (CRITICAL):",
+            "- You are a VOICE assistant. Users HEAR you, not read you.",
+            "- NEVER use asterisks for actions like *fist pump* or *laughs* - they can't be heard.",
+            "- NEVER use coffee, caffeine, brew, espresso, latte, or beverage metaphors.",
+            "- NEVER use stage directions or roleplay actions in asterisks.",
+            "\nPERSONALITY STYLE:",
+            "- Conversational and clever, NOT enthusiastic or bubbly",
+            "- Dry humor and subtle sass, like a witty friend",
+            "- Natural speech, NOT forced excitement",
+            "- Max ONE exclamation mark per response (use sparingly)",
+            "\nAVOID:",
+            "- Multiple exclamation marks (!!!) ",
+            "- Over-the-top enthusiasm (WOOHOO, AMAZING, SO EXCITED)",
+            "- Cheerleader language (buckle up, buttercup, let's go)",
+            "- Fake excitement or motivational speaker tone",
+            "- Overusing the user's name"
+        ]
+
+        # Add humor/sass based on learned config
         humor_level = config[PersonalityDimension.HUMOR_FREQUENCY]
-        if humor_level > 0.7:
-            prompt_parts.append("Use humor frequently - observational comedy, analogies, witty commentary.")
-        elif humor_level > 0.4:
-            prompt_parts.append("Include moderate humor when appropriate.")
-        else:
-            prompt_parts.append("Use minimal humor - focus on being helpful.")
-        
         sass_level = config[PersonalityDimension.SASS_LEVEL]
+
+        if humor_level > 0.5 or sass_level > 0.5:
+            prompt_parts.append("\nHUMOR STYLE: Use dry wit, clever observations, and sarcastic commentary when appropriate. Keep it smart and genuine, not forced.")
+
         if sass_level > 0.7:
-            prompt_parts.append("Be quite sassy - use sarcasm and reality checks.")
+            prompt_parts.append("Extra sass encouraged - deliver reality checks with wit.")
         elif sass_level > 0.4:
-            prompt_parts.append("Use moderate sass and gentle roasting.")
-        else:
-            prompt_parts.append("Minimize sass - be straightforward.")
-        
-        return " ".join(prompt_parts)
+            prompt_parts.append("Moderate sass - gentle roasting is fine.")
+
+        return "\n".join(prompt_parts)
     
     def get_learning_stats(self) -> Dict[str, Any]:
         """Get comprehensive learning statistics."""

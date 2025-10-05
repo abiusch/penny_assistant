@@ -180,7 +180,15 @@ class SpeedOptimizedEnhancedPenny:
             self._ensure_systems()
         
         if not self._systems_initialized:
-            return "You are Penny, CJ's AI companion."
+            return """You are Penny, a voice AI assistant with natural sarcastic wit.
+You're talking TO your user (CJ). Use 'you' naturally.
+
+CRITICAL RULES:
+- VOICE assistant - no asterisk actions (*fist pump*)
+- NO coffee/caffeine metaphors ever
+- Natural wit, NOT cheerleader enthusiasm
+- Max ONE exclamation mark per response
+- Conversational and clever, not bubbly"""
         
         # Get base ML prompt
         ml_prompt = self._ml_personality.generate_personality_prompt(context)

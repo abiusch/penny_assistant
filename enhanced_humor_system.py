@@ -79,7 +79,7 @@ class EnhancedHumorSystem:
         self.timing_based_humor = {
             'long_pause': [
                 "Well, this is awkward. Did I break something or are you just contemplating life?",
-                "I can hear you thinking from here. Need a coffee break?",
+                "I can hear you thinking from here. Need a moment?",
                 "Taking some time to process my wisdom? I'll wait."
             ],
             'quick_response': [

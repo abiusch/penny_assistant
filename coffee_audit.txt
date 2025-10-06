@@ -1,0 +1,52 @@
+./test_emotional_fixes.py:59:                ("I'm meeting my friend Sarah for coffee later",
+./test_emotional_fixes.py:60:                 "That sounds nice! Enjoy your coffee with Sarah.")
+./pragmatics_enhanced_penny.py:243:            if current_state == 'caffeinated':
+./pragmatics_enhanced_penny.py:277:        # Clean up excessive caffeine references and manic energy for ALL conversations
+./pragmatics_enhanced_penny.py:278:        # The LLM seems to be generating too much coffee content
+./pragmatics_enhanced_penny.py:279:        response = response.replace("caffeine-fueled", "energy-filled")
+./pragmatics_enhanced_penny.py:281:        response = response.replace("caffeine", "energy")
+./pragmatics_enhanced_penny.py:282:        response = response.replace("coffee", "conversation")
+./pragmatics_enhanced_penny.py:289:        response = response.replace("coffee mugs", "topics")
+./pragmatics_enhanced_penny.py:290:        response = response.replace("morning coffee", "morning energy")
+./commit_adaptive_sass.py:60:• sass_controller.py - Enhanced with aggressive coffee/caffeine cleanup
+./penny_humor_integration.py:42:                "CJ, you're asking an AI for life advice. I mean, I'm flattered, but maybe call your mom?",
+./enhanced_ml_personality_core.py:296:            "- NEVER use coffee, caffeine, brew, espresso, latte, or beverage metaphors.",
+./.claude/settings.local.json:5:      "Bash(brew install:*)",
+./test_voice_penny_fixes.py:29:        "✓ Anti-coffee instruction present": "NEVER use coffee" in prompt,
+./test_voice_penny_fixes.py:49:def test_coffee_references():
+./test_voice_penny_fixes.py:50:    """TEST 2: Check for remaining coffee references in codebase"""
+./test_voice_penny_fixes.py:57:    # Search for coffee references, excluding tests and cleanup code
+./test_voice_penny_fixes.py:60:         "coffee\\|caffeine\\|brew\\|espresso\\|latte",
+./test_voice_penny_fixes.py:79:            'test_', 'NEVER use coffee', 'cleanup',
+./test_voice_penny_fixes.py:80:            '.replace("coffee"', '.replace("caffeine"',
+./test_voice_penny_fixes.py:81:            'NO coffee', '# ', 'meeting my friend Sarah for coffee'
+./test_voice_penny_fixes.py:86:    print(f"\n📊 Found {len(bad_references)} problematic coffee references:")
+./test_voice_penny_fixes.py:92:        print("  ✅ PASS: No problematic coffee references found!")
+./test_voice_penny_fixes.py:117:        has_no_coffee = "coffee" in prompt.lower() and "NEVER" in prompt
+./test_voice_penny_fixes.py:120:        status = "✅" if has_no_coffee and has_no_asterisk else "⚠️"
+./test_voice_penny_fixes.py:121:        print(f"   {status} Anti-coffee: {has_no_coffee}, Anti-asterisk: {has_no_asterisk}")
+./test_voice_penny_fixes.py:186:        "Coffee References": test_coffee_references(),
+./dynamic_personality_states.py:17:    CAFFEINATED = "caffeinated"          # High energy, rapid responses, tech puns
+./dynamic_personality_states.py:374:            'expected_states': ['caffeinated', 'focused']
+./cj_sassy_persona.json:58:      "this code looks like it was written during a caffeine crash"
+./test_coffee_cleanup.py:3:Test coffee cleanup in sass controller
+./test_coffee_cleanup.py:10:def test_coffee_cleanup():
+./test_coffee_cleanup.py:19:        # Test responses with coffee/caffeine content
+./test_coffee_cleanup.py:21:            "*buzzing with caffeine* OH BOY, I'M READY TO LEARN ALL ABOUT YOU, HUMAN!",
+./test_coffee_cleanup.py:22:            "As a caffeinated AI companion, I'm feeling extra sassy and ready!",
+./test_coffee_cleanup.py:23:            "Let's make this happen! Oh, and don't worry if you're not caffeinated enough to keep up with my rapid-fire questions – I've got your back (and a whole lot of coffee)!",
+./test_coffee_cleanup.py:24:            "OH BOY, IT'S YOUR BOI CJ! *buzzing with caffeine*",
+./test_coffee_cleanup.py:45:    test_coffee_cleanup()
+./configs/personalities/penny_unpredictable_v1.json:91:          "slightly_caffeinated",
+./sass_controller.py:255:        response = response.replace("*buzzing with caffeine*", "")
+./sass_controller.py:257:        response = response.replace("buzzing with caffeine", "excited")
+./sass_controller.py:258:        response = response.replace("caffeinated AI", "AI")
+./sass_controller.py:259:        response = response.replace("caffeinated", "energetic")
+./sass_controller.py:260:        response = response.replace("caffeine", "energy")
+./sass_controller.py:262:        response = response.replace("coffee", "conversation")
+./sass_controller.py:264:        response = response.replace("whole lot of coffee", "whole lot of enthusiasm")
+./speed_optimized_enhanced_penny.py:188:- NO coffee/caffeine metaphors ever
+./voice_activity_detector.py:61:                self.audio_buffer.append(chunk.flatten())
+./src/personality/unpredictable_penny.json:64:        "extra_caffeinated",
+./src/personality/unpredictable_response.py:181:            "slightly_caffeinated",
+./src/personality/unpredictable_response.py:193:        elif mood == "slightly_caffeinated":

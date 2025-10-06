@@ -177,8 +177,8 @@ class UnpredictablePenny:
         """Apply a random mood modifier"""
         moods = [
             "weirdly_enthusiastic",
-            "mildly_philosophical", 
-            "slightly_caffeinated",
+            "mildly_philosophical",
+            "slightly_energized",
             "unexpectedly_sincere"
         ]
         
@@ -190,8 +190,8 @@ class UnpredictablePenny:
             return f"*gets weirdly excited* {response}"
         elif mood == "mildly_philosophical":
             return f"{response} Makes you think about the nature of knowledge, doesn't it?"
-        elif mood == "slightly_caffeinated":
-            return f"*bouncing slightly* {response} Sorry, I'm just amped up right now."
+        elif mood == "slightly_energized":
+            return f"{response} I'm feeling pretty focused right now."
         elif mood == "unexpectedly_sincere":
             return f"You know what? I'm genuinely excited to talk about this. {response}"
         

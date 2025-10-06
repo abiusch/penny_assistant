@@ -61,7 +61,7 @@
       "enabled": true,
       "base_personality": "sassy_helpful",
       "random_modifiers": [
-        "extra_caffeinated",
+        "extra_energized",
         "slightly_philosophical", 
         "weirdly_enthusiastic",
         "mildly_existential",

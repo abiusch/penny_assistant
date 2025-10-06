@@ -92,7 +92,7 @@ class IntegratedMLPersonality:
             blended[PersonalityDimension.PROACTIVENESS] = min(1.0, blended.get(PersonalityDimension.PROACTIVENESS, 0.5) + 0.3)
             blended[PersonalityDimension.DIRECTNESS] = min(1.0, blended.get(PersonalityDimension.DIRECTNESS, 0.5) + 0.3)
         
-        elif current_state == PersonalityState.CAFFEINATED:
+        elif current_state == PersonalityState.ENERGIZED:
             blended[PersonalityDimension.PROACTIVENESS] = min(1.0, blended.get(PersonalityDimension.PROACTIVENESS, 0.5) + 0.2)
             blended[PersonalityDimension.CURIOSITY] = min(1.0, blended.get(PersonalityDimension.CURIOSITY, 0.5) + 0.1)
         
@@ -137,7 +137,7 @@ class IntegratedMLPersonality:
                 'frameworks': "In today's episode of 'Solutions Looking for Problems'...",
                 'debugging': "Welcome to the debugging casino - the house always wins."
             },
-            PersonalityState.CAFFEINATED: {
+            PersonalityState.ENERGIZED: {
                 'performance': "Time to make this code go BRRRR!",
                 'optimization': "Let's turn this into a speed demon!",
                 'debugging': "Error hunt mode: ACTIVATED!"
@@ -165,7 +165,7 @@ class IntegratedMLPersonality:
             ]
             return f"{response} {sass_additions[hash(response) % len(sass_additions)]}"
         
-        elif state == PersonalityState.CAFFEINATED:
+        elif state == PersonalityState.ENERGIZED:
             # Energetic sass
             return response.replace(".", "!").replace("should", "definitely should")
         
@@ -298,7 +298,7 @@ class IntegratedMLPersonality:
             state_prompt += "Be fiercely supportive and defensive of the user. Show loyalty."
         elif current_state == PersonalityState.CONTEMPLATIVE:
             state_prompt += "Provide deeper insights and philosophical perspectives. Think deeply."
-        elif current_state == PersonalityState.CAFFEINATED:
+        elif current_state == PersonalityState.ENERGIZED:
             state_prompt += "High energy responses with enthusiasm and rapid-fire solutions."
         
         return ml_prompt + state_prompt

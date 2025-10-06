@@ -240,7 +240,7 @@ Respond as Penny with your enhanced revolutionary personality:"""
         try:
             current_state = self.enhanced_penny._dynamic_states.current_state.value
             
-            if current_state == 'caffeinated':
+            if current_state == 'energized':
                 # Add energy but keep it conversational for personal questions
                 if context.get('topic') == 'personal':
                     # Light energy boost for personal conversations

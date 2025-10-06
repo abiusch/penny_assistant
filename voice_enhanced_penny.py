@@ -115,6 +115,40 @@ def main():
             print("🤷 Heard nothing. Try again.")
             return
 
+        # Validate transcription quality
+        def validate_transcription(text):
+            """Check if transcription seems coherent"""
+            issues = []
+            words = text.split()
+
+            # Too short and fragmented
+            if len(words) < 5 and text.count(',') > 2:
+                issues.append("fragmented")
+
+            # No clear question or statement structure
+            if len(words) > 3:
+                has_question_word = any(w in text.lower() for w in
+                    ['what', 'how', 'why', 'when', 'where', 'who', 'can', 'could', 'would', 'should', 'do', 'does', 'is', 'are'])
+                has_statement = any(w in text.lower() for w in
+                    ['i', 'you', 'we', 'they', 'this', 'that', 'have', 'has', 'want', 'need', 'think'])
+
+                if not has_question_word and not has_statement and len(words) < 10:
+                    issues.append("unclear_structure")
+
+            # Lots of sentence fragments
+            sentences = [s.strip() for s in text.split('.') if s.strip()]
+            short_fragments = [s for s in sentences if len(s.split()) < 3]
+            if len(sentences) > 1 and len(short_fragments) > len(sentences) / 2:
+                issues.append("too_many_fragments")
+
+            return len(issues) == 0, issues
+
+        is_valid, issues = validate_transcription(text)
+        if not is_valid:
+            print(f"⚠️ Transcription unclear (issues: {', '.join(issues)})")
+            tts.speak("Sorry, I didn't catch that clearly. Could you say that again?")
+            return
+
         print(f"🗣️ You said: {text}")
         
         # Generate enhanced response

@@ -14,8 +14,8 @@ from enum import Enum
 
 class PersonalityState(Enum):
     """Dynamic personality states that make Penny feel more alive."""
-    CAFFEINATED = "caffeinated"          # High energy, rapid responses, tech puns
-    CONTEMPLATIVE = "contemplative"      # Deeper insights, philosophical 
+    ENERGIZED = "energized"              # High energy, rapid responses, tech puns
+    CONTEMPLATIVE = "contemplative"      # Deeper insights, philosophical
     MISCHIEVOUS = "mischievous"         # Maximum sass, industry roasting
     PROTECTIVE = "protective"           # Fierce loyalty, defensive of user
     NOSTALGIC = "nostalgic"            # References past conversations
@@ -42,7 +42,7 @@ class DynamicPersonalityStates:
     def __init__(self):
         # State configurations
         self.state_configs = {
-            PersonalityState.CAFFEINATED: StateConfiguration(
+            PersonalityState.ENERGIZED: StateConfiguration(
                 humor_modifier=1.3,
                 sass_modifier=1.2,
                 technical_depth=0.9,  # Slightly less depth, more energy
@@ -172,7 +172,7 @@ class DynamicPersonalityStates:
         }
         
         # Current state tracking
-        self.current_state = PersonalityState.CAFFEINATED  # Default energetic start
+        self.current_state = PersonalityState.ENERGIZED  # Default energetic start
         self.state_start_time = time.time()
         self.state_triggers = []
         
@@ -186,9 +186,9 @@ class DynamicPersonalityStates:
         triggers = []
         user_lower = user_input.lower()
         
-        # Caffeinated triggers
+        # Energized triggers
         if any(word in user_lower for word in ['fast', 'quick', 'urgent', 'asap', 'speed']):
-            triggers.append(PersonalityState.CAFFEINATED)
+            triggers.append(PersonalityState.ENERGIZED)
         
         # Contemplative triggers  
         if any(word in user_lower for word in ['think', 'consider', 'philosophy', 'why', 'deeper']):
@@ -295,11 +295,10 @@ class DynamicPersonalityStates:
             response = f"{signature} {response}"
         
         # Modify response based on state
-        if self.current_state == PersonalityState.CAFFEINATED:
-            # Add energy and speed
-            response = response.replace(".", "!")
-            if "let's" not in response.lower():
-                response += " Let's make this happen!"
+        if self.current_state == PersonalityState.ENERGIZED:
+            # Add energy WITHOUT forced enthusiasm (dry wit maintained)
+            # State affects speed/directness, not cheerfulness
+            pass  # Speed is handled via response_speed parameter
         
         elif self.current_state == PersonalityState.CONTEMPLATIVE:
             # Add thoughtful pauses and depth
@@ -371,7 +370,7 @@ if __name__ == "__main__":
         {
             'input': "I need a quick solution to this performance issue",
             'context': {'topic': 'performance', 'emotion': 'urgent'},
-            'expected_states': ['caffeinated', 'focused']
+            'expected_states': ['energized', 'focused']
         },
         {
             'input': "Should I use microservices for this simple app?", 

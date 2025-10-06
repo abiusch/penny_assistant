@@ -47,7 +47,9 @@ def get_gpt_response(user_input, agent_mode=False, context=None, use_personality
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
             ],
-            temperature=0.8,
+            temperature=0.6,  # Lower for constraint adherence (was 0.8)
+            presence_penalty=0.5,  # Reduce repetitive enthusiasm
+            frequency_penalty=0.3,  # Encourage varied phrasing
             max_tokens=400,
         )
 

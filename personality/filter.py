@@ -47,7 +47,9 @@ def sanitize_output(text: str) -> str:
         sanitized = _sanitize_phrase(sanitized, phrase)
 
     if _EMOJI_POLICY == "none":
-        sanitized = re.sub(r"[^\w\s.,;:!?\'\"()\-\[\]]", "", sanitized)
+        # Remove emojis but preserve code formatting (backticks, equals, pipes, etc.)
+        # Keep: letters, numbers, whitespace, punctuation, and code symbols
+        sanitized = re.sub(r"[^\w\s.,;:!?\'\"()\-\[\]`=|/*+<>{}#$%&@~\\^_]", "", sanitized)
 
     if _MAX_EXCLAMATIONS <= 0:
         sanitized = sanitized.replace("!", ".")

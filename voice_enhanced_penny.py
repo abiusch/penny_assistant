@@ -77,36 +77,69 @@ def main():
     def capture_and_respond():
         import threading
         import numpy as np
+        import queue
 
-        print("\n🎤 Recording... Press Enter to stop")
+        print("\n🎤 Recording... (press Enter to stop)")
 
-        # Recording control
+        # Queue for continuous audio capture (no fragmentation)
+        audio_queue = queue.Queue()
         recording = True
-        audio_chunks = []
 
-        def check_for_enter():
+        def audio_callback(indata, frames, time_info, status):
+            """Called automatically by sounddevice for each audio block"""
+            if recording:
+                if status.input_overflow:
+                    print("⚠️  Audio buffer overflow - may cause gaps")
+                audio_queue.put(indata.copy())
+
+        def wait_for_enter():
+            """Wait for Enter key in separate thread"""
             nonlocal recording
-            input()  # Wait for Enter
+            input()
             recording = False
-            print("⏹️  Stopping recording...")
 
-        # Start Enter-detection thread
-        enter_thread = threading.Thread(target=check_for_enter, daemon=True)
+        # Start Enter-waiting thread
+        enter_thread = threading.Thread(target=wait_for_enter, daemon=True)
         enter_thread.start()
 
-        # Record in chunks until Enter is pressed
-        with time_operation(OperationType.STT):
-            while recording:
-                # Record 0.5 second chunks
-                chunk = sd.rec(int(0.5 * 16000), samplerate=16000, channels=1, blocking=True)
-                if recording:  # Check again in case Enter was pressed during recording
-                    audio_chunks.append(chunk)
+        # Start continuous background recording (no chunking = no gaps)
+        try:
+            with time_operation(OperationType.STT):
+                with sd.InputStream(
+                    samplerate=16000,
+                    channels=1,
+                    dtype='float32',
+                    callback=audio_callback,
+                    blocksize=8192
+                ):
+                    # Recording happens in background via callback
+                    enter_thread.join()  # Wait until Enter pressed
+        except Exception as e:
+            print(f"❌ Recording error: {e}")
+            return
 
-            # Combine all chunks
-            if audio_chunks:
-                audio_data = np.concatenate(audio_chunks, axis=0)
-            else:
-                audio_data = np.array([[]])
+        print("⏹️  Stopping recording...")
+
+        # Collect all captured audio chunks (captured continuously, no gaps)
+        audio_chunks = []
+        while not audio_queue.empty():
+            audio_chunks.append(audio_queue.get())
+
+        if not audio_chunks:
+            print("🤷 No audio captured")
+            return
+
+        # Concatenate chunks (these were captured continuously by callback)
+        audio_data = np.concatenate(audio_chunks, axis=0)
+
+        # Validate audio quality
+        audio_max = np.abs(audio_data).max()
+        audio_mean = np.abs(audio_data).mean()
+        print(f"[STT Debug] Audio volume: {audio_mean:.6f}, max: {audio_max:.4f}")
+
+        if audio_max < 0.0005:
+            print("🤷 Audio too quiet - speak louder or closer to mic")
+            return
 
         # Transcribe
         text = transcribe_audio(audio_data)

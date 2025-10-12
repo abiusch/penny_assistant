@@ -21,23 +21,73 @@ from autonomous_research_tool_server import (
     KnowledgeGapType,
 )
 
+try:
+    from src.core.query_classifier import needs_research as shared_needs_research
+except ImportError:  # pragma: no cover - fallback for isolated tooling
+    shared_needs_research = None
+
 
 class FactualQueryClassifier:
     """Heuristic classifier to decide when research or disclaimers are needed."""
 
-    FINANCIAL_KEYWORDS = {
-        "invest", "investment", "stock", "stocks", "portfolio", "equity",
-        "share", "shares", "dividend", "market", "valuation", "ipo",
-        "earnings", "revenue", "fund", "hedge", "etf", "crypto",
-        "token", "financial", "finance", "trading", "price", "buy",
-        "sell", "acquire", "merger", "m&a"
+    FINANCIAL_PHRASES = {
+        "stock market", "stock price", "share price", "price target",
+        "earnings report", "quarterly results", "market cap", "market capitalization",
+        "financial statement", "investment strategy", "mutual fund", "401k",
+        "roth ira", "retirement account", "cryptocurrency", "crypto price",
+        "bitcoin price", "ethereum price", "mortgage rate", "interest rate",
+        "federal reserve", "fed rate", "option contract", "options trading",
+        "initial public offering", "mergers and acquisitions", "valuation model"
     }
 
-    FACTUAL_KEYWORDS = {
-        "what is", "who is", "tell me about", "background", "history",
-        "latest", "current", "update", "overview", "explain", "details",
-        "company", "product", "service", "technology", "market",
-        "research", "emerging", "startups", "companies"
+    STRONG_FINANCIAL_KEYWORDS = {
+        "invest", "investment", "investing", "stock", "stocks", "portfolio",
+        "equity", "dividend", "ipo", "earnings", "revenue", "etf",
+        "crypto", "cryptocurrency", "bitcoin", "ethereum", "financial",
+        "finance", "trading", "brokerage", "hedge fund", "mutual fund",
+        "bond", "options", "merger", "acquisition", "valuation"
+    }
+
+    WEAK_FINANCIAL_KEYWORDS = {
+        "price", "prices", "buy", "sell", "market", "budget"
+    }
+
+    FINANCIAL_CONTEXT_WORDS = {
+        "stock", "stocks", "share", "shares", "portfolio", "invest", "investment",
+        "investing", "crypto", "cryptocurrency", "bitcoin", "ethereum",
+        "fund", "funds", "etf", "bond", "bonds", "option", "options",
+        "retirement", "mortgage", "valuation", "revenue", "earnings"
+    }
+
+    FINANCIAL_CONTEXT_PHRASES = {
+        "mutual fund", "mutual funds", "401k", "ira", "roth ira"
+    }
+
+    PROGRAMMING_KEYWORDS = {
+        "python", "javascript", "java", "c++", "c#", "go", "golang",
+        "rust", "typescript", "sql", "html", "css", "bash", "shell",
+        "code", "coding", "program", "programming", "script", "function",
+        "method", "class", "module", "package", "library", "api", "endpoint",
+        "debug", "bug", "error", "exception", "stack trace", "traceback",
+        "variable", "loop", "list", "array", "dictionary", "tuple",
+        "algorithm", "compile", "runtime", "test", "unit test",
+        "recursion", "recursive", "iterate", "iteration", "callback",
+        "async", "await", "promise", "lambda", "closure", "decorator",
+        "regex", "regular expression", "parse", "parser", "serialize"
+    }
+
+    PROGRAMMING_PHRASES = {
+        "how do i", "how to", "what is the difference", "explain the",
+        "example of", "sample code", "fix this", "solve this", "debug",
+        "error message", "stack trace", "traceback", "why does",
+        "write a", "write an", "write code", "write function",
+        "create a", "create an", "create function", "create code",
+        "implement", "implement a", "implement an", "implement function",
+        "can you write", "can you create", "can you make",
+        "build a", "build an", "make a", "make an",
+        "best way to", "difference between",
+        "what does this", "review this", "review my", "check this",
+        "fix my code", "debug this", "what's wrong with"
     }
 
     PERSONAL_KEYWORDS = {
@@ -71,6 +121,17 @@ class FactualQueryClassifier:
 
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
 
+    TIME_SENSITIVE_PATTERNS = [
+        r'\b(?:latest|recent|current|today|this week|this month|new|updated?|202[0-9])\b',
+        r'\b(?:breaking|news|announced|released|launched|just)\b',
+        r'\b(?:now|currently|recently|lately)\b'
+    ]
+
+    HIGH_RISK_PATTERNS = [
+        r'\b(?:stock|market|valuation|earnings|revenue)\b',
+        r'\b(?:price|prices|pricing|update|upgrade|version|release|patch)\b'
+    ]
+
     def requires_research(self, text: str) -> bool:
         """Smart research triggering - only for high-risk categories that require current data"""
         if not text:
@@ -98,26 +159,16 @@ class FactualQueryClassifier:
         if has_explicit_request:
             return True
 
-        # ALWAYS require research for financial/investment queries (high risk)
-        if any(keyword in lowered for keyword in self.FINANCIAL_KEYWORDS):
+        if self._is_financial_query(lowered):
             return True
 
-        # Time-sensitive queries that need current information
-        time_sensitive_patterns = [
-            r'\b(?:latest|recent|current|today|this week|this month|new|updated?|2024|2025)\b',
-            r'\b(?:breaking|news|announced|released|launched|just)\b',
-            r'\b(?:now|currently|recently|lately)\b'
-        ]
-        if any(re.search(pattern, lowered) for pattern in time_sensitive_patterns):
+        if any(re.search(pattern, lowered) for pattern in self.TIME_SENSITIVE_PATTERNS):
             return True
 
-        # Specific high-risk factual categories that change frequently
-        high_risk_patterns = [
-            r'\b(?:price|pricing|cost|stock|market|valuation|earnings|revenue)\b',
-            r'\b(?:statistics|numbers|data|study|research|survey)\b',
-            r'\b(?:update|upgrade|version|release|patch)\b'
-        ]
-        if any(re.search(pattern, lowered) for pattern in high_risk_patterns):
+        if self._is_basic_programming_question(lowered):
+            return False
+
+        if any(re.search(pattern, lowered) for pattern in self.HIGH_RISK_PATTERNS):
             return True
 
         # Questions about specific company developments or tech specs
@@ -126,6 +177,9 @@ class FactualQueryClassifier:
             if any(word in lowered for word in ["company", "robot", "technology", "product", "service"]):
                 return True
 
+        if shared_needs_research is not None:
+            return shared_needs_research(text)
+
         # Everything else can use training knowledge
         return False
 
@@ -133,7 +187,53 @@ class FactualQueryClassifier:
         if not text:
             return False
         lowered = text.lower()
-        return any(keyword in lowered for keyword in self.FINANCIAL_KEYWORDS)
+        return self._is_financial_query(lowered)
+
+    def _contains_any_word(self, lowered: str, words: set[str]) -> bool:
+        """Return True if any whole-word match from words is found in lowered."""
+        return any(re.search(r'\b' + re.escape(word) + r'\b', lowered) for word in words)
+
+    def _is_financial_query(self, lowered: str) -> bool:
+        """Detect if text is asking about financial topics that need current info."""
+        if any(phrase in lowered for phrase in self.FINANCIAL_PHRASES):
+            return True
+
+        if self._contains_any_word(lowered, self.STRONG_FINANCIAL_KEYWORDS):
+            return True
+
+        if self._contains_any_word(lowered, self.WEAK_FINANCIAL_KEYWORDS):
+            if (self._contains_any_word(lowered, self.FINANCIAL_CONTEXT_WORDS)
+                    or any(phrase in lowered for phrase in self.FINANCIAL_CONTEXT_PHRASES)):
+                return True
+
+        return False
+
+    def _is_basic_programming_question(self, lowered: str) -> bool:
+        """Detect coding/programming help that should use training knowledge."""
+        # Check for explicit programming phrases first (even without keywords)
+        if any(phrase in lowered for phrase in self.PROGRAMMING_PHRASES):
+            # But skip if it's time-sensitive
+            if re.search(r'\b(?:latest|current|recent|202[0-9])\b', lowered):
+                return False
+            if any(pattern in lowered for pattern in self.EXPLICIT_RESEARCH_REQUESTS):
+                return False
+            return True
+
+        # Check for programming keywords
+        if not self._contains_any_word(lowered, self.PROGRAMMING_KEYWORDS):
+            return False
+
+        if re.search(r'\b(?:latest|current|recent|202[0-9])\b', lowered):
+            return False
+
+        if any(pattern in lowered for pattern in self.EXPLICIT_RESEARCH_REQUESTS):
+            return False
+
+        code_markers = ['def ', 'class ', 'try:', 'except', 'import ', 'console.log', '=>', 'error:', 'traceback', 'stack trace']
+        if any(marker in lowered for marker in code_markers):
+            return True
+
+        return True  # If has programming keywords, assume it's a programming question
 
     def extract_entities(self, text: str, limit: int = 5) -> List[str]:
         if not text:

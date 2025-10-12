@@ -8,9 +8,14 @@ except Exception:
 class GPTOSS:
     def __init__(self, config):
         self.config = config or {}
-        self.model = (self.config.get("llm") or {}).get("model", "gpt-oss-20b")
+        llm_config = self.config.get("llm") or {}
+        self.model = llm_config.get("model", "gpt-oss-20b")
+        self.temperature = llm_config.get("temperature", 0.6)
+        self.presence_penalty = llm_config.get("presence_penalty", 0.5)
+        self.frequency_penalty = llm_config.get("frequency_penalty", 0.3)
+        self.max_tokens = llm_config.get("max_tokens", 512)
         self.available = GPTOSS_AVAILABLE
-        
+
         # Log availability status
         if not self.available:
             print("[LLM] WARNING: gpt-oss not available, will use fallback responses")
@@ -28,8 +33,15 @@ class GPTOSS:
             return random.choice(fallback_responses)
             
         try:
-            # basic call, you can expand with params (max_tokens, temperature)
-            result = gpt_oss.generate(self.model, prompt)
+            # Call with temperature, penalties, and max_tokens from config
+            result = gpt_oss.generate(
+                self.model,
+                prompt,
+                temperature=self.temperature,
+                presence_penalty=self.presence_penalty,
+                frequency_penalty=self.frequency_penalty,
+                max_tokens=self.max_tokens
+            )
             if isinstance(result, dict):
                 return result.get("text", prompt)
             return str(result)

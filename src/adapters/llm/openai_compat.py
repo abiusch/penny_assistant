@@ -11,6 +11,8 @@ class OpenAICompatLLM:
         self.api_key = llm.get("api_key", "lm-studio")  # LM Studio ignores value but header must exist
         self.model = llm.get("model", "openai/gpt-oss-20b")
         self.temperature = float(llm.get("temperature", 0.6))
+        self.presence_penalty = float(llm.get("presence_penalty", 0.5))
+        self.frequency_penalty = float(llm.get("frequency_penalty", 0.3))
         self.max_tokens = int(llm.get("max_tokens", 512))
         self.timeout = float(llm.get("timeout", 60))
         self._session = requests.Session()
@@ -62,6 +64,8 @@ class OpenAICompatLLM:
             body: Dict[str, Any] = {
                 "model": self.model,
                 "temperature": self.temperature,
+                "presence_penalty": self.presence_penalty,
+                "frequency_penalty": self.frequency_penalty,
                 "max_tokens": self.max_tokens,
                 "messages": [
                     {"role": "system", "content": final_system_prompt},

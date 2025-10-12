@@ -403,8 +403,9 @@ class ResearchQuestionGenerator:
         """Generate research questions from a knowledge gap"""
         questions = []
 
-        # Extract topics from the gap context
-        topics = await self._extract_topics(knowledge_gap.context)
+        # Extract topics from the gap description (user query) first, fallback to context
+        source_text = knowledge_gap.description if knowledge_gap.description else knowledge_gap.context
+        topics = await self._extract_topics(source_text)
 
         # Generate questions based on gap type
         templates = self.question_templates.get(knowledge_gap.gap_type,
@@ -428,20 +429,71 @@ class ResearchQuestionGenerator:
         return questions
 
     async def _extract_topics(self, context: str) -> Dict[str, str]:
-        """Extract key topics from context"""
-        # Simple topic extraction - could be enhanced with NLP
-        words = context.split()
+        """Extract key topics from context using improved entity extraction"""
         topics = {}
 
-        # Look for nouns and technical terms
-        for word in words:
-            if len(word) > 3 and word.isalnum():
-                if word.lower() not in ['that', 'this', 'what', 'how', 'when', 'where', 'why']:
-                    topics['topic'] = word
-                    break
+        # Common stopwords to exclude
+        stopwords = {
+            'what', 'whats', 'when', 'where', 'who', 'why', 'how',
+            'is', 'are', 'the', 'a', 'an', 'do', 'does', 'did',
+            'that', 'this', 'those', 'these', 'with', 'from', 'for',
+            'current', 'latest', 'tell', 'show', 'give', 'get'
+        }
 
-        # Default fallback
-        if not topics:
+        words = context.split()
+
+        # Strategy 1: Extract capitalized entities (proper nouns like "Ethereum", "Bitcoin")
+        entities = []
+        for word in words:
+            clean_word = word.strip('.,?!;:\'\"')
+            # Skip if it's a contraction (has apostrophe) or a stopword
+            if clean_word and len(clean_word) > 1 and clean_word[0].isupper():
+                # Skip contractions like "What's", "That's", "It's"
+                if "'" in clean_word:
+                    continue
+                if clean_word.lower() not in stopwords:
+                    entities.append(clean_word)
+
+        if entities:
+            # Use capitalized entities (most reliable for proper nouns)
+            topics['topic'] = ' '.join(entities[:2])  # Max 2 entities for cleaner queries
+            return topics
+
+        # Strategy 2: Look for key terms (crypto names, products, etc.)
+        # Common entities that might not be capitalized in casual text
+        known_entities = [
+            'ethereum', 'bitcoin', 'btc', 'eth', 'crypto', 'cryptocurrency',
+            'python', 'javascript', 'rust', 'golang', 'typescript',
+            'openai', 'anthropic', 'chatgpt', 'claude'
+        ]
+
+        found_entities = []
+        for word in words:
+            clean_word = word.strip('.,?!;:\'\"').lower()
+            if clean_word in known_entities:
+                found_entities.append(clean_word)
+
+        if found_entities:
+            topics['topic'] = ' '.join(found_entities[:2])
+            return topics
+
+        # Strategy 3: Extract important non-stopword terms
+        important_words = []
+        for word in words:
+            clean_word = word.strip('.,?!;:\'\"').lower()
+            if len(clean_word) > 3 and clean_word not in stopwords:
+                important_words.append(clean_word)
+
+        if important_words:
+            # Use first 1-2 important words (not 3 - that makes queries too long)
+            topics['topic'] = ' '.join(important_words[:2])
+            return topics
+
+        # Strategy 4: Last resort - use the full query minus stopwords
+        filtered = [w.strip('.,?!;:\'\"') for w in words if w.lower() not in stopwords]
+        if filtered:
+            topics['topic'] = ' '.join(filtered[:3])
+        else:
             topics['topic'] = "the subject"
 
         return topics

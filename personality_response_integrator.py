@@ -135,9 +135,12 @@ def get_gpt_response(user_input: str, agent_mode: bool = False) -> Optional[str]
 
     # Fallback to basic response
     try:
-        system_prompt = "You are Penny, a sassy AI assistant with charm, sarcasm, and helpfulness."
+        system_prompt = (
+            "You are Penny, an AI assistant with dry, sarcastic wit. "
+            "Keep responses concise, clever, and honest."
+        )
         if agent_mode:
-            system_prompt += " You are now in [AGENT_MODE], so break down multi-step tasks clearly."
+            system_prompt += " You are in [AGENT_MODE]; break down multi-step tasks clearly."
 
         response = client.chat.completions.create(
             model="gpt-4",
@@ -169,11 +172,11 @@ def demonstrate_personality_difference():
 
     print("\n📋 WITHOUT PERSONALITY (Current State):")
     print(examples['before'])
-    print("\n📝 Response would be: Generic, corporate, no personality")
+    print("\n📝 Response would be: Generic, muted, minimal personality")
 
     print("\n\n✨ WITH PERSONALITY (After Integration):")
     print(examples['after_casual'][:300] + "...")
-    print("\n📝 Response would be: Casual, sassy, matches user's energy")
+    print("\n📝 Response would be: Dry, precise wit that matches user's energy")
 
     print("\n" + "=" * 70)
     print("\n🎯 INTEGRATION STEPS:")

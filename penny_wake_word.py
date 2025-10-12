@@ -3,6 +3,7 @@
 
 import sounddevice as sd
 import time
+from voice_entry import respond as voice_respond
 from stt_engine import transcribe_audio
 from core.llm_router import get_llm
 from core.wake_word import detect_wake_word, extract_command
@@ -60,7 +61,11 @@ def process_command(command: str):
     
     # Get LLM response
     llm = get_llm()
-    response = llm.generate(command) if hasattr(llm, 'generate') else llm.complete(command)
+    def generator(system_prompt: str, user_text: str) -> str:
+        del system_prompt
+        return llm.generate(user_text) if hasattr(llm, 'generate') else llm.complete(user_text)
+
+    response = voice_respond(command, generator=generator)
     
     print(f"🤖 Response: {response}")
     print("🔊 Speaking...")

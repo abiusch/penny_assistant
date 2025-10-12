@@ -5,6 +5,7 @@ from stt_engine import transcribe_audio
 from core.llm_router import get_llm
 from src.audio.tts_engine import speak_text
 from src.core.intent_router import is_agent_mode_trigger
+from voice_entry import respond as voice_respond
 from pynput import keyboard  # ✅ REPLACED `keyboard` WITH `pynput`
 
 def capture_and_handle():
@@ -21,7 +22,16 @@ def capture_and_handle():
     print(f"🗣️ You said: {text}")
     agent_mode = is_agent_mode_trigger(text)
     llm = get_llm()
-    response = llm.generate(text) if hasattr(llm, 'generate') else llm.complete(text)
+
+    def llm_generator(system_prompt: str, user_text: str) -> str:
+        prompt = f"{system_prompt}\n\nUser: {user_text}".strip()
+        if agent_mode:
+            prompt = f"{system_prompt}\n\n[AGENT_MODE REQUEST]\nUser: {user_text}".strip()
+        if hasattr(llm, "generate"):
+            return llm.generate(prompt)
+        return llm.complete(prompt)
+
+    response = voice_respond(text, generator=llm_generator)
     speak_text(response)
 
 # ✅ NEW HOTKEY HANDLER USING `pynput`

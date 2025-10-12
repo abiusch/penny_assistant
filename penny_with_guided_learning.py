@@ -10,6 +10,8 @@ import sys
 import os
 import time
 
+from voice_entry import respond as voice_respond
+
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
@@ -122,7 +124,11 @@ def main():
         # Process through enhanced pipeline with guided learning
         try:
             start_time = time.time()
-            enhanced_response = pipeline.think(text)
+            def generator(system_prompt: str, user_text: str) -> str:
+                del system_prompt
+                return pipeline.think(user_text)
+
+            enhanced_response = voice_respond(text, generator=generator)
             process_time = (time.time() - start_time) * 1000
             
             print(f"🤖 Penny: {enhanced_response}")

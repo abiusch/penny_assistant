@@ -3,6 +3,7 @@
 
 import sounddevice as sd
 import time
+from voice_entry import respond as voice_respond
 from stt_engine import transcribe_audio
 from core.llm_router import get_llm
 from core.wake_word import detect_wake_word, extract_command
@@ -110,16 +111,20 @@ def process_command(command: str):
         prompt = f"{command}\n(Respond in 1-2 sentences for voice output)"
         
         # Get response with context
-        if hasattr(llm, 'generate'):
-            response = llm.generate(prompt, context=context)
-        else:
-            # Fallback if generate doesn't support context
-            if context:
-                full_prompt = f"Previous conversation:\n{context}\n\nUser: {prompt}"
-                response = llm.complete(full_prompt)
+        def generator(system_prompt: str, user_text: str) -> str:
+            del system_prompt
+            if hasattr(llm, 'generate'):
+                result = llm.generate(prompt, context=context)
             else:
-                response = llm.complete(prompt)
-        
+                if context:
+                    full_prompt = f"Previous conversation:\n{context}\n\nUser: {prompt}"
+                    result = llm.complete(full_prompt)
+                else:
+                    result = llm.complete(prompt)
+            return result
+
+        response = voice_respond(command, generator=generator)
+
         # Truncate if too long
         sentences = response.split('. ')
         if len(sentences) > 2:

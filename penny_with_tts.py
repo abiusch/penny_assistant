@@ -2,8 +2,10 @@
 """Penny Assistant with Text-to-Speech."""
 
 import sounddevice as sd
+from voice_entry import respond as voice_respond
 from stt_engine import transcribe_audio
 from core.llm_router import get_llm
+from core.intent_router import is_agent_mode_trigger
 from adapters.tts.google_tts_adapter import GoogleTTS
 
 # Set the correct microphone
@@ -27,7 +29,17 @@ def capture_and_handle():
     
     # Get LLM response
     llm = get_llm()
-    response = llm.generate(text) if hasattr(llm, 'generate') else llm.complete(text)
+
+    def generator(system_prompt: str, user_text: str) -> str:
+        agent_mode = is_agent_mode_trigger(user_text)
+        prompt = f"{system_prompt}\n\nUser: {user_text}".strip()
+        if agent_mode:
+            prompt = f"{system_prompt}\n\n[AGENT_MODE REQUEST]\nUser: {user_text}".strip()
+        if hasattr(llm, 'generate'):
+            return llm.generate(prompt)
+        return llm.complete(prompt)
+
+    response = voice_respond(text, generator=generator)
     print(f"🤖 Response: {response}")
     
     # Speak the response

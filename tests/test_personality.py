@@ -17,6 +17,7 @@ import os
 from unittest.mock import patch, mock_open
 
 from core.personality import apply, _detect_sensitive_content, _load_config, TONE_PRESETS
+from personality.filter import sanitize_output
 
 
 class TestPersonalityApply:
@@ -195,7 +196,7 @@ class TestPersonalityIdempotence:
             
         # Results might be the same due to randomness, but structure should be valid
         assert all(isinstance(result, str) for result in [friendly_result, dry_result, concise_result, penny_result])
-        
+
     def test_consistent_output_type(self):
         """Test that apply() always returns a string."""
         test_cases = [
@@ -279,7 +280,22 @@ class TestConfigLoading:
             assert len(result) > 0
 
 
+def test_forbidden_phrases_removed():
+    """Sanitizer removes banned phrases without over-scrubbing."""
+    sample = "I’m all ears, data-daddy! super pumped!"
+    out = sanitize_output(sample)
+    assert "ears" in out
+    assert "data-daddy" not in out
+    assert "super pumped" not in out
+    assert "!" not in out
+
+
+def test_no_emoji():
+    """Sanitizer strips emoji characters."""
+    sample = "Alright 🙂"
+    out = sanitize_output(sample)
+    assert "🙂" not in out
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
-    assert isinstance(config, dict)
-    assert "personality" in config

@@ -11,6 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 # Import the unpredictable personality system
 from personality.unpredictable_response import UnpredictablePenny
+from voice_entry import respond as voice_respond
 
 def main():
     print("💬 Starting PennyGPT with Natural Voice!")
@@ -99,17 +100,18 @@ def main():
 
         print(f"🗣️ You said: {text}")
         
-        # Get LLM response with instruction for brevity
         try:
             llm = get_llm()
-            # Add instruction for shorter, conversational responses
-            prompt = f"Please give a brief, conversational response (2-3 sentences max) to: {text}"
-            original_response = llm.generate(prompt) if hasattr(llm, 'generate') else llm.complete(prompt)
-            
-            # Apply personality enhancement to make it entertaining
-            enhanced_response = unpredictable_penny.enhance_response(original_response, text)
-            unpredictable_penny.log_conversation(text, enhanced_response)
-            
+
+            def generator(system_prompt: str, user_text: str) -> str:
+                instruction = "Keep this brief and conversational (2-3 sentences)."
+                prompt = f"{system_prompt}\n\n{instruction}\nUser: {user_text}".strip()
+                original = llm.generate(prompt) if hasattr(llm, 'generate') else llm.complete(prompt)
+                enhanced = unpredictable_penny.enhance_response(original, user_text)
+                unpredictable_penny.log_conversation(user_text, enhanced)
+                return enhanced
+
+            enhanced_response = voice_respond(text, generator=generator)
             print(f"🤖 Penny: {enhanced_response}")
         except Exception as e:
             print(f"❌ LLM failed: {e}")

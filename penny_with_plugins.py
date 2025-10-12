@@ -14,6 +14,8 @@ from pygame import mixer
 import io
 import numpy as np
 
+from voice_entry import respond as voice_respond
+
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
@@ -192,12 +194,18 @@ class PennyWithPlugins:
         
         # Process through plugin system
         response = await self.handle_query(command)
-        print(f"Response: {response}")
-        
+
+        def generator(system_prompt: str, user_text: str) -> str:
+            del system_prompt, user_text
+            return response
+
+        sanitized_response = voice_respond(command, generator=generator)
+        print(f"Response: {sanitized_response}")
+
         # Speak the response
-        if response:
+        if sanitized_response:
             print("Speaking response...")
-            success = await self.speak_response(response)
+            success = await self.speak_response(sanitized_response)
             if not success and self.tts_enabled:
                 print("TTS failed, but response generated successfully")
 

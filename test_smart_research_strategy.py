@@ -38,6 +38,19 @@ def test_smart_research_classification():
                 "expected_behavior": "Use training knowledge with general disclaimers"
             },
 
+            {
+                "category": "Programming Help (No Research)",
+                "queries": [
+                    "How do I reverse a list in Python?",
+                    "Why am I getting a KeyError in this dictionary lookup?",
+                    "Explain this stack trace in JavaScript",
+                    "Fix this error: TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+                    "What's the difference between a list and tuple in Python?"
+                ],
+                "should_research": False,
+                "expected_behavior": "Should rely on training knowledge for coding guidance"
+            },
+
             # Should NOT require research (personal/conversational)
             {
                 "category": "Personal/Conversational (No Research)",

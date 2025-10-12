@@ -32,14 +32,26 @@ def get_gpt_response(user_input, agent_mode=False, context=None, use_personality
             except Exception as e:
                 # Fallback to basic prompt if personality system fails
                 print(f"⚠️ Personality system unavailable: {e}")
-                system_prompt = "You are Penny, a sassy AI assistant with charm, sarcasm, and helpfulness."
+                system_prompt = (
+                    "You are Penny, an AI assistant with dry, sarcastic wit. "
+                    "Keep responses concise, clever, and honest."
+                )
                 if agent_mode:
-                    system_prompt += " You are now in [AGENT_MODE], so break down multi-step tasks and narrate each one clearly before performing it."
+                    system_prompt += (
+                        " You are now in [AGENT_MODE]; break down multi-step tasks and "
+                        "narrate each one clearly before performing it."
+                    )
         else:
             # Use basic prompt without personality
-            system_prompt = "You are Penny, a sassy AI assistant with charm, sarcasm, and helpfulness."
+            system_prompt = (
+                "You are Penny, an AI assistant with dry, sarcastic wit. "
+                "Keep responses concise, clever, and honest."
+            )
             if agent_mode:
-                system_prompt += " You are now in [AGENT_MODE], so break down multi-step tasks and narrate each one clearly before performing it."
+                system_prompt += (
+                    " You are now in [AGENT_MODE]; break down multi-step tasks and "
+                    "narrate each one clearly before performing it."
+                )
 
         response = client.chat.completions.create(
             model="gpt-4",
@@ -58,4 +70,3 @@ def get_gpt_response(user_input, agent_mode=False, context=None, use_personality
     except Exception as e:
         print(f"[ERROR_MODE] GPT call failed: {e}")
         return None
-

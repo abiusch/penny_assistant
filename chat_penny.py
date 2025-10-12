@@ -14,9 +14,10 @@ from typing import Dict, Optional
 # Ensure local packages can be imported when launched via VS Code task
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+from chat_entry import respond as chat_respond
 from core.pipeline import State
-from research_first_pipeline import ResearchFirstPipeline
 from personality_observer import PersonalityObserver
+from research_first_pipeline import ResearchFirstPipeline
 
 logger = logging.getLogger("chat_penny")
 logging.basicConfig(level=logging.INFO)
@@ -85,6 +86,14 @@ def run_chat_loop(
             asyncio.run(coro)
         except Exception as exc:  # pragma: no cover - observer failure shouldn't stop chat
             logger.warning("Personality observer %s failed: %s", description, exc)
+
+    def pipeline_generator(system_prompt: str, user_text: str) -> str:
+        del system_prompt  # personality handled inside pipeline prompts
+        pipeline.state = State.THINKING
+        try:
+            return pipeline.think(user_text)
+        finally:
+            pipeline.state = State.IDLE
     try:
         while True:
             try:
@@ -121,9 +130,7 @@ def run_chat_loop(
                     "observe_user_message",
                 )
 
-            pipeline.state = State.THINKING
-            response = pipeline.think(user_input)
-            pipeline.state = State.IDLE
+            response = chat_respond(user_input, generator=pipeline_generator)
 
             if not response:
                 response = "I didn't catch that. Could you rephrase?"

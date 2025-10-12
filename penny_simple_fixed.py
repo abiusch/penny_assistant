@@ -2,6 +2,7 @@
 """Penny Assistant - Simple version with correct microphone."""
 
 import sounddevice as sd
+from voice_entry import respond as voice_respond
 from stt_engine import transcribe_audio
 from core.llm_router import get_llm
 
@@ -23,7 +24,14 @@ def capture_and_handle():
     
     # Use configured LLM
     llm = get_llm()
-    response = llm.generate(text) if hasattr(llm, 'generate') else llm.complete(text)
+
+    def generator(system_prompt: str, user_text: str) -> str:
+        prompt = f"{system_prompt}\n\nUser: {user_text}".strip()
+        if hasattr(llm, 'generate'):
+            return llm.generate(prompt)
+        return llm.complete(prompt)
+
+    response = voice_respond(text, generator=generator)
     print(f"🤖 Response: {response}")
 
 if __name__ == '__main__':

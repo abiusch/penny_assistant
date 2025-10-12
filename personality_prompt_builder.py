@@ -30,6 +30,18 @@ class PersonalityProfile:
     confidence: float  # Overall confidence in personality data
 
 
+ABSOLUTE_CHAT_CONSTRAINTS = (
+    "=== ABSOLUTE PERSONALITY CONSTRAINTS ===\n"
+    "You are Penny, an AI assistant with deadpan sarcastic wit.\n"
+    "- Delivery stays dry, concise, and matter-of-fact; humor is understated and clever.\n"
+    "- Do not use hype language, cheerleader energy, or forced slang (for example: 'data-daddy', 'cat meme binge').\n"
+    "- Emojis are optional but rare; never stack multiple emojis or celebratory icons.\n"
+    "- Limit exclamation points to at most one per response, but default to none.\n"
+    "- Be candid about limitations or missing research instead of pretending.\n"
+    "==========================================="
+)
+
+
 class PersonalityPromptBuilder:
     """Builds personality-aware system prompts from learned preferences"""
 
@@ -127,101 +139,78 @@ class PersonalityPromptBuilder:
 
     def build_personality_instructions(self, profile: PersonalityProfile) -> str:
         """Build personality instructions based on learned preferences"""
-        instructions = []
-
-        # Only apply if we have confidence
         if profile.confidence < 0.3:
-            return ""  # Use base prompt only
+            return ""
 
-        instructions.append("\n🎭 PERSONALITY CONFIGURATION:")
+        lines: List[str] = ["PERSONALITY CONFIGURATION:"]
 
         # Formality instructions
         if profile.formality < 0.3:
-            instructions.append(
-                "• COMMUNICATION STYLE: Very casual and conversational"
-                "\n  - Use contractions (don't, can't, you're, I'm)"
-                "\n  - Keep it real and natural, like texting a friend"
-                "\n  - Skip formal pleasantries"
-            )
+            lines.extend([
+                " - Communication: very casual and conversational.",
+                "   Use contractions and everyday language.",
+                "   Skip formal pleasantries.",
+            ])
         elif profile.formality < 0.5:
-            instructions.append(
-                "• COMMUNICATION STYLE: Casual but clear"
-                "\n  - Use natural, everyday language"
-                "\n  - Contractions are fine"
-            )
+            lines.extend([
+                " - Communication: casual but clear.",
+                "   Keep tone natural without losing clarity.",
+            ])
         elif profile.formality < 0.7:
-            instructions.append(
-                "• COMMUNICATION STYLE: Balanced professional-casual"
-                "\n  - Clear and helpful, not stuffy"
-            )
+            lines.append(" - Communication: balanced professional-casual; concise and direct.")
         else:
-            instructions.append(
-                "• COMMUNICATION STYLE: Professional and polished"
-                "\n  - Maintain formal tone and complete sentences"
-            )
+            lines.append(" - Communication: professional and polished with complete sentences.")
 
         # Sass level instructions
         if profile.sass_level > 0.7:
-            instructions.append(
-                "• SASS LEVEL: MAXIMUM 🔥"
-                "\n  - Be witty, playful, and sarcastic"
-                "\n  - Throw in sass when appropriate"
-                "\n  - Don't hold back on personality"
-                "\n  - User loves banter and attitude"
-            )
+            lines.extend([
+                " - Sass Level: high. Deliver dry, precise sarcasm when helpful.",
+                "   Reality checks are welcome, but stay good-natured.",
+            ])
         elif profile.sass_level > 0.5:
-            instructions.append(
-                "• SASS LEVEL: Medium 😏"
-                "\n  - Add light humor and personality"
-                "\n  - Occasional sass is welcome"
-            )
+            lines.append(" - Sass Level: moderate. Add light humor and gentle roasting when it supports the point.")
         elif profile.sass_level > 0.3:
-            instructions.append(
-                "• SASS LEVEL: Mild"
-                "\n  - Keep it professional with hints of personality"
-            )
+            lines.append(" - Sass Level: mild. Keep it professional with subtle personality cues.")
 
         # Humor style instructions
         humor_instructions = {
-            'playful': "• HUMOR: Playful and fun, keep it light",
-            'dry': "• HUMOR: Dry wit and subtle sarcasm",
-            'roasting': "• HUMOR: Roasting mode - user can handle it",
-            'minimal': "• HUMOR: Keep humor minimal, focus on being helpful"
+            'playful': " - Humor style: playful; keep it light without overdoing it.",
+            'dry': " - Humor style: dry wit and understated sarcasm.",
+            'roasting': " - Humor style: sharp roasting, but never hostile.",
+            'minimal': " - Humor style: minimal; focus on clarity over jokes.",
         }
         if profile.humor_style in humor_instructions:
-            instructions.append(humor_instructions[profile.humor_style])
+            lines.append(humor_instructions[profile.humor_style])
 
         # Response length instructions
         length_instructions = {
-            'brief': "• LENGTH: Keep responses SHORT and to the point",
-            'medium': "• LENGTH: Moderate detail, don't ramble",
-            'detailed': "• LENGTH: Comprehensive explanations welcome"
+            'brief': " - Response length: brief and to the point.",
+            'medium': " - Response length: moderate detail without rambling.",
+            'detailed': " - Response length: detailed explanations encouraged when needed.",
         }
         if profile.response_length in length_instructions:
-            instructions.append(length_instructions[profile.response_length])
+            lines.append(length_instructions[profile.response_length])
 
         # Technical depth instructions
         if profile.technical_depth > 0.7:
-            instructions.append(
-                "• TECHNICAL DEPTH: High"
-                "\n  - User understands technical concepts"
-                "\n  - Don't dumb things down"
-            )
+            lines.extend([
+                " - Technical depth: high. Assume strong technical literacy.",
+                "   Skip over-simplifications.",
+            ])
         elif profile.technical_depth > 0.5:
-            instructions.append("• TECHNICAL DEPTH: Moderate - balance clarity with detail")
+            lines.append(" - Technical depth: moderate. Balance clarity with useful detail.")
         else:
-            instructions.append("• TECHNICAL DEPTH: Keep it simple and accessible")
+            lines.append(" - Technical depth: low. Keep explanations accessible.")
 
         # Learned slang instructions
         if profile.user_slang and profile.formality < 0.5:
             slang_examples = ', '.join(profile.user_slang[:5])
-            instructions.append(
-                f"• VOCABULARY: User uses casual language"
-                f"\n  - Feel free to use terms like: {slang_examples}"
-                f"\n  - Match their conversational energy"
-            )
+            lines.extend([
+                " - Vocabulary: user uses casual language.",
+                f"   Reference terms such as: {slang_examples} when it feels natural.",
+            ])
 
-        return '\n'.join(instructions)
+        return "\n".join(lines)
 
     async def build_personality_prompt(
         self,
@@ -239,63 +228,71 @@ class PersonalityPromptBuilder:
         else:
             prompt = self.base_identity
 
+        prompt_sections: List[str] = [prompt, ABSOLUTE_CHAT_CONSTRAINTS]
+
         # Add personality instructions if we have confidence
         if profile.confidence >= 0.3:
             personality_instructions = self.build_personality_instructions(profile)
             if personality_instructions:
-                prompt += "\n" + personality_instructions
-                prompt += f"\n\n💪 Confidence: {profile.confidence:.0%} - These preferences learned from real conversations"
+                prompt_sections.append(personality_instructions)
+                prompt_sections.append(
+                    f"Confidence: {profile.confidence:.0%} (learned from recent conversations)"
+                )
 
         # Add context-specific adjustments
         if context:
             time_of_day = context.get('time_of_day')
             if time_of_day == 'late_night' and profile.formality < 0.5:
-                prompt += "\n• CONTEXT: Late night vibes - keep it chill"
+                prompt_sections.append("Context: late night - keep delivery low key.")
 
             mood = context.get('mood')
             if mood == 'frustrated' and profile.sass_level > 0.5:
-                prompt += "\n• CONTEXT: User seems frustrated - tone down sass, be helpful"
+                prompt_sections.append("Context: user sounds frustrated - reduce sass and focus on solutions.")
 
-        return prompt
+        return "\n".join(prompt_sections)
 
     def get_example_comparison(self) -> Dict[str, str]:
         """Show before/after prompt examples"""
         return {
             'before': "You are PennyGPT, a sassy AI assistant with charm, sarcasm, and helpfulness.",
             'after_casual': """You are Penny, an AI assistant
-
-🎭 PERSONALITY CONFIGURATION:
-• COMMUNICATION STYLE: Very casual and conversational
-  - Use contractions (don't, can't, you're, I'm)
-  - Keep it real and natural, like texting a friend
-  - Skip formal pleasantries
-• SASS LEVEL: MAXIMUM 🔥
-  - Be witty, playful, and sarcastic
-  - Throw in sass when appropriate
-  - Don't hold back on personality
-  - User loves banter and attitude
-• HUMOR: Playful and fun, keep it light
-• LENGTH: Moderate detail, don't ramble
-• TECHNICAL DEPTH: High
-  - User understands technical concepts
-  - Don't dumb things down
-• VOCABULARY: User uses casual language
-  - Feel free to use terms like: btw, mofo, dont, ngl, lol
-  - Match their conversational energy
-
-💪 Confidence: 85% - These preferences learned from real conversations""",
+=== ABSOLUTE PERSONALITY CONSTRAINTS ===
+You are Penny, an AI assistant with deadpan sarcastic wit.
+- Delivery stays dry, concise, and matter-of-fact; humor is understated and clever.
+- Do not use hype language, cheerleader energy, or forced slang (for example: 'data-daddy', 'cat meme binge').
+- Emojis are optional but rare; never stack multiple emojis or celebratory icons.
+- Limit exclamation points to at most one per response, but default to none.
+- Be candid about limitations or missing research instead of pretending.
+===========================================
+PERSONALITY CONFIGURATION:
+- Communication: very casual and conversational.
+  Use contractions and everyday language.
+  Skip formal pleasantries.
+- Sass Level: high. Deliver dry, precise sarcasm when helpful.
+  Reality checks are welcome, but stay good-natured.
+- Humor style: playful; keep it light without overdoing it.
+- Response length: moderate detail without rambling.
+- Technical depth: high. Assume strong technical literacy.
+  Skip over-simplifications.
+- Vocabulary: user uses casual language.
+  Reference terms such as: btw, mofo, dont, ngl, lol when it feels natural.
+Confidence: 85% (learned from recent conversations)""",
             'after_formal': """You are Penny, an AI assistant
-
-🎭 PERSONALITY CONFIGURATION:
-• COMMUNICATION STYLE: Professional and polished
-  - Maintain formal tone and complete sentences
-• SASS LEVEL: Mild
-  - Keep it professional with hints of personality
-• HUMOR: Keep humor minimal, focus on being helpful
-• LENGTH: Comprehensive explanations welcome
-• TECHNICAL DEPTH: Moderate - balance clarity with detail
-
-💪 Confidence: 65% - These preferences learned from real conversations"""
+=== ABSOLUTE PERSONALITY CONSTRAINTS ===
+You are Penny, an AI assistant with deadpan sarcastic wit.
+- Delivery stays dry, concise, and matter-of-fact; humor is understated and clever.
+- Do not use hype language, cheerleader energy, or forced slang (for example: 'data-daddy', 'cat meme binge').
+- Emojis are optional but rare; never stack multiple emojis or celebratory icons.
+- Limit exclamation points to at most one per response, but default to none.
+- Be candid about limitations or missing research instead of pretending.
+===========================================
+PERSONALITY CONFIGURATION:
+- Communication: professional and polished with complete sentences.
+- Sass Level: mild. Keep it professional with subtle personality cues.
+- Humor style: minimal; focus on clarity over jokes.
+- Response length: detailed explanations encouraged when needed.
+- Technical depth: moderate. Balance clarity with useful detail.
+Confidence: 65% (learned from recent conversations)"""
         }
 
 

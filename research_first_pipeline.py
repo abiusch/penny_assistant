@@ -188,14 +188,20 @@ class ResearchFirstPipeline(PipelineLoop):
                 print(f"🤖 Base response: {render_debug['raw'][:100]}...")
 
             # Phase 2: Post-process response with personality
+            personality_adjustments = []
             try:
-                final_response = asyncio.run(
+                result = asyncio.run(
                     self.personality_post_processor.process_response(
                         final_response,
                         context={'topic': 'general', 'query': actual_command}
                     )
                 )
-                print("🎨 Response post-processed with learned personality")
+                final_response = result["response"]
+                personality_adjustments = result.get("adjustments", [])
+                if personality_adjustments:
+                    print(f"🎨 Response post-processed: {', '.join(personality_adjustments)}")
+                else:
+                    print("🎨 Response post-processed (no adjustments needed)")
             except Exception as e:
                 logger.warning(f"Personality post-processing failed: {e}")
 

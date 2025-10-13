@@ -102,7 +102,7 @@ class PersonalityResponsePostProcessor:
         self,
         response: str,
         context: Optional[Dict[str, Any]] = None
-    ) -> str:
+    ) -> Dict[str, Any]:
         """
         Post-process LLM response with personality adjustments
 
@@ -111,29 +111,57 @@ class PersonalityResponsePostProcessor:
             context: Conversation context
 
         Returns:
-            Processed response with personality adjustments applied
+            Dict with:
+                - response: Processed response string
+                - adjustments: List of adjustments applied
+                - confidence: Overall confidence in adjustments (0.0-1.0)
         """
         context = context or {}
+        adjustments = []
+        original_response = response
 
         # Get personality state
         personality_state = await self.personality_tracker.get_current_personality_state()
 
+        # Calculate overall confidence from personality state
+        confidences = [dim.confidence for dim in personality_state.values()]
+        overall_confidence = sum(confidences) / len(confidences) if confidences else 0.5
+
         # Step 1: Enforce ABSOLUTE PROHIBITIONS (always applied)
+        before = response
         response = self._enforce_prohibitions(response)
+        if response != before:
+            adjustments.append("enforced_prohibitions")
 
         # Step 2: Apply vocabulary substitutions (high-confidence only)
+        before = response
         response = await self._apply_vocabulary_preferences(response)
+        if response != before:
+            adjustments.append("vocabulary_substitutions")
 
         # Step 3: Apply formality adjustments
+        before = response
         response = self._apply_formality_adjustments(response, personality_state)
+        if response != before:
+            adjustments.append("formality_adjustment")
 
         # Step 4: Apply length adjustments
+        before = response
         response = self._apply_length_adjustments(response, personality_state)
+        if response != before:
+            adjustments.append("length_adjustment")
 
         # Step 5: Final cleanup
         response = self._final_cleanup(response)
 
-        return response
+        # Return dict with adjustments for tracking
+        return {
+            "response": response,
+            "adjustments": adjustments,
+            "confidence": overall_confidence,
+            "original_length": len(original_response),
+            "final_length": len(response)
+        }
 
     def _enforce_prohibitions(self, response: str) -> str:
         """Enforce ABSOLUTE PROHIBITIONS by removing/replacing violations"""
@@ -294,15 +322,17 @@ async def process_response_with_personality(
     response: str,
     context: Optional[Dict[str, Any]] = None,
     db_path: str = "data/personality_tracking.db"
-) -> str:
+) -> Dict[str, Any]:
     """
     Convenience function to post-process response with personality
 
     Usage:
-        processed = await process_response_with_personality(
+        result = await process_response_with_personality(
             response="original LLM response",
             context={'topic': 'programming'}
         )
+        processed_response = result["response"]
+        adjustments = result["adjustments"]
     """
     processor = PersonalityResponsePostProcessor(db_path=db_path)
     return await processor.process_response(response, context)
@@ -313,13 +343,14 @@ def process_response_with_personality_sync(
     response: str,
     context: Optional[Dict[str, Any]] = None,
     db_path: str = "data/personality_tracking.db"
-) -> str:
+) -> Dict[str, Any]:
     """
     Synchronous wrapper for process_response_with_personality
 
     Usage:
-        processed = process_response_with_personality_sync(
+        result = process_response_with_personality_sync(
             response="original LLM response"
         )
+        processed_response = result["response"]
     """
     return asyncio.run(process_response_with_personality(response, context, db_path))

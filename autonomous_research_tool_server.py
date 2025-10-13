@@ -442,24 +442,8 @@ class ResearchQuestionGenerator:
 
         words = context.split()
 
-        # Strategy 1: Extract capitalized entities (proper nouns like "Ethereum", "Bitcoin")
-        entities = []
-        for word in words:
-            clean_word = word.strip('.,?!;:\'\"')
-            # Skip if it's a contraction (has apostrophe) or a stopword
-            if clean_word and len(clean_word) > 1 and clean_word[0].isupper():
-                # Skip contractions like "What's", "That's", "It's"
-                if "'" in clean_word:
-                    continue
-                if clean_word.lower() not in stopwords:
-                    entities.append(clean_word)
-
-        if entities:
-            # Use capitalized entities (most reliable for proper nouns)
-            topics['topic'] = ' '.join(entities[:2])  # Max 2 entities for cleaner queries
-            return topics
-
-        # Strategy 2: Look for common multi-word phrases (election results, stock price, etc.)
+        # Strategy 1: Look for common multi-word phrases FIRST (election results, stock price, etc.)
+        # Check phrases before single words to avoid extracting just "US" or "election" alone
         context_lower = context.lower()
         multi_word_patterns = [
             r'election\s+results?',
@@ -478,6 +462,23 @@ class ResearchQuestionGenerator:
             if match:
                 topics['topic'] = match.group(0)
                 return topics
+
+        # Strategy 2: Extract capitalized entities (proper nouns like "Ethereum", "Bitcoin")
+        entities = []
+        for word in words:
+            clean_word = word.strip('.,?!;:\'\"')
+            # Skip if it's a contraction (has apostrophe) or a stopword
+            if clean_word and len(clean_word) > 1 and clean_word[0].isupper():
+                # Skip contractions like "What's", "That's", "It's"
+                if "'" in clean_word:
+                    continue
+                if clean_word.lower() not in stopwords:
+                    entities.append(clean_word)
+
+        if entities:
+            # Use capitalized entities (most reliable for proper nouns)
+            topics['topic'] = ' '.join(entities[:2])  # Max 2 entities for cleaner queries
+            return topics
 
         # Strategy 3: Look for single key terms (crypto names, products, etc.)
         # Common entities that might not be capitalized in casual text

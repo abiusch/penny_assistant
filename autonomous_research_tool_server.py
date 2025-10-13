@@ -446,6 +446,9 @@ class ResearchQuestionGenerator:
         # Check phrases before single words to avoid extracting just "US" or "election" alone
         context_lower = context.lower()
         multi_word_patterns = [
+            r'unemployment\s+rate',
+            r'inflation\s+rate',
+            r'interest\s+rate',
             r'election\s+results?',
             r'stock\s+price',
             r'crypto\s+price',
@@ -453,7 +456,10 @@ class ResearchQuestionGenerator:
             r'election\s+outcome',
             r'presidential\s+election',
             r'senate\s+race',
-            r'congressional\s+election'
+            r'congressional\s+election',
+            r'gdp\s+growth',
+            r'job\s+market',
+            r'housing\s+market'
         ]
 
         import re as regex_module

@@ -459,12 +459,33 @@ class ResearchQuestionGenerator:
             topics['topic'] = ' '.join(entities[:2])  # Max 2 entities for cleaner queries
             return topics
 
-        # Strategy 2: Look for key terms (crypto names, products, etc.)
+        # Strategy 2: Look for common multi-word phrases (election results, stock price, etc.)
+        context_lower = context.lower()
+        multi_word_patterns = [
+            r'election\s+results?',
+            r'stock\s+price',
+            r'crypto\s+price',
+            r'(ethereum|bitcoin|btc|eth)\s+price',
+            r'election\s+outcome',
+            r'presidential\s+election',
+            r'senate\s+race',
+            r'congressional\s+election'
+        ]
+
+        import re as regex_module
+        for pattern in multi_word_patterns:
+            match = regex_module.search(pattern, context_lower)
+            if match:
+                topics['topic'] = match.group(0)
+                return topics
+
+        # Strategy 3: Look for single key terms (crypto names, products, etc.)
         # Common entities that might not be capitalized in casual text
         known_entities = [
             'ethereum', 'bitcoin', 'btc', 'eth', 'crypto', 'cryptocurrency',
             'python', 'javascript', 'rust', 'golang', 'typescript',
-            'openai', 'anthropic', 'chatgpt', 'claude'
+            'openai', 'anthropic', 'chatgpt', 'claude',
+            'election', 'elections'
         ]
 
         found_entities = []

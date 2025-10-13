@@ -21,6 +21,11 @@ from emotional_memory_system import create_enhanced_memory_system
 from personality_integration import create_personality_integration
 from factual_research_manager import ResearchManager
 
+# Phase 2: Dynamic Personality Adaptation
+from src.personality.dynamic_personality_prompt_builder import DynamicPersonalityPromptBuilder
+from src.personality.personality_response_post_processor import PersonalityResponsePostProcessor
+import asyncio
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,10 +41,15 @@ class ResearchFirstPipeline(PipelineLoop):
         self.personality = create_personality_integration(self.enhanced_memory)
         self.research_manager = ResearchManager()
 
+        # Phase 2: Dynamic Personality Adaptation
+        self.personality_prompt_builder = DynamicPersonalityPromptBuilder()
+        self.personality_post_processor = PersonalityResponsePostProcessor()
+
         print("🔬 Research-First Pipeline initialized")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
         print("   • Enhanced memory and personality integration active")
+        print("   • Dynamic personality adaptation enabled (Phase 2)")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -127,7 +137,24 @@ class ResearchFirstPipeline(PipelineLoop):
                 )
 
             def llm_generator(system_prompt: str, user_input: str) -> str:
-                prompt_sections = [system_prompt, _build_research_instructions()]
+                # Phase 2: Build personality-enhanced prompt
+                personality_enhancement = ""
+                try:
+                    personality_enhancement = asyncio.run(
+                        self.personality_prompt_builder.build_personality_prompt(
+                            user_id="default",
+                            context={'topic': 'general', 'query': user_input}
+                        )
+                    )
+                    print("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
+                except Exception as e:
+                    logger.warning(f"Personality prompt building failed: {e}")
+
+                prompt_sections = [system_prompt if system_prompt else "", _build_research_instructions()]
+
+                # Add personality enhancement early (before research context)
+                if personality_enhancement:
+                    prompt_sections.append(personality_enhancement)
 
                 if memory_context:
                     prompt_sections.append(f"Conversation context: {memory_context}")
@@ -160,12 +187,24 @@ class ResearchFirstPipeline(PipelineLoop):
             if render_debug.get('raw'):
                 print(f"🤖 Base response: {render_debug['raw'][:100]}...")
 
+            # Phase 2: Post-process response with personality
+            try:
+                final_response = asyncio.run(
+                    self.personality_post_processor.process_response(
+                        final_response,
+                        context={'topic': 'general', 'query': actual_command}
+                    )
+                )
+                print("🎨 Response post-processed with learned personality")
+            except Exception as e:
+                logger.warning(f"Personality post-processing failed: {e}")
+
             # Step 6: Add financial disclaimer if needed (in Penny's style)
             if financial_topic:
                 # Check if we already have a disclaimer
                 if "disclaimer" not in final_response.lower() and "financial advice" not in final_response.lower():
                     penny_disclaimer = (
-                        "\n\nQuick note: I’m sharing general information here, not financial advice. "
+                        "\n\nQuick note: I'm sharing general information here, not financial advice. "
                         "Talk to a licensed professional before making money moves."
                     )
                     final_response = sanitize_output(final_response + penny_disclaimer)

@@ -1,6 +1,6 @@
 {
   "start_date": "2025-10-12T12:13:06.182590",
-  "conversations": 12,
+  "conversations": 20,
   "problems": {
     "research_false_positives": [
       {
@@ -62,6 +62,42 @@
     {
       "timestamp": "2025-10-13T11:54:33.691136",
       "note": "GPT-5 query: Research triggered correctly, proper entity extraction, response used research data"
+    },
+    {
+      "timestamp": "2025-10-13T11:56:52.485382",
+      "note": "Sports research trigger fix applied - added 'this year' pattern + sports event phrases (world series, super bowl, etc)"
+    },
+    {
+      "timestamp": "2025-10-13T11:59:35.607584",
+      "note": "World Series query: Research triggered correctly, 'world series' extracted properly, accurate 2024 results returned"
+    },
+    {
+      "timestamp": "2025-10-13T12:45:02.790594",
+      "note": "Casual greeting 'how's it going' - no research triggered (correct), dry personality maintained"
+    },
+    {
+      "timestamp": "2025-10-13T12:45:58.916780",
+      "note": "Tabs vs spaces opinion question - no research (correct), matter-of-fact technical response"
+    },
+    {
+      "timestamp": "2025-10-13T12:47:13.301378",
+      "note": "Personal stress/advice question - no research (correct), practical advice with dry tone"
+    },
+    {
+      "timestamp": "2025-10-13T12:48:11.406194",
+      "note": "MongoDB vs PostgreSQL architecture question - no research (correct), comprehensive technical advice"
+    },
+    {
+      "timestamp": "2025-10-13T12:49:07.897751",
+      "note": "Python vs JavaScript opinion question - no research (correct), opinionated technical comparison"
+    },
+    {
+      "timestamp": "2025-10-13T12:50:02.066878",
+      "note": "Task management API architecture question - no research (correct), comprehensive technical stack recommendation"
+    },
+    {
+      "timestamp": "2025-10-13T12:50:51.993464",
+      "note": "URL shortener system design question - no research (correct), detailed architectural design with tables"
     }
   ]
 }

@@ -414,6 +414,39 @@ class ContextualPreferenceEngine:
         
         return insights
 
+    async def get_contextual_preferences(
+        self,
+        context_type: str,
+        context_value: str
+    ) -> Dict[str, Any]:
+        """
+        Get learned preferences for a specific context
+
+        Args:
+            context_type: Type of context (time_of_day, topic_category, etc.)
+            context_value: Specific value (morning, programming, etc.)
+
+        Returns:
+            Dict of personality adjustments for this context
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT personality_adjustments, confidence, effectiveness_score
+                FROM contextual_preferences
+                WHERE context_type = ? AND context_value = ?
+            ''', (context_type, context_value))
+
+            row = cursor.fetchone()
+            if row:
+                adjustments = json.loads(row[0])
+                return {
+                    'adjustments': adjustments,
+                    'confidence': row[1],
+                    'effectiveness': row[2]
+                }
+
+            return {}
+
 
 if __name__ == "__main__":
     import asyncio

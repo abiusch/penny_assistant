@@ -447,6 +447,79 @@ class SlangVocabularyTracker:
         
         return recommendations
 
+    async def get_preferred_vocabulary(
+        self,
+        min_confidence: float = 0.5,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Get user's preferred vocabulary terms with confidence >= threshold
+
+        Args:
+            min_confidence: Minimum confidence score (0.0-1.0)
+            limit: Maximum number of terms to return
+
+        Returns:
+            List of vocabulary terms with metadata
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT term, usage_count, category, confidence, user_preference_score
+                FROM slang_vocabulary
+                WHERE confidence >= ?
+                ORDER BY usage_count DESC, confidence DESC
+                LIMIT ?
+            ''', (min_confidence, limit))
+
+            terms = []
+            for row in cursor.fetchall():
+                terms.append({
+                    'term': row[0],
+                    'usage_count': row[1],
+                    'category': row[2] or 'general',
+                    'confidence': row[3],
+                    'preference_score': row[4]
+                })
+
+            return terms
+
+    async def get_terminology_preferences(
+        self,
+        min_confidence: float = 0.5
+    ) -> List[Dict[str, Any]]:
+        """
+        Get user's preferred terminology (when they prefer one term over another)
+
+        Args:
+            min_confidence: Minimum confidence score
+
+        Returns:
+            List of terminology preferences
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT preferred_term, alternative_terms, confidence, usage_count, context
+                FROM terminology_preferences
+                WHERE confidence >= ?
+                ORDER BY confidence DESC, usage_count DESC
+            ''', (min_confidence,))
+
+            prefs = []
+            for row in cursor.fetchall():
+                # Parse alternative_terms (stored as JSON string)
+                import json
+                alternative_terms = json.loads(row[1]) if row[1] else []
+
+                prefs.append({
+                    'preferred_term': row[0],
+                    'alternative_terms': alternative_terms,
+                    'confidence': row[2],
+                    'usage_count': row[3],
+                    'context': row[4]
+                })
+
+            return prefs
+
 
 if __name__ == "__main__":
     import asyncio

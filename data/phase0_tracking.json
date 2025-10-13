@@ -1,0 +1,67 @@
+{
+  "start_date": "2025-10-12T12:13:06.182590",
+  "conversations": 12,
+  "problems": {
+    "research_false_positives": [
+      {
+        "timestamp": "2025-10-12T12:13:11.065576",
+        "description": "Test entry"
+      },
+      {
+        "timestamp": "2025-10-13T11:39:50.916339",
+        "description": "Election results query - research SHOULD have triggered but didn't (false negative)"
+      },
+      {
+        "timestamp": "2025-10-13T11:41:59.764117",
+        "description": "Election query now triggers research (good) but queries too generic 'What is US?' instead of 'US election results' (needs phrase extraction)"
+      },
+      {
+        "timestamp": "2025-10-13T11:48:47.643543",
+        "description": "Unemployment rate query - research triggered (good) but extracted 'Learning' instead of 'unemployment rate' (wrong context source)"
+      },
+      {
+        "timestamp": "2025-10-13T11:56:04.842723",
+        "description": "World Series query with 'this year' did not trigger research - time-sensitive sports result should trigger"
+      }
+    ],
+    "personality_violations": [],
+    "slow_responses": [],
+    "tone_mismatches": [],
+    "other": [
+      {
+        "timestamp": "2025-10-12T12:16:43.432778",
+        "description": "Programming question correctly identified - no research triggered for 'write Python function'"
+      },
+      {
+        "timestamp": "2025-10-12T12:19:24.943895",
+        "description": "Code formatting fixed - backticks and special characters now render correctly"
+      },
+      {
+        "timestamp": "2025-10-13T11:36:18.950446",
+        "description": "Binary search explanation - no research triggered, correct programming question detection"
+      },
+      {
+        "timestamp": "2025-10-13T11:37:28.837214",
+        "description": "DFS implementation - no research triggered, programming question correctly identified"
+      },
+      {
+        "timestamp": "2025-10-13T11:39:04.417312",
+        "description": "Multi-turn debugging conversation - no research triggered for code questions"
+      },
+      {
+        "timestamp": "2025-10-13T11:47:36.430013",
+        "description": "Election results query - research triggered correctly AND extracted 'election results' phrase (not just 'US')"
+      },
+      {
+        "timestamp": "2025-10-13T11:52:03.186336",
+        "description": "Unemployment rate query - PERFECT: research triggered + phrase extracted correctly + accurate response"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "timestamp": "2025-10-13T11:54:33.691136",
+      "note": "GPT-5 query: Research triggered correctly, proper entity extraction, response used research data"
+    }
+  ]
+}

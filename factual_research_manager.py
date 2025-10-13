@@ -122,10 +122,11 @@ class FactualQueryClassifier:
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
 
     TIME_SENSITIVE_PATTERNS = [
-        r'\b(?:latest|recent|current|today|this week|this month|new|updated?|202[0-9])\b',
+        r'\b(?:latest|recent|current|today|this week|this month|this year|new|updated?|202[0-9])\b',
         r'\b(?:breaking|news|announced|released|launched|just)\b',
         r'\b(?:now|currently|recently|lately)\b',
-        r'\b(?:happened|occurred|took place|what.*result|election.*result)\b'
+        r'\b(?:happened|occurred|took place|what.*result|election.*result)\b',
+        r'\b(?:who won|winner of|champion|championship).*(?:this year|202[0-9]|today|latest)\b'
     ]
 
     HIGH_RISK_PATTERNS = [

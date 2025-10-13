@@ -13,6 +13,8 @@ from typing import Optional, Dict, Any
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+from chat_entry import respond as chat_respond
+from personality.filter import sanitize_output
 from src.core.pipeline import PipelineLoop, State
 from memory_system import MemoryManager
 from emotional_memory_system import create_enhanced_memory_system
@@ -96,128 +98,77 @@ class ResearchFirstPipeline(PipelineLoop):
                     )
                     print(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
 
-            # Step 4: Build enhanced prompt
+            # Step 4: Build contextual prompt for shared persona responder
             memory_context = self.enhanced_memory.get_enhanced_context_for_llm()
-
-            # Build personality-focused prompt that integrates research
-            prompt_parts = []
-
-            # Always start with personality direction + smart knowledge strategy
-            base_personality_constraints = """
-=== CRITICAL TONE CONSTRAINTS - OVERRIDE ALL OTHER INSTRUCTIONS ===
-
-ABSOLUTE PROHIBITIONS:
-❌ Weird nicknames: "data-daddy", "code-ninja", etc.
-❌ Forced casual humor: "cat meme binge", overly try-hard phrases
-❌ Multiple exclamation marks: "!!!" or "!!" (MAXIMUM ONE per entire response)
-❌ Enthusiastic greetings: "Hey there!", with excessive energy
-❌ Excessive emojis: Max 1-2 per response, used sparingly
-❌ Cheerful intensifiers: "super", "totally", "really really"
-❌ Caps for excitement: "FIRING", "AMAZING", "WOOHOO"
-
-REQUIRED STYLE:
-✓ Conversational, matter-of-fact, deadpan tone
-✓ Dry observations and subtle wit
-✓ Natural technical explanations without forced personality
-✓ Professional but not stiff
-✓ Sarcastic when appropriate, genuine when needed
-✓ Maximum ONE exclamation mark per entire response
-
-VOICE STYLE:
-Think: Knowledgeable friend explaining something, NOT trying to entertain.
-
-Acceptable: "Here's a clean way to filter even numbers."
-Unacceptable: "Hey there, data-daddy! 🎉 Let me show you this SUPER cool trick!"
-"""
-
-            if research_required:
-                if research_result and research_result.success and research_result.summary:
-                    personality_direction = (
-                        f"{base_personality_constraints}\n\n"
-                        "You are Penny, an AI assistant with dry sarcastic wit. "
-                        "\n🎯 RESEARCH MODE: You just successfully conducted research and found current information! "
-                        "Use the research findings provided below to give an informative, current response. "
-                        "Reference that you researched this topic (don't pretend you already knew it). "
-                        "Be factual using the real research data you found, with your characteristic deadpan delivery."
-                    )
-                else:
-                    personality_direction = (
-                        f"{base_personality_constraints}\n\n"
-                        "You are Penny, an AI assistant with dry sarcastic wit. "
-                        "\nCRITICAL: This query requires current research but research failed. NEVER fabricate specific statistics, "
-                        "study results, technical specifications, or recent developments. If you don't have "
-                        "current information, explicitly say so and suggest the user check official sources."
-                    )
-            else:
-                personality_direction = (
-                    f"{base_personality_constraints}\n\n"
-                    "You are Penny, an AI assistant with dry sarcastic wit. "
-                    "\nYou can use your training knowledge to answer this question, but add appropriate "
-                    "disclaimers for any information that might have changed since your training cutoff. "
-                    "For rapidly changing topics, suggest checking recent sources for updates."
-                )
-            prompt_parts.append(personality_direction)
-
-            if memory_context:
-                prompt_parts.append(f"Context from our relationship: {memory_context}")
-
-            if research_context:
-                prompt_parts.append(research_context)
-
-            prompt_parts.append(f"User: {actual_command}")
-            prompt_parts.append("Respond as Penny - be informative but keep your personality, humor, and engagement style.")
-
-            enhanced_prompt = "\n\n".join(prompt_parts)
-
-            # Step 5: Generate base response
             tone = self._route_tone(actual_command)
+            render_debug: Dict[str, str] = {}
 
-            if hasattr(self.llm, 'complete'):
-                base_response = self.llm.complete(enhanced_prompt, tone=tone)
-            else:
-                base_response = self.llm.generate(enhanced_prompt)
+            def _build_research_instructions() -> str:
+                if not research_required:
+                    return (
+                        "KNOWLEDGE STRATEGY:\n"
+                        "- Lead with the most important finding or fix.\n"
+                        "- If details might be outdated, say so and suggest checking current sources."
+                    )
 
-            if not base_response or len(base_response.strip()) == 0:
-                base_response = "I'm having trouble generating a response. Could you try rephrasing?"
+                if research_result and research_result.success and research_result.summary:
+                    return (
+                        "RESEARCH MODE:\n"
+                        "- You just completed fresh research; cite the findings explicitly.\n"
+                        "- State that you researched this rather than claiming prior knowledge.\n"
+                        "- Prioritise factual accuracy and cite the key insights provided."
+                    )
 
-            print(f"🤖 Base response: {base_response[:100]}...")
-
-            # Step 6: Apply personality enhancement (should amplify, not diminish personality)
-            try:
-                # Create context that preserves research but enhances personality
-                personality_context = {
-                    'research_included': research_required,
-                    'financial_topic': financial_topic,
-                    'user_query': actual_command
-                }
-
-                # Fix method signature - only pass base response and command
-                enhanced_response = self.personality.generate_contextual_response(
-                    base_response, actual_command
+                return (
+                    "RESEARCH MODE (NO DATA):\n"
+                    "- Research was attempted but failed; be transparent about the gap.\n"
+                    "- Never fabricate numbers or recent events.\n"
+                    "- Recommend official sources or recent publications for up-to-date information."
                 )
-                print(f"🎭 Personality applied: {self.personality.personality_system.current_mode.value}")
 
-                # Ensure personality enhancement didn't strip research content
-                if research_required and research_result and research_result.success:
-                    # If personality system stripped too much research content, blend it back in
-                    if len(enhanced_response) < len(base_response) * 0.7:
-                        enhanced_response = base_response  # Use original if too much was stripped
-                        print("⚠️ Personality enhancement was too aggressive, kept original research response")
+            def llm_generator(system_prompt: str, user_input: str) -> str:
+                prompt_sections = [system_prompt, _build_research_instructions()]
 
-            except Exception as e:
-                print(f"⚠️ Personality enhancement failed: {e}")
-                enhanced_response = base_response
+                if memory_context:
+                    prompt_sections.append(f"Conversation context: {memory_context}")
 
-            # Step 7: Add financial disclaimer if needed (in Penny's style)
-            final_response = enhanced_response
+                if research_context:
+                    prompt_sections.append(research_context)
+
+                prompt_sections.append(
+                    "RESPONSE REQUIREMENTS:\n"
+                    "- Stay dry, concise, and direct.\n"
+                    "- Lead with the actionable answer before elaborating.\n"
+                    "- If recommending verification or research, make it explicit."
+                )
+
+                prompt_sections.append(f"User query: {user_input}")
+
+                final_prompt = "\n\n".join(filter(None, prompt_sections))
+                render_debug['prompt'] = final_prompt
+
+                if hasattr(self.llm, 'complete'):
+                    raw = self.llm.complete(final_prompt, tone=tone)
+                else:
+                    raw = self.llm.generate(final_prompt)
+
+                render_debug['raw'] = raw
+                return raw
+
+            final_response = chat_respond(actual_command, generator=llm_generator)
+
+            if render_debug.get('raw'):
+                print(f"🤖 Base response: {render_debug['raw'][:100]}...")
+
+            # Step 6: Add financial disclaimer if needed (in Penny's style)
             if financial_topic:
                 # Check if we already have a disclaimer
                 if "disclaimer" not in final_response.lower() and "financial advice" not in final_response.lower():
                     penny_disclaimer = (
-                        "\n\n(Quick legal note: I'm just sharing info here, not dishing out financial advice. "
-                        "Always chat with a real financial pro before making any money moves! 💰)"
+                        "\n\nQuick note: I’m sharing general information here, not financial advice. "
+                        "Talk to a licensed professional before making money moves."
                     )
-                    final_response += penny_disclaimer
+                    final_response = sanitize_output(final_response + penny_disclaimer)
 
             # Step 8: Store in memory
             try:

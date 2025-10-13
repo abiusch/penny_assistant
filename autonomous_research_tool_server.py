@@ -459,7 +459,15 @@ class ResearchQuestionGenerator:
             r'congressional\s+election',
             r'gdp\s+growth',
             r'job\s+market',
-            r'housing\s+market'
+            r'housing\s+market',
+            r'world\s+series',
+            r'super\s+bowl',
+            r'nba\s+finals?',
+            r'stanley\s+cup',
+            r'world\s+cup',
+            r'champions\s+league',
+            r'playoff\s+results?',
+            r'championship\s+results?'
         ]
 
         import re as regex_module

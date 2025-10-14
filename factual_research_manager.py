@@ -119,6 +119,47 @@ class FactualQueryClassifier:
         "look up the", "research this", "research that"
     }
 
+    # Opinion/preference request patterns - asking for opinions, not facts
+    OPINION_REQUEST_PHRASES = {
+        "what do you think", "what's your take", "your opinion on",
+        "do you prefer", "which do you like", "how do you feel about",
+        "is it better to", "should i", "what would you do",
+        "your thoughts on", "what's your view", "would you rather",
+        "what's your preference", "which would you choose", "your take on",
+        "do you believe", "in your opinion", "from your perspective"
+    }
+
+    # Code review/snippet patterns - when user is showing code, not asking factual questions
+    CODE_REVIEW_PHRASES = {
+        "here's my code", "here's my updated code", "check this code", "review this",
+        "look at this code", "what do you think", "lgtm", "looks good",
+        "does this work", "is this correct", "any issues", "code review"
+    }
+
+    # Code syntax patterns - detecting actual code snippets
+    CODE_SYNTAX_PATTERNS = [
+        r'\bdef\s+\w+\s*\(',  # Python function definition
+        r'\bclass\s+\w+',  # Class definition
+        r'\breturn\s+',  # Return statement
+        r'\bif\s+.*:',  # If statement with colon
+        r'\bfor\s+\w+\s+in\s+',  # For loop
+        r'\bwhile\s+.*:',  # While loop
+        r'[(){}\[\]<>=!]+.*[(){}\[\]<>=!]+',  # Multiple code symbols
+        r'^\s*(import|from)\s+\w+',  # Import statements
+    ]
+
+    # Common typo corrections
+    TYPO_CORRECTIONS = {
+        r"\bere's\b": "here's",
+        r"\bteh\b": "the",
+        r"\bfro\b": "for",
+        r"\bnad\b": "and",
+        r"\bwaht\b": "what",
+        r"\bhwo\b": "how",
+        r"\bthier\b": "their",
+        r"\brecieve\b": "receive",
+    }
+
     QUESTION_WORDS = {"who", "what", "when", "where", "why", "how"}
 
     TIME_SENSITIVE_PATTERNS = [
@@ -138,13 +179,12 @@ class FactualQueryClassifier:
         """Smart research triggering - only for high-risk categories that require current data"""
         if not text:
             return False
-        lowered = text.lower()
 
-        # FIRST: Check for EXPLICIT research requests (user directly asking for research)
-        # This should be checked early, but after opt-outs
-        has_explicit_request = any(pattern in lowered for pattern in self.EXPLICIT_RESEARCH_REQUESTS)
+        # Apply typo corrections before classification
+        corrected_text = self._apply_typo_corrections(text)
+        lowered = corrected_text.lower()
 
-        # SECOND: Check opt-outs (user declining research)
+        # PRIORITY 1: Check opt-outs (user declining research)
         # Use word boundaries to avoid false matches like "hi" in "this"
         has_opt_out = any(
             re.search(r'\b' + re.escape(pattern) + r'\b', lowered)
@@ -153,22 +193,35 @@ class FactualQueryClassifier:
         if has_opt_out:
             return False
 
-        # Skip research when user is talking about Penny herself
+        # PRIORITY 2: Skip research when user is talking about Penny herself
         if any(pattern in lowered for pattern in self.SELF_REFERENCE_KEYWORDS):
             return False
 
-        # If we have explicit research request, trigger research
+        # PRIORITY 3: Check for opinion/preference requests (BEFORE factual checks)
+        # Opinion questions should use training knowledge, not research
+        if self._is_opinion_request(lowered):
+            return False
+
+        # PRIORITY 4: Check for code snippets or code review requests
+        # Programming questions should use training knowledge, not research
+        if self._is_code_snippet_or_review(text, lowered):
+            return False
+
+        # PRIORITY 5: Check for EXPLICIT research requests (user directly asking for research)
+        has_explicit_request = any(pattern in lowered for pattern in self.EXPLICIT_RESEARCH_REQUESTS)
         if has_explicit_request:
             return True
 
+        # PRIORITY 6: Check if it's a basic programming question
+        if self._is_basic_programming_question(lowered):
+            return False
+
+        # PRIORITY 7: Check for factual queries that need current data
         if self._is_financial_query(lowered):
             return True
 
         if any(re.search(pattern, lowered) for pattern in self.TIME_SENSITIVE_PATTERNS):
             return True
-
-        if self._is_basic_programming_question(lowered):
-            return False
 
         if any(re.search(pattern, lowered) for pattern in self.HIGH_RISK_PATTERNS):
             return True
@@ -236,6 +289,29 @@ class FactualQueryClassifier:
             return True
 
         return True  # If has programming keywords, assume it's a programming question
+
+    def _apply_typo_corrections(self, text: str) -> str:
+        """Apply common typo corrections before classification"""
+        corrected = text
+        for typo_pattern, correction in self.TYPO_CORRECTIONS.items():
+            corrected = re.sub(typo_pattern, correction, corrected, flags=re.IGNORECASE)
+        return corrected
+
+    def _is_opinion_request(self, lowered: str) -> bool:
+        """Detect if user is asking for opinion/preference, not facts"""
+        return any(phrase in lowered for phrase in self.OPINION_REQUEST_PHRASES)
+
+    def _is_code_snippet_or_review(self, original_text: str, lowered: str) -> bool:
+        """Detect if text contains code snippets or is a code review request"""
+        # Check for code review phrases
+        if any(phrase in lowered for phrase in self.CODE_REVIEW_PHRASES):
+            return True
+
+        # Check for code syntax patterns in original text (preserve case/formatting)
+        if any(re.search(pattern, original_text) for pattern in self.CODE_SYNTAX_PATTERNS):
+            return True
+
+        return False
 
     def extract_entities(self, text: str, limit: int = 5) -> List[str]:
         if not text:

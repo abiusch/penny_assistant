@@ -73,6 +73,13 @@ class PersonalityResponsePostProcessor:
             'fantastically': 'well'
         }
 
+        # Proper nouns to protect from replacement (always preserve these)
+        self.proper_nouns = {
+            'super bowl', 'world series', 'world cup', 'champions league',
+            'super mario', 'superman', 'super nintendo', 'super smash',
+            # Add more as needed
+        }
+
         # Formality adjustment patterns
         self.contractions = {
             'do not': "don't",
@@ -199,8 +206,12 @@ class PersonalityResponsePostProcessor:
                 continue  # Already handled above
             response = re.sub(pattern, '', response, flags=re.IGNORECASE)
 
-        # Replace cheerful intensifiers
+        # Replace cheerful intensifiers (but protect proper nouns)
         for cheerful, replacement in self.cheerful_intensifiers.items():
+            # Check if this word appears in a proper noun context
+            if self._is_part_of_proper_noun(response, cheerful):
+                continue  # Skip replacement if it's part of a proper noun
+
             response = re.sub(
                 r'\b' + re.escape(cheerful) + r'\b',
                 replacement,
@@ -315,6 +326,18 @@ class PersonalityResponsePostProcessor:
         response = re.sub(r'([,.!?;:])\s*([,.!?;:])', r'\1\2', response)
 
         return response
+
+    def _is_part_of_proper_noun(self, response: str, word: str) -> bool:
+        """Check if a word appears as part of a protected proper noun"""
+        response_lower = response.lower()
+        word_lower = word.lower()
+
+        # Check if word appears in any of the proper noun phrases
+        for proper_noun in self.proper_nouns:
+            if word_lower in proper_noun and proper_noun in response_lower:
+                return True
+
+        return False
 
 
 # Async convenience function

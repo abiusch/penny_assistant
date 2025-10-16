@@ -68,6 +68,10 @@ class ResearchFirstPipeline(PipelineLoop):
             print(f"   Research required: {research_required}")
             print(f"   Financial topic: {financial_topic}")
 
+            # Track research for web interface
+            self.last_research_triggered = research_required
+            self.last_research_success = False
+
             # Step 3: Conduct research if needed
             research_context = ""
             if research_required:
@@ -83,6 +87,9 @@ class ResearchFirstPipeline(PipelineLoop):
                 print(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
 
                 if research_result.success and research_result.summary:
+                    # Track successful research
+                    self.last_research_success = True
+
                     # Format research for personality integration, not replacement
                     key_facts = research_result.key_insights[:3] if research_result.key_insights else []
                     research_context = (

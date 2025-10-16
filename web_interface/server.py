@@ -50,18 +50,30 @@ def chat():
             return jsonify({'error': 'No message provided'}), 400
         
         print(f"\n📝 User: {user_message}")
+        print("=" * 60)
 
         # Process message through Penny's pipeline using state machine
         from core.pipeline import State
         pipeline.state = State.THINKING
+
+        # Call think() which should print debug info from research_first_pipeline.py
         response_text = pipeline.think(user_message)
 
+        print("=" * 60)
         print(f"🤖 Penny: {response_text[:100]}...")
+
+        # Extract actual research status from pipeline
+        research_triggered = getattr(pipeline, 'last_research_triggered', False)
+        research_success = getattr(pipeline, 'last_research_success', False)
+
+        print(f"🔍 Research triggered: {research_triggered}")
+        print(f"✅ Research successful: {research_success}")
 
         # Extract metadata for display
         metadata = {
-            'research': False,  # TODO: Extract from pipeline
-            'adjustments': [],  # TODO: Extract from pipeline
+            'research': research_success,  # Only show as "researched" if actually successful
+            'research_attempted': research_triggered,
+            'adjustments': [],  # TODO: Extract from personality post-processor
         }
 
         # Get personality info

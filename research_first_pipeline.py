@@ -64,9 +64,9 @@ class ResearchFirstPipeline(PipelineLoop):
             research_required = self.research_manager.requires_research(actual_command)
             financial_topic = self.research_manager.is_financial_topic(actual_command)
 
-            print(f"🔍 Query: '{actual_command[:50]}...'")
-            print(f"   Research required: {research_required}")
-            print(f"   Financial topic: {financial_topic}")
+            print(f"🔍 Query: '{actual_command[:50]}...'", flush=True)
+            print(f"   Research required: {research_required}", flush=True)
+            print(f"   Financial topic: {financial_topic}", flush=True)
 
             # Track research for web interface
             self.last_research_triggered = research_required
@@ -224,16 +224,22 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 8: Store in memory
             try:
+                print("💾 Attempting to save conversation to memory...", flush=True)
                 turn = self.base_memory.add_conversation_turn(
                     user_input=actual_command,
                     assistant_response=final_response,
                     context={"research_used": research_required, "financial_topic": financial_topic},
                     response_time_ms=100
                 )
+                print(f"💾 Base memory saved, turn_id: {turn.turn_id}", flush=True)
+
                 self.enhanced_memory.process_conversation_turn(actual_command, final_response, turn.turn_id)
-                print("💾 Conversation saved to memory")
+                print("💾 Enhanced memory processing complete", flush=True)
+                print("✅ Conversation saved to memory successfully", flush=True)
             except Exception as e:
-                print(f"⚠️ Memory storage failed: {e}")
+                import traceback
+                print(f"⚠️ Memory storage failed: {e}", flush=True)
+                print(f"⚠️ Traceback: {traceback.format_exc()}", flush=True)
 
             self.state = State.SPEAKING
             return final_response

@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import sys
+import os
 from typing import Callable, Optional
+
+# Ensure personality module can be found
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from personality.filter import sanitize_output
 from personality.prompt_templates import DRY_SARCASTIC_SYSTEM

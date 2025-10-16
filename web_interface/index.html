@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penny Assistant - Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-animate {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9333ea;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+        pre code {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="flex flex-col h-screen max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-xl">💜</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-semibold">Penny Assistant</h1>
+                        <p class="text-sm text-gray-400" id="status">Ready</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleDebug()" class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors">
+                        Debug Info
+                    </button>
+                    <button onclick="clearChat()" class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors">
+                        Clear Chat
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto px-6 py-4 space-y-4 chat-messages">
+            <!-- Welcome Message -->
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl">💜</span>
+                </div>
+                <h2 class="text-2xl font-semibold mb-2">Hey, I'm Penny</h2>
+                <p class="text-gray-400">Your sarcastic AI companion with genuine personality.</p>
+                <p class="text-gray-500 text-sm mt-2">Ask me anything - coding, advice, or just chat.</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-gray-800 border-t border-gray-700 px-6 py-4">
+            <form id="chat-form" class="flex space-x-3">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="Type your message..." 
+                    class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    autocomplete="off"
+                >
+                <button 
+                    type="submit" 
+                    class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    id="send-button"
+                >
+                    Send
+                </button>
+            </form>
+            <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <div id="personality-info" class="flex items-center space-x-4">
+                    <span>🎭 Formality: <span id="formality">--</span></span>
+                    <span>🧠 Tech: <span id="tech">--</span></span>
+                    <span>📚 Terms: <span id="terms">--</span></span>
+                </div>
+                <div>
+                    Press <kbd class="px-1 bg-gray-700 rounded">Enter</kbd> to send
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel (Hidden by default) -->
+    <div id="debug-panel" class="hidden fixed top-0 right-0 w-96 h-full bg-gray-800 border-l border-gray-700 shadow-2xl overflow-y-auto z-50">
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Debug Info</h3>
+                <button onclick="toggleDebug()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div id="debug-content" class="space-y-3 text-sm">
+                <div class="bg-gray-900 rounded p-3">
+                    <div class="text-gray-400 mb-1">Last Response</div>
+                    <pre id="debug-last-response" class="text-xs text-gray-300 overflow-x-auto">No messages yet</pre>
+                </div>
+                <div class="bg-gray-900 rounded p-3">
+                    <div class="text-gray-400 mb-1">Personality State</div>
+                    <pre id="debug-personality" class="text-xs text-gray-300 overflow-x-auto">Loading...</pre>
+                </div>
+                <div class="bg-gray-900 rounded p-3">
+                    <div class="text-gray-400 mb-1">Console Logs</div>
+                    <pre id="debug-logs" class="text-xs text-gray-300 overflow-x-auto max-h-96">Waiting for messages...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let debugLogs = [];
+        let showDebug = false;
+
+        // Initialize
+        document.getElementById('chat-form').addEventListener('submit', handleSubmit);
+        loadPersonalityInfo();
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Clear input and disable button
+            input.value = '';
+            setLoading(true);
+
+            // Add user message
+            addMessage('user', message);
+
+            try {
+                // Send to Penny backend
+                const response = await fetch('http://localhost:5001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                // Add Penny's response
+                addMessage('penny', data.response, data.metadata);
+
+                // Update debug info
+                updateDebugInfo(data);
+
+                // Update personality display
+                updatePersonalityDisplay(data.personality);
+
+            } catch (error) {
+                addMessage('system', `Error: ${error.message}`);
+                console.error('Chat error:', error);
+            } finally {
+                setLoading(false);
+                input.focus();
+            }
+        }
+
+        function addMessage(sender, text, metadata = null) {
+            const container = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-animate';
+
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-end">
+                        <div class="max-w-3xl">
+                            <div class="bg-blue-600 rounded-lg px-4 py-3">
+                                <div class="text-white whitespace-pre-wrap">${escapeHtml(text)}</div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1 text-right">${getCurrentTime()}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (sender === 'penny') {
+                const formattedText = formatPennyResponse(text);
+                const metadataHtml = metadata ? formatMetadata(metadata) : '';
+                
+                messageDiv.innerHTML = `
+                    <div class="flex justify-start">
+                        <div class="max-w-3xl">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-sm">💜</span>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="bg-gray-800 rounded-lg px-4 py-3">
+                                        <div class="text-gray-100">${formattedText}</div>
+                                    </div>
+                                    ${metadataHtml}
+                                    <div class="text-xs text-gray-500 mt-1">${getCurrentTime()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="text-center">
+                        <div class="inline-block bg-red-900/30 border border-red-700 rounded px-4 py-2 text-sm text-red-300">
+                            ${escapeHtml(text)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatPennyResponse(text) {
+            // Format code blocks
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre class="bg-gray-900 rounded p-3 mt-2 mb-2 overflow-x-auto"><code class="text-sm">${escapeHtml(code.trim())}</code></pre>`;
+            });
+
+            // Format inline code
+            text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-700 px-1.5 py-0.5 rounded text-sm">$1</code>');
+
+            // Format bold
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>');
+
+            // Format links
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-purple-400 hover:text-purple-300 underline" target="_blank">$1</a>');
+
+            // Preserve line breaks
+            text = text.replace(/\n/g, '<br>');
+
+            return text;
+        }
+
+        function formatMetadata(metadata) {
+            if (!metadata) return '';
+
+            const parts = [];
+            
+            if (metadata.research !== undefined) {
+                const icon = metadata.research ? '🔍' : '🎯';
+                const text = metadata.research ? 'Research used' : 'No research';
+                parts.push(`<span class="text-xs text-gray-500">${icon} ${text}</span>`);
+            }
+
+            if (metadata.adjustments && metadata.adjustments.length > 0) {
+                parts.push(`<span class="text-xs text-gray-500">🎨 ${metadata.adjustments.join(', ')}</span>`);
+            }
+
+            if (parts.length === 0) return '';
+
+            return `<div class="flex items-center space-x-3 mt-2">${parts.join('')}</div>`;
+        }
+
+        function setLoading(loading) {
+            const button = document.getElementById('send-button');
+            const input = document.getElementById('user-input');
+            const status = document.getElementById('status');
+
+            if (loading) {
+                button.disabled = true;
+                button.textContent = 'Thinking...';
+                input.disabled = true;
+                status.textContent = 'Penny is thinking...';
+                
+                // Add typing indicator
+                const container = document.getElementById('chat-messages');
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typing-indicator';
+                typingDiv.className = 'flex items-center space-x-2 text-gray-500';
+                typingDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-sm">💜</span>
+                    </div>
+                    <div class="flex space-x-1">
+                        <span class="typing-indicator"></span>
+                        <span class="typing-indicator"></span>
+                        <span class="typing-indicator"></span>
+                    </div>
+                `;
+                container.appendChild(typingDiv);
+                container.scrollTop = container.scrollHeight;
+            } else {
+                button.disabled = false;
+                button.textContent = 'Send';
+                input.disabled = false;
+                status.textContent = 'Ready';
+                
+                // Remove typing indicator
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) typingIndicator.remove();
+            }
+        }
+
+        function updatePersonalityDisplay(personality) {
+            if (!personality) return;
+
+            document.getElementById('formality').textContent = personality.formality || '--';
+            document.getElementById('tech').textContent = personality.technical_depth || '--';
+            document.getElementById('terms').textContent = personality.vocabulary_count || '--';
+        }
+
+        function updateDebugInfo(data) {
+            debugLogs.push({
+                time: getCurrentTime(),
+                data: data
+            });
+
+            // Keep last 50 logs
+            if (debugLogs.length > 50) debugLogs.shift();
+
+            document.getElementById('debug-last-response').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('debug-logs').textContent = debugLogs.map(log => 
+                `[${log.time}] ${JSON.stringify(log.data, null, 2)}`
+            ).join('\n\n');
+        }
+
+        async function loadPersonalityInfo() {
+            try {
+                const response = await fetch('http://localhost:5001/personality');
+                const data = await response.json();
+                updatePersonalityDisplay(data);
+                document.getElementById('debug-personality').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                console.error('Failed to load personality info:', error);
+            }
+        }
+
+        function toggleDebug() {
+            showDebug = !showDebug;
+            document.getElementById('debug-panel').classList.toggle('hidden', !showDebug);
+        }
+
+        function clearChat() {
+            if (confirm('Clear all messages?')) {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">💜</span>
+                        </div>
+                        <h2 class="text-2xl font-semibold mb-2">Chat cleared</h2>
+                        <p class="text-gray-400">Start a new conversation with Penny.</p>
+                    </div>
+                `;
+                debugLogs = [];
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+
+        // Auto-focus input on load
+        document.getElementById('user-input').focus();
+    </script>
+</body>
+</html>

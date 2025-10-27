@@ -24,6 +24,7 @@ from factual_research_manager import ResearchManager
 # Phase 2: Dynamic Personality Adaptation
 from src.personality.dynamic_personality_prompt_builder import DynamicPersonalityPromptBuilder
 from src.personality.personality_response_post_processor import PersonalityResponsePostProcessor
+from personality_tracker import PersonalityTracker
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -44,12 +45,14 @@ class ResearchFirstPipeline(PipelineLoop):
         # Phase 2: Dynamic Personality Adaptation
         self.personality_prompt_builder = DynamicPersonalityPromptBuilder()
         self.personality_post_processor = PersonalityResponsePostProcessor()
+        self.personality_tracker = PersonalityTracker()
 
         print("🔬 Research-First Pipeline initialized")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
         print("   • Enhanced memory and personality integration active")
         print("   • Dynamic personality adaptation enabled (Phase 2)")
+        print("   • Active personality learning from conversations enabled")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -235,6 +238,9 @@ class ResearchFirstPipeline(PipelineLoop):
 
                 self.enhanced_memory.process_conversation_turn(actual_command, final_response, turn.turn_id)
                 print("💾 Enhanced memory processing complete", flush=True)
+
+                # Update personality tracking from this conversation
+                self._update_personality_from_conversation(actual_command, final_response, turn.turn_id)
                 print("✅ Conversation saved to memory successfully", flush=True)
             except Exception as e:
                 import traceback
@@ -252,6 +258,113 @@ class ResearchFirstPipeline(PipelineLoop):
             print(f"Full traceback:\n{error_details}")
             self.state = State.SPEAKING
             return f"I encountered an issue processing that request. Please try rephrasing. Error: {str(e)}"
+
+    def _update_personality_from_conversation(self, user_input: str, assistant_response: str, turn_id: str):
+        """Analyze conversation and update personality dimensions (Phase 2.5: Active Learning)"""
+        try:
+            # Analyze user's communication style
+            context = {}  # TODO: Could add more context like is_follow_up, previous_humor_style, etc.
+
+            print("🧠 Analyzing conversation for personality signals...", flush=True)
+            analysis = asyncio.run(self.personality_tracker.analyze_user_communication(user_input, context))
+
+            updates_made = 0
+
+            # Update communication formality if detected with confidence
+            formality = analysis.get('formality_level', {})
+            if formality.get('confidence', 0) > 0.5:
+                asyncio.run(self._update_dimension_if_changed(
+                    'communication_formality',
+                    formality['value'],
+                    formality['confidence'] * 0.05,  # Small confidence boost per conversation
+                    f"User message: '{user_input[:50]}...' - formality indicators: {formality.get('indicators', {})}"
+                ))
+                updates_made += 1
+
+            # Update technical depth preference
+            tech_depth = analysis.get('technical_depth_request', {})
+            if tech_depth.get('confidence', 0) > 0.5:
+                asyncio.run(self._update_dimension_if_changed(
+                    'technical_depth_preference',
+                    tech_depth['value'],
+                    tech_depth['confidence'] * 0.05,
+                    f"User message: '{user_input[:50]}...' - technical indicators: {tech_depth.get('indicators', {})}"
+                ))
+                updates_made += 1
+
+            # Update humor style preference
+            humor = analysis.get('humor_response_cues', {})
+            if humor.get('confidence', 0) > 0.5:
+                asyncio.run(self._update_dimension_if_changed(
+                    'humor_style_preference',
+                    humor['value'],
+                    humor['confidence'] * 0.05,
+                    f"User message: '{user_input[:50]}...' - humor response: {humor.get('indicators', {})}"
+                ))
+                updates_made += 1
+
+            # Update response length preference
+            length = analysis.get('length_preference_signals', {})
+            if length.get('confidence', 0) > 0.5:
+                asyncio.run(self._update_dimension_if_changed(
+                    'response_length_preference',
+                    length['value'],
+                    length['confidence'] * 0.05,
+                    f"User message: '{user_input[:50]}...' - length indicators: {length.get('indicators', {})}"
+                ))
+                updates_made += 1
+
+            if updates_made > 0:
+                print(f"🎯 Personality tracking: {updates_made} dimensions analyzed and updated", flush=True)
+            else:
+                print("🎯 Personality tracking: No strong signals detected in this conversation", flush=True)
+
+        except Exception as e:
+            print(f"⚠️ Personality tracking update failed: {e}", flush=True)
+            import traceback
+            print(f"⚠️ Traceback: {traceback.format_exc()}", flush=True)
+
+    async def _update_dimension_if_changed(self, dimension: str, new_value, confidence_change: float, context: str):
+        """Helper to update a dimension only if the value changed significantly"""
+        try:
+            # Get current state
+            current_state = await self.personality_tracker.get_current_personality_state()
+            current_dim = current_state.get(dimension)
+
+            if not current_dim:
+                return False
+
+            # For continuous dimensions, only update if change is significant (> 0.1 difference)
+            if current_dim.value_type == 'continuous':
+                current_value = float(current_dim.current_value)
+                new_value_float = float(new_value)
+
+                # Blend old and new values (learning rate)
+                learning_rate = current_dim.learning_rate
+                blended_value = current_value * (1 - learning_rate) + new_value_float * learning_rate
+
+                # Only update if blended value is different enough
+                if abs(blended_value - current_value) > 0.01:
+                    await self.personality_tracker.update_personality_dimension(
+                        dimension, blended_value, confidence_change, context
+                    )
+                    print(f"  • {dimension}: {current_value:.2f} → {blended_value:.2f} (confidence +{confidence_change:.3f})", flush=True)
+                    return True
+
+            # For categorical dimensions, update if different from current
+            else:
+                if str(new_value) != str(current_dim.current_value):
+                    await self.personality_tracker.update_personality_dimension(
+                        dimension, new_value, confidence_change, context
+                    )
+                    print(f"  • {dimension}: {current_dim.current_value} → {new_value} (confidence +{confidence_change:.3f})", flush=True)
+                    return True
+
+            return False
+
+        except Exception as e:
+            print(f"⚠️ Failed to update dimension {dimension}: {e}", flush=True)
+            return False
 
 
 def main():

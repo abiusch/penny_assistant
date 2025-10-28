@@ -11,6 +11,20 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 from pathlib import Path
+import sys
+
+# Add src/personality to path for cache import
+sys.path.insert(0, str(Path(__file__).parent / "src" / "personality"))
+try:
+    # Try multiple import paths
+    try:
+        from src.personality.personality_state_cache import get_cache
+    except ImportError:
+        from personality_state_cache import get_cache
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+    # Silently fall back - not an error, just less optimal
 
 @dataclass
 class PersonalityDimension:
@@ -490,7 +504,16 @@ class PersonalityTracker:
         return min(1.0, base_confidence)
 
     async def get_current_personality_state(self) -> Dict[str, PersonalityDimension]:
-        """Get current personality dimension values with confidence scores"""
+        """Get current personality dimension values with confidence scores - now with caching!"""
+
+        # Phase 3A: Try cache first
+        if CACHE_AVAILABLE:
+            cache = get_cache()
+            cached_state = cache.get("default")
+            if cached_state is not None:
+                return cached_state
+
+        # Cache miss or cache disabled - read from database
         personality_state = {}
 
         with sqlite3.connect(self.db_path) as conn:
@@ -516,6 +539,10 @@ class PersonalityTracker:
                     learning_rate=learning_rate,
                     value_type=value_type
                 )
+
+        # Store in cache
+        if CACHE_AVAILABLE:
+            cache.set("default", personality_state)
 
         return personality_state
 
@@ -559,6 +586,12 @@ class PersonalityTracker:
                 ''', (dimension, str(old_value), str(new_value), confidence_change, context))
 
                 conn.commit()
+
+                # Phase 3A: Invalidate cache after update
+                if CACHE_AVAILABLE:
+                    cache = get_cache()
+                    cache.invalidate("default")
+
                 return True
 
         except Exception as e:
@@ -649,6 +682,20 @@ class PersonalityTracker:
         ]
 
         return insights
+
+    def get_cache_stats(self) -> Optional[Dict[str, Any]]:
+        """
+        Get personality state cache statistics (Phase 3A)
+
+        Returns:
+            Cache stats dict with hit_rate, hits, misses, etc.
+            None if cache is not available
+        """
+        if not CACHE_AVAILABLE:
+            return None
+
+        cache = get_cache()
+        return cache.get_stats()
 
 
 if __name__ == "__main__":

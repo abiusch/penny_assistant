@@ -43,8 +43,9 @@ class PersonalityMilestoneTracker:
     Celebrates progress to build user trust and engagement.
     """
 
-    def __init__(self, db_path: str = "data/personality.db"):
+    def __init__(self, db_path: str = "data/personality_tracking.db", memory_db_path: str = "memory.db"):
         self.db_path = db_path
+        self.memory_db_path = memory_db_path
         self._init_database()
         self.milestones = self._define_milestones()
 
@@ -321,75 +322,82 @@ class PersonalityMilestoneTracker:
 
     def _get_vocabulary_count(self, user_id: str) -> int:
         """Get count of learned vocabulary terms."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
 
-        # This assumes vocabulary tracking exists
-        # For now, return estimate based on conversations
-        cursor.execute('''
-            SELECT COUNT(DISTINCT dimension)
-            FROM personality_evolution
-            WHERE user_id = ?
-        ''', (user_id,))
+            # Count distinct dimensions in personality evolution
+            cursor.execute('''
+                SELECT COUNT(DISTINCT dimension)
+                FROM personality_evolution
+            ''')
 
-        result = cursor.fetchone()
-        conn.close()
+            result = cursor.fetchone()
+            conn.close()
 
-        # Rough estimate: 2-3 terms per dimension
-        return (result[0] * 2) if result else 0
+            # Rough estimate: 2-3 terms per dimension
+            return (result[0] * 2) if result else 0
+        except:
+            return 0
 
     def _get_conversation_count(self, user_id: str) -> int:
         """Get total conversation count."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect(self.memory_db_path)
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            SELECT COUNT(*)
-            FROM conversations
-            WHERE user_id = ?
-        ''', (user_id,))
+            cursor.execute('''
+                SELECT COUNT(*)
+                FROM conversation_turns
+            ''')
 
-        result = cursor.fetchone()
-        conn.close()
+            result = cursor.fetchone()
+            conn.close()
 
-        return result[0] if result else 0
+            return result[0] if result else 0
+        except:
+            # If memory database doesn't exist or table not found, return 0
+            return 0
 
     def _get_current_streak(self, user_id: str) -> int:
         """Get current consecutive day streak."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect(self.memory_db_path)
+            cursor = conn.cursor()
 
-        # Get distinct days with conversations
-        cursor.execute('''
-            SELECT DISTINCT DATE(timestamp) as conv_date
-            FROM conversations
-            WHERE user_id = ?
-            ORDER BY conv_date DESC
-        ''', (user_id,))
+            # Get distinct days with conversations
+            cursor.execute('''
+                SELECT DISTINCT DATE(timestamp) as conv_date
+                FROM conversation_turns
+                ORDER BY conv_date DESC
+            ''')
 
-        dates = [row[0] for row in cursor.fetchall()]
-        conn.close()
+            dates = [row[0] for row in cursor.fetchall()]
+            conn.close()
 
-        if not dates:
+            if not dates:
+                return 0
+
+            # Count consecutive days from today
+            from datetime import date, timedelta
+
+            streak = 0
+            check_date = date.today()
+
+            for conv_date_str in dates:
+                conv_date = date.fromisoformat(conv_date_str)
+
+                if conv_date == check_date:
+                    streak += 1
+                    check_date -= timedelta(days=1)
+                elif conv_date < check_date:
+                    # Gap in streak
+                    break
+
+            return streak
+        except:
+            # If memory database doesn't exist or table not found, return 0
             return 0
-
-        # Count consecutive days from today
-        from datetime import date, timedelta
-
-        streak = 0
-        check_date = date.today()
-
-        for conv_date_str in dates:
-            conv_date = date.fromisoformat(conv_date_str)
-
-            if conv_date == check_date:
-                streak += 1
-                check_date -= timedelta(days=1)
-            elif conv_date < check_date:
-                # Gap in streak
-                break
-
-        return streak
 
     def _get_personality_state(self, user_id: str) -> dict:
         """Get current personality state."""

@@ -28,11 +28,7 @@ from personality_tracker import PersonalityTracker
 import asyncio
 
 # Phase 3A Week 2: Milestone & Achievement System
-try:
-    from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
-    MILESTONES_AVAILABLE = True
-except ImportError:
-    MILESTONES_AVAILABLE = False
+from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +51,8 @@ class ResearchFirstPipeline(PipelineLoop):
         self.personality_tracker = PersonalityTracker()
 
         # Phase 3A Week 2: Milestone & Achievement System
-        self.milestone_tracker = PersonalityMilestoneTracker() if MILESTONES_AVAILABLE else None
+        self.milestone_tracker = PersonalityMilestoneTracker()
+        logger.info("🏆 Milestone tracker initialized")
 
         print("🔬 Research-First Pipeline initialized")
         print("   • Factual queries trigger autonomous research")
@@ -330,30 +327,19 @@ class ResearchFirstPipeline(PipelineLoop):
                 print("🎯 Personality tracking: No strong signals detected in this conversation", flush=True)
 
             # Phase 3A Week 2: Check for newly achieved milestones
-            if self.milestone_tracker:
-                try:
-                    personality_state_obj = asyncio.run(self.personality_tracker.get_current_personality_state())
-                    # Convert PersonalityDimension objects to dict format
-                    personality_state = {}
-                    for dim_name, dim_obj in personality_state_obj.items():
-                        personality_state[dim_name] = {
-                            "value": dim_obj.current_value,
-                            "confidence": dim_obj.confidence
-                        }
+            try:
+                newly_achieved = self.milestone_tracker.check_milestones(user_id="default")
 
-                    new_milestones = self.milestone_tracker.check_milestones(
-                        user_id="default",
-                        personality_state=personality_state
-                    )
-
-                    if new_milestones:
-                        print(f"\n🎉 NEW ACHIEVEMENT{'S' if len(new_milestones) > 1 else ''}!")
-                        for milestone in new_milestones:
-                            print(f"   {milestone.icon} {milestone.name}")
-                            print(f"      {milestone.description}")
-                        print()
-                except Exception as milestone_err:
-                    print(f"⚠️ Milestone checking failed: {milestone_err}", flush=True)
+                if newly_achieved:
+                    print("\n" + "="*60)
+                    print("🎉 NEW ACHIEVEMENT UNLOCKED!")
+                    print("="*60)
+                    for milestone in newly_achieved:
+                        print(f"   {milestone.icon} {milestone.name}")
+                        print(f"      {milestone.description}")
+                    print("="*60 + "\n")
+            except Exception as e:
+                logger.error(f"Error checking milestones: {e}")
 
         except Exception as e:
             print(f"⚠️ Personality tracking update failed: {e}", flush=True)

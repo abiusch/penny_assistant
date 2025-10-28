@@ -21,6 +21,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from research_first_pipeline import ResearchFirstPipeline
 from personality_tracker import PersonalityTracker
 
+# Phase 3A Week 2: Milestone & Achievement System
+try:
+    from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
+    milestone_tracker = PersonalityMilestoneTracker()
+    MILESTONES_AVAILABLE = True
+except ImportError:
+    milestone_tracker = None
+    MILESTONES_AVAILABLE = False
+
 app = Flask(__name__, static_folder='.')
 CORS(app)  # Enable CORS for local development
 
@@ -34,6 +43,8 @@ print("Initializing Penny's pipeline...")
 pipeline = ResearchFirstPipeline()
 personality_tracker = PersonalityTracker()
 print("✅ Penny initialized successfully!")
+if MILESTONES_AVAILABLE:
+    print("🏆 Milestone & Achievement System enabled")
 
 @app.route('/')
 def index():
@@ -101,6 +112,23 @@ def personality():
     except Exception as e:
         print(f"Error getting personality info: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/achievements', methods=['GET'])
+def achievements():
+    """Get user achievements (Phase 3A Week 2)"""
+    try:
+        if not MILESTONES_AVAILABLE or not milestone_tracker:
+            return jsonify({'achievements': [], 'available': False})
+
+        user_achievements = milestone_tracker.get_achievements(user_id="default")
+        return jsonify({
+            'achievements': user_achievements,
+            'available': True,
+            'total_count': len(user_achievements)
+        })
+    except Exception as e:
+        print(f"Error getting achievements: {e}")
+        return jsonify({'error': str(e), 'available': False}), 500
 
 def get_personality_info():
     """Helper to get personality information"""

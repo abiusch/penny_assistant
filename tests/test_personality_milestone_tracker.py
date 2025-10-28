@@ -55,7 +55,7 @@ def test_db_path(tmp_path):
 @pytest.fixture
 def tracker(test_db_path):
     """Create a milestone tracker with test database."""
-    return PersonalityMilestoneTracker(db_path=test_db_path)
+    return PersonalityMilestoneTracker(db_path=test_db_path, memory_db_path=test_db_path)
 
 
 def test_milestone_initialization(tracker):

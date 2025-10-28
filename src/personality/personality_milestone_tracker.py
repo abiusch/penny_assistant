@@ -43,7 +43,7 @@ class PersonalityMilestoneTracker:
     Celebrates progress to build user trust and engagement.
     """
 
-    def __init__(self, db_path: str = "data/personality_tracking.db", memory_db_path: str = "memory.db"):
+    def __init__(self, db_path: str = "data/personality_tracking.db", memory_db_path: str = "data/memory.db"):
         self.db_path = db_path
         self.memory_db_path = memory_db_path
         self._init_database()
@@ -348,7 +348,7 @@ class PersonalityMilestoneTracker:
 
             cursor.execute('''
                 SELECT COUNT(*)
-                FROM conversation_turns
+                FROM conversations
             ''')
 
             result = cursor.fetchone()
@@ -366,9 +366,15 @@ class PersonalityMilestoneTracker:
             cursor = conn.cursor()
 
             # Get distinct days with conversations
+            # Try both timestamp formats: Unix epoch and ISO strings
             cursor.execute('''
-                SELECT DISTINCT DATE(timestamp) as conv_date
-                FROM conversation_turns
+                SELECT DISTINCT
+                    CASE
+                        WHEN typeof(timestamp) = 'integer' OR typeof(timestamp) = 'real'
+                        THEN DATE(timestamp, 'unixepoch')
+                        ELSE DATE(timestamp)
+                    END as conv_date
+                FROM conversations
                 ORDER BY conv_date DESC
             ''')
 
@@ -385,6 +391,9 @@ class PersonalityMilestoneTracker:
             check_date = date.today()
 
             for conv_date_str in dates:
+                if not conv_date_str:
+                    continue
+
                 conv_date = date.fromisoformat(conv_date_str)
 
                 if conv_date == check_date:
@@ -401,30 +410,29 @@ class PersonalityMilestoneTracker:
 
     def _get_personality_state(self, user_id: str) -> dict:
         """Get current personality state."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            SELECT dimension, value, confidence
-            FROM personality_evolution
-            WHERE user_id = ?
-            ORDER BY timestamp DESC
-        ''', (user_id,))
+            cursor.execute('''
+                SELECT dimension, current_value, confidence
+                FROM personality_dimensions
+            ''')
 
-        personality_state = {}
-        seen_dimensions = set()
+            personality_state = {}
 
-        for row in cursor.fetchall():
-            dimension, value, confidence = row
-            if dimension not in seen_dimensions:
+            for row in cursor.fetchall():
+                dimension, value, confidence = row
                 personality_state[dimension] = {
                     "value": value,
                     "confidence": confidence
                 }
-                seen_dimensions.add(dimension)
 
-        conn.close()
-        return personality_state
+            conn.close()
+            return personality_state
+        except:
+            # If table doesn't exist, return empty state
+            return {}
 
     def _is_achieved(self, user_id: str, milestone_id: str) -> bool:
         """Check if milestone already achieved."""

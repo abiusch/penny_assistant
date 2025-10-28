@@ -12,6 +12,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sys
 import os
+import asyncio
 from pathlib import Path
 
 # Add parent directory to path
@@ -110,20 +111,33 @@ def get_personality_info():
             personality_tracker.get_current_personality_state()
         )
         loop.close()
-        
+
         # Extract key metrics
         formality = state.get('communication_formality', {})
         tech = state.get('technical_depth_preference', {})
-        
+
         # Get vocabulary count
         vocab_count = len(state) if state else 0
-        
-        return {
+
+        # Get cache statistics (Phase 3A)
+        cache_stats = personality_tracker.get_cache_stats()
+
+        result = {
             'formality': f"{formality.get('current_value', 0.5):.2f}",
             'technical_depth': f"{tech.get('current_value', 0.5):.2f}",
             'vocabulary_count': vocab_count,
             'confidence': f"{formality.get('confidence', 0):.2f}"
         }
+
+        # Add cache stats if available
+        if cache_stats:
+            result['cache'] = {
+                'hit_rate': f"{cache_stats.get('hit_rate', 0) * 100:.1f}%",
+                'hits': cache_stats.get('hits', 0),
+                'misses': cache_stats.get('misses', 0)
+            }
+
+        return result
     except Exception as e:
         print(f"Error in get_personality_info: {e}")
         return {

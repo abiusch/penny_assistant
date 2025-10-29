@@ -201,6 +201,10 @@ class ResearchFirstPipeline(PipelineLoop):
 
                 prompt_sections.append(
                     "RESPONSE REQUIREMENTS:\n"
+                    "- Respond ONLY with natural conversational text\n"
+                    "- Do NOT output function calls, tool syntax, JSON, or system commands\n"
+                    "- Do NOT use <|channel|>, <|message|>, or any special tags\n"
+                    "- Just answer the question directly in plain English\n"
                     "- Stay dry, concise, and direct.\n"
                     "- Lead with the actionable answer before elaborating.\n"
                     "- If recommending verification or research, make it explicit."

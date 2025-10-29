@@ -109,14 +109,28 @@ class PersonalityResponsePostProcessor:
         """Remove internal LLM artifacts from response."""
         import re
 
+        # If response is ONLY artifacts (starts with <|channel|>), return fallback
+        if response.strip().startswith('<|channel|>'):
+            # Try to extract any text after the artifacts
+            # Look for text after the last closing brace or period
+            matches = re.findall(r'[}\.]\s*([A-Z][^<{]*)', response)
+            if matches:
+                return matches[-1].strip()
+            return "I apologize, but I'm having trouble generating a proper response. Could you rephrase your question?"
+
         # Remove <|channel|> tags and their content
-        response = re.sub(r'<\|channel\|>.*?<\|message\|>.*?\.', '', response, flags=re.DOTALL)
+        response = re.sub(r'<\|channel\|>.*?<\|message\|>', '', response, flags=re.DOTALL)
+
+        # Remove JSON blocks
+        response = re.sub(r'\{[^}]*"query"[^}]*\}', '', response)
 
         # Remove any remaining <|...| > style tags
         response = re.sub(r'<\|[^|]+\|>', '', response)
 
-        # Remove function call syntax
-        response = re.sub(r'{"query".*?}\.', '', response)
+        # Remove leftover JSON fragments
+        response = re.sub(r'["\s]*topn["\s]*:', '', response)
+        response = re.sub(r'["\s]*source["\s]*:', '', response)
+        response = re.sub(r'[,\}\]]+$', '', response)  # Remove trailing JSON punctuation
 
         # Clean up extra whitespace
         response = re.sub(r'\s+', ' ', response).strip()

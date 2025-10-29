@@ -9,6 +9,7 @@ import os
 import time
 import logging
 from typing import Optional, Dict, Any
+from datetime import datetime
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -29,6 +30,7 @@ import asyncio
 
 # Phase 3A Week 2: Milestone & Achievement System
 from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
+from src.personality.adaptation_ab_test import get_ab_test, ABTestMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,9 @@ class ResearchFirstPipeline(PipelineLoop):
         self.milestone_tracker = PersonalityMilestoneTracker()
         logger.info("🏆 Milestone tracker initialized")
 
+        self.ab_test = get_ab_test()
+        logger.info("📊 A/B testing framework initialized")
+
         print("🔬 Research-First Pipeline initialized")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
@@ -67,6 +72,18 @@ class ResearchFirstPipeline(PipelineLoop):
             return ""
 
         try:
+            # Step 0: A/B test assignment
+            start_time = time.time()
+            user_id = "default"  # Could be extracted from context if multi-user
+            conversation_id = f"conv_{user_id}_{datetime.now().timestamp()}"
+            group = self.ab_test.assign_group(conversation_id, user_id)
+            is_control = self.ab_test.is_control_group(conversation_id)
+
+            if is_control:
+                logger.info(f"🧪 A/B Test: Control group (baseline)")
+            else:
+                logger.info(f"🧪 A/B Test: Treatment group (adapted)")
+
             # Step 1: Process input
             actual_command = user_text.strip()
 
@@ -154,23 +171,26 @@ class ResearchFirstPipeline(PipelineLoop):
                 )
 
             def llm_generator(system_prompt: str, user_input: str) -> str:
-                # Phase 2: Build personality-enhanced prompt
+                # Phase 2: Build personality-enhanced prompt (only for treatment group)
                 personality_enhancement = ""
-                try:
-                    personality_enhancement = asyncio.run(
-                        self.personality_prompt_builder.build_personality_prompt(
-                            user_id="default",
-                            context={'topic': 'general', 'query': user_input}
+                if not is_control:
+                    try:
+                        personality_enhancement = asyncio.run(
+                            self.personality_prompt_builder.build_personality_prompt(
+                                user_id="default",
+                                context={'topic': 'general', 'query': user_input}
+                            )
                         )
-                    )
-                    print("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
-                except Exception as e:
-                    logger.warning(f"Personality prompt building failed: {e}")
+                        print("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
+                    except Exception as e:
+                        logger.warning(f"Personality prompt building failed: {e}")
+                else:
+                    print("🧪 A/B Test: Skipping personality enhancement (control group)")
 
                 prompt_sections = [system_prompt if system_prompt else "", _build_research_instructions()]
 
-                # Add personality enhancement early (before research context)
-                if personality_enhancement:
+                # Add personality enhancement early (before research context) - only for treatment
+                if personality_enhancement and not is_control:
                     prompt_sections.append(personality_enhancement)
 
                 if memory_context:
@@ -204,23 +224,26 @@ class ResearchFirstPipeline(PipelineLoop):
             if render_debug.get('raw'):
                 print(f"🤖 Base response: {render_debug['raw'][:100]}...")
 
-            # Phase 2: Post-process response with personality
+            # Phase 2: Post-process response with personality (only for treatment group)
             personality_adjustments = []
-            try:
-                result = asyncio.run(
-                    self.personality_post_processor.process_response(
-                        final_response,
-                        context={'topic': 'general', 'query': actual_command}
+            if not is_control:
+                try:
+                    result = asyncio.run(
+                        self.personality_post_processor.process_response(
+                            final_response,
+                            context={'topic': 'general', 'query': actual_command}
+                        )
                     )
-                )
-                final_response = result["response"]
-                personality_adjustments = result.get("adjustments", [])
-                if personality_adjustments:
-                    print(f"🎨 Response post-processed: {', '.join(personality_adjustments)}")
-                else:
-                    print("🎨 Response post-processed (no adjustments needed)")
-            except Exception as e:
-                logger.warning(f"Personality post-processing failed: {e}")
+                    final_response = result["response"]
+                    personality_adjustments = result.get("adjustments", [])
+                    if personality_adjustments:
+                        print(f"🎨 Response post-processed: {', '.join(personality_adjustments)}")
+                    else:
+                        print("🎨 Response post-processed (no adjustments needed)")
+                except Exception as e:
+                    logger.warning(f"Personality post-processing failed: {e}")
+            else:
+                print("🧪 A/B Test: Skipping response post-processing (control group)")
 
             # Step 6: Add financial disclaimer if needed (in Penny's style)
             if financial_topic:
@@ -253,6 +276,53 @@ class ResearchFirstPipeline(PipelineLoop):
                 import traceback
                 print(f"⚠️ Memory storage failed: {e}", flush=True)
                 print(f"⚠️ Traceback: {traceback.format_exc()}", flush=True)
+
+            # Step 9: Record A/B test metrics
+            try:
+                conversation_length = time.time() - start_time
+                message_count = 2  # user + assistant
+                user_message_length = len(actual_command)
+
+                # Detect quality indicators in user message
+                user_lower = actual_command.lower()
+                positive_indicators = sum([
+                    'thank' in user_lower,
+                    'great' in user_lower,
+                    'helpful' in user_lower,
+                    'perfect' in user_lower,
+                    'exactly' in user_lower,
+                    'awesome' in user_lower,
+                    'excellent' in user_lower
+                ])
+
+                negative_indicators = sum([
+                    'confus' in user_lower,
+                    'wrong' in user_lower,
+                    'not help' in user_lower,
+                    'unclear' in user_lower,
+                    'incorrect' in user_lower,
+                    'bad' in user_lower
+                ])
+
+                # Record metrics
+                metrics = ABTestMetrics(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    group="control" if is_control else "treatment",
+                    timestamp=datetime.now().isoformat(),
+                    conversation_length_seconds=conversation_length,
+                    message_count=message_count,
+                    user_message_length_avg=user_message_length,
+                    user_corrections=0,  # Could be detected from follow-up messages
+                    follow_up_questions=1 if '?' in actual_command else 0,
+                    positive_indicators=positive_indicators,
+                    negative_indicators=negative_indicators
+                )
+
+                self.ab_test.record_metrics(metrics)
+                logger.info(f"📊 A/B metrics recorded: {group} group")
+            except Exception as e:
+                logger.error(f"Failed to record A/B test metrics: {e}")
 
             self.state = State.SPEAKING
             return final_response

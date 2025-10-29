@@ -105,6 +105,24 @@ class PersonalityResponsePostProcessor:
             'i am': "I'm"
         }
 
+    def _remove_artifacts(self, response: str) -> str:
+        """Remove internal LLM artifacts from response."""
+        import re
+
+        # Remove <|channel|> tags and their content
+        response = re.sub(r'<\|channel\|>.*?<\|message\|>.*?\.', '', response, flags=re.DOTALL)
+
+        # Remove any remaining <|...| > style tags
+        response = re.sub(r'<\|[^|]+\|>', '', response)
+
+        # Remove function call syntax
+        response = re.sub(r'{"query".*?}\.', '', response)
+
+        # Clean up extra whitespace
+        response = re.sub(r'\s+', ' ', response).strip()
+
+        return response
+
     async def process_response(
         self,
         response: str,
@@ -126,6 +144,9 @@ class PersonalityResponsePostProcessor:
         context = context or {}
         adjustments = []
         original_response = response
+
+        # Step 0: Remove any LLM artifacts
+        response = self._remove_artifacts(response)
 
         # Get personality state
         personality_state = await self.personality_tracker.get_current_personality_state()

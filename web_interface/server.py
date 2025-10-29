@@ -140,9 +140,9 @@ def get_personality_info():
         )
         loop.close()
 
-        # Extract key metrics
-        formality = state.get('communication_formality', {})
-        tech = state.get('technical_depth_preference', {})
+        # Extract key metrics - state is dict of PersonalityDimension objects
+        formality = state.get('communication_formality')
+        tech = state.get('technical_depth_preference')
 
         # Get vocabulary count
         vocab_count = len(state) if state else 0
@@ -151,10 +151,10 @@ def get_personality_info():
         cache_stats = personality_tracker.get_cache_stats()
 
         result = {
-            'formality': f"{formality.get('current_value', 0.5):.2f}",
-            'technical_depth': f"{tech.get('current_value', 0.5):.2f}",
+            'formality': f"{formality.current_value:.2f}" if formality else "0.50",
+            'technical_depth': f"{tech.current_value:.2f}" if tech else "0.50",
             'vocabulary_count': vocab_count,
-            'confidence': f"{formality.get('confidence', 0):.2f}"
+            'confidence': f"{formality.confidence:.2f}" if formality else "0.00"
         }
 
         # Add cache stats if available

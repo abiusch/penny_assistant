@@ -10,10 +10,19 @@ from .tool_orchestrator import (
     get_orchestrator
 )
 
+from .tool_registry import (
+    ToolRegistry,
+    ToolImplementations,
+    get_tool_registry
+)
+
 __all__ = [
     "ToolCall",
     "FinalAnswer",
     "ToolCallParser",
     "ToolOrchestrator",
-    "get_orchestrator"
+    "get_orchestrator",
+    "ToolRegistry",
+    "ToolImplementations",
+    "get_tool_registry"
 ]

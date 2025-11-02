@@ -1,0 +1,13 @@
+{
+  "benchmarks": {
+    "llama3.1_8b": 3.321510076522827,
+    "llama3.1_70b": null,
+    "whisper_large_v3": 8.278112888336182,
+    "piper_tts": 0.5235781669616699
+  },
+  "pipeline": {
+    "edge_fast": 12.123201131820679,
+    "edge_smart": null
+  },
+  "timestamp": "2025-11-02 10:07:38"
+}

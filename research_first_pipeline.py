@@ -32,6 +32,10 @@ import asyncio
 from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
 from src.personality.adaptation_ab_test import get_ab_test, ABTestMetrics
 
+# Phase 3B Week 3: Tool Calling Infrastructure
+from src.tools.tool_orchestrator import ToolOrchestrator
+from src.tools.tool_registry import get_tool_registry
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,12 +63,19 @@ class ResearchFirstPipeline(PipelineLoop):
         self.ab_test = get_ab_test()
         logger.info("📊 A/B testing framework initialized")
 
+        # Phase 3B Week 3: Tool Calling Infrastructure
+        self.tool_registry = get_tool_registry()
+        self.tool_orchestrator = ToolOrchestrator(max_iterations=3)
+        self.tool_registry.register_with_orchestrator(self.tool_orchestrator)
+        logger.info("🔧 Tool orchestrator initialized with {} tools".format(len(self.tool_registry.tools)))
+
         print("🔬 Research-First Pipeline initialized")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
         print("   • Enhanced memory and personality integration active")
         print("   • Dynamic personality adaptation enabled (Phase 2)")
         print("   • Active personality learning from conversations enabled")
+        print("   • Tool calling system active (Phase 3B Week 3)")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -199,12 +210,17 @@ class ResearchFirstPipeline(PipelineLoop):
                 if research_context:
                     prompt_sections.append(research_context)
 
+                # Phase 3B Week 3: Add tool manifest
+                tool_manifest = self.tool_registry.get_tool_manifest()
+                prompt_sections.append(tool_manifest)
+
                 prompt_sections.append(
                     "RESPONSE REQUIREMENTS:\n"
-                    "- Respond ONLY with natural conversational text\n"
-                    "- Do NOT output function calls, tool syntax, JSON, or system commands\n"
-                    "- Do NOT use <|channel|>, <|message|>, or any special tags\n"
-                    "- Just answer the question directly in plain English\n"
+                    "- You may use tools if needed by outputting: <|channel|>commentary<|message|>{\"tool\": \"tool_name\", \"args\": {...}}\n"
+                    "- OR respond directly with natural conversational text\n"
+                    "- Do NOT mix tool calls with natural text\n"
+                    "- If using a tool, output ONLY the tool call syntax\n"
+                    "- If answering directly, use ONLY natural English\n"
                     "- Stay dry, concise, and direct.\n"
                     "- Lead with the actionable answer before elaborating.\n"
                     "- If recommending verification or research, make it explicit."
@@ -215,13 +231,28 @@ class ResearchFirstPipeline(PipelineLoop):
                 final_prompt = "\n\n".join(filter(None, prompt_sections))
                 render_debug['prompt'] = final_prompt
 
-                if hasattr(self.llm, 'complete'):
-                    raw = self.llm.complete(final_prompt, tone=tone)
-                else:
-                    raw = self.llm.generate(final_prompt)
+                # Phase 3B Week 3: Use tool orchestrator
+                print("🔧 Checking for tool calls...", flush=True)
+                
+                # Create LLM generator wrapper for orchestrator
+                def orchestrator_llm_gen(context):
+                    # Simple: just call LLM with the final prompt
+                    if hasattr(self.llm, 'complete'):
+                        return self.llm.complete(final_prompt, tone=tone)
+                    else:
+                        return self.llm.generate(final_prompt)
+                
+                # Run orchestrator (sync wrapper for async)
+                orchestrated_response = asyncio.run(
+                    self.tool_orchestrator.orchestrate(
+                        initial_prompt=user_input,
+                        llm_generator=orchestrator_llm_gen,
+                        conversation_context=[]
+                    )
+                )
 
-                render_debug['raw'] = raw
-                return raw
+                render_debug['raw'] = orchestrated_response
+                return orchestrated_response
 
             final_response = chat_respond(actual_command, generator=llm_generator)
 

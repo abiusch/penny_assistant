@@ -5,17 +5,17 @@ __pycache__/
 .venv/
 *.egg-info/
 
-
 .env
 .env.example
 .env.save
 .env.*
 .vscode/
 *.bak
-*.pyc
-__pycache__/
-.DS_Store
-*.wav
-.venv/
-*.egg-info/
 
+# SQLite WAL files
+*.db-shm
+*.db-wal
+
+# Large model directories
+whisper.cpp/
+piper_models/

@@ -72,8 +72,12 @@ class MemoryManager:
         self._load_user_preferences()
     
     def _init_database(self):
-        """Initialize the SQLite database."""
+        """Initialize the SQLite database with WAL mode for concurrent access."""
         with sqlite3.connect(self.db_path) as conn:
+            # Enable WAL mode for better concurrent access
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")  # 5 second timeout
+            
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     turn_id TEXT PRIMARY KEY,

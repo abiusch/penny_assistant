@@ -14,6 +14,7 @@ import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from enhanced_web_search import EnhancedWebSearch
+from src.tools.tool_safety import get_safe_tool_wrapper, SafeToolWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -129,14 +130,29 @@ class ToolRegistry:
     Maps tool names to their implementations and provides metadata.
     """
 
-    def __init__(self):
-        self.tools = {
+    def __init__(self, enable_safety: bool = True):
+        # Initialize tools WITHOUT safety first
+        self._raw_tools = {
             "web.search": ToolImplementations.web_search,
             "math.calc": ToolImplementations.math_calc,
             "code.execute": ToolImplementations.code_execute,
         }
-
-        logger.info(f"🔧 Tool Registry initialized with {len(self.tools)} tools")
+        
+        # Wrap with safety if enabled
+        if enable_safety:
+            safety_wrapper = get_safe_tool_wrapper(
+                timeout_seconds=30,
+                max_calls_per_minute=5
+            )
+            
+            self.tools = {}
+            for name, func in self._raw_tools.items():
+                self.tools[name] = safety_wrapper.wrap_tool(name, func)
+            
+            logger.info(f"🛡️  Tool Registry initialized with {len(self.tools)} SAFE tools")
+        else:
+            self.tools = self._raw_tools
+            logger.info(f"🔧 Tool Registry initialized with {len(self.tools)} tools (safety disabled)")
 
     def get_tool(self, tool_name: str):
         """Get tool implementation by name."""

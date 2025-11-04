@@ -145,10 +145,14 @@ class PersonalityTracker:
         }
 
     def _init_database(self):
-        """Initialize the personality tracking database"""
+        """Initialize the personality tracking database with WAL mode"""
         Path("data").mkdir(exist_ok=True)
-
+        
         with sqlite3.connect(self.db_path) as conn:
+            # Enable WAL mode for concurrent access
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")  # 5 second timeout
+            
             # Personality dimensions table
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS personality_dimensions (

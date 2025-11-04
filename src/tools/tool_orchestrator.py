@@ -7,7 +7,7 @@ Intercepts and manages tool calling from LLM output.
 import re
 import json
 import asyncio
-from typing import Optional, Dict, Any, Callable, List
+from typing import Optional, Dict, Any, Callable, List, Union
 from dataclasses import dataclass
 import logging
 
@@ -55,7 +55,7 @@ class ToolCallParser:
             re.DOTALL
         )
 
-    def parse(self, model_output: str) -> ToolCall | FinalAnswer:
+    def parse(self, model_output: str) -> Union[ToolCall, FinalAnswer]:
         """
         Parse model output for tool calls.
 

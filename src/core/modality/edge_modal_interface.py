@@ -11,7 +11,7 @@ Solves the audit's #1 critical issue:
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import logging
 import asyncio
 import sys
@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
 from personality_tracker import PersonalityTracker
 from memory_system import MemoryManager
 from emotional_memory_system import create_enhanced_memory_system
+from src.memory import ContextManager, EmotionDetector, SemanticMemory
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +74,18 @@ class EdgeModalInterface(ABC):
         self.base_memory = MemoryManager()
         self.enhanced_memory = create_enhanced_memory_system(self.base_memory)
         logger.info(f"💾 Memory system initialized for user {user_id}")
-        
+
+        # Week 6: Context Manager, Emotion Detector, Semantic Memory
+        self.context_manager = ContextManager(max_window_size=10)
+        self.emotion_detector = EmotionDetector()
+        self.semantic_memory = SemanticMemory()
+        logger.info(f"🧠 Context Manager, Emotion Detector, and Semantic Memory initialized")
+
         # Edge AI model references (lazy loaded)
         self._llm = None
         self._stt = None
         self._tts = None
-        
+
         logger.info(f"✅ EdgeModalInterface initialized (modality: {self.modality_name})")
     
     @property
@@ -227,6 +234,57 @@ class EdgeModalInterface(ABC):
         except Exception as e:
             logger.error(f"Failed to update personality: {e}")
     
+    def _build_contextual_prompt(
+        self,
+        user_input: str,
+        base_prompt: str,
+        max_context_turns: int = 5
+    ) -> str:
+        """
+        Build enhanced prompt with context, emotion, and semantic memory.
+
+        Args:
+            user_input: Current user input
+            base_prompt: Base system prompt
+            max_context_turns: Max conversation turns to include
+
+        Returns:
+            Enhanced prompt with all contextual information
+        """
+        enhanced_parts = [base_prompt]
+
+        # Add conversation context
+        context_str = self.context_manager.get_context_for_prompt(
+            max_turns=max_context_turns,
+            include_metadata=True
+        )
+        if context_str:
+            enhanced_parts.append(f"\n{context_str}")
+
+        # Add semantic context (similar past conversations)
+        try:
+            semantic_results = self.semantic_memory.semantic_search(
+                query=user_input,
+                k=3
+            )
+            if semantic_results:
+                semantic_context = "\n\nRelevant past conversations:"
+                for result in semantic_results:
+                    # Format: user_input and assistant_response from result
+                    semantic_context += f"\n- User: {result.get('user_input', '')[:100]}... (similarity: {result.get('similarity', 0):.2f})"
+                enhanced_parts.append(semantic_context)
+        except Exception as e:
+            logger.warning(f"Failed to get semantic context: {e}")
+
+        # Add current topic and emotional state
+        stats = self.context_manager.get_stats()
+        if stats.get('current_topic'):
+            enhanced_parts.append(f"\n\nCurrent topic: {stats['current_topic']}")
+        if stats.get('emotional_state'):
+            enhanced_parts.append(f"User's emotional state: {stats['emotional_state']}")
+
+        return "".join(enhanced_parts)
+
     def save_conversation(
         self,
         user_input: str,
@@ -234,32 +292,63 @@ class EdgeModalInterface(ABC):
         metadata: Optional[Dict] = None
     ) -> str:
         """
-        Save conversation turn to memory.
-        
+        Save conversation turn to memory (all systems).
+
         Args:
             user_input: User's message
             assistant_response: Assistant's response
             metadata: Optional metadata dict
-        
+
         Returns:
             Turn ID
         """
         try:
+            # Detect emotion from user input
+            emotion_result = self.emotion_detector.detect_emotion(user_input)
+
+            # Build enhanced metadata with emotion
+            enhanced_metadata = metadata or {}
+            enhanced_metadata.update({
+                'emotion': emotion_result.primary_emotion,
+                'emotion_confidence': emotion_result.confidence,
+                'sentiment': emotion_result.sentiment,
+                'sentiment_score': emotion_result.sentiment_score
+            })
+
+            # Save to base memory system
             turn = self.base_memory.add_conversation_turn(
                 user_input=user_input,
                 assistant_response=assistant_response,
-                context=metadata or {},
+                context=enhanced_metadata,
                 response_time_ms=100
             )
-            
-            # Process in enhanced memory
+
+            # Save to enhanced memory
             self.enhanced_memory.process_conversation_turn(
                 user_input,
                 assistant_response,
                 turn.turn_id
             )
-            
-            logger.info(f"💾 Conversation saved (turn {turn.turn_id})")
+
+            # Save to context manager with emotion metadata
+            self.context_manager.add_turn(
+                user_input=user_input,
+                assistant_response=assistant_response,
+                metadata=enhanced_metadata
+            )
+
+            # Save to semantic memory for future retrieval
+            try:
+                self.semantic_memory.add_conversation_turn(
+                    user_input=user_input,
+                    assistant_response=assistant_response,
+                    turn_id=turn.turn_id,
+                    context=enhanced_metadata
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save to semantic memory: {e}")
+
+            logger.info(f"💾 Conversation saved to all systems (turn {turn.turn_id}, emotion: {emotion_result.primary_emotion})")
             return turn.turn_id
         except Exception as e:
             logger.error(f"Failed to save conversation: {e}")
@@ -335,24 +424,30 @@ class ChatModalInterface(EdgeModalInterface):
         personality_ctx: Dict,
         memory_ctx: str
     ) -> str:
-        """Generate chat response using LLM."""
+        """Generate chat response using LLM with full context integration."""
         # Import here to avoid circular dependencies
         from chat_entry import respond, SYSTEM_PROMPT
-        
+
         def generator(system_prompt, user_text):
-            # Add personality and memory context
-            enhanced_prompt = system_prompt
+            # Build enhanced prompt with context, emotion, and semantic memory
+            enhanced_prompt = self._build_contextual_prompt(
+                user_input=user_text,
+                base_prompt=system_prompt,
+                max_context_turns=5
+            )
+
+            # Add personality and legacy memory context
             if memory_ctx:
-                enhanced_prompt += f"\n\nConversation history:\n{memory_ctx}"
+                enhanced_prompt += f"\n\nLegacy conversation history:\n{memory_ctx}"
             if personality_ctx:
                 enhanced_prompt += f"\n\nPersonality context: {personality_ctx}"
-            
+
             # Call LLM
             if hasattr(self.llm, 'complete'):
                 return self.llm.complete(enhanced_prompt + f"\n\nUser: {user_text}")
             else:
                 return self.llm.generate(enhanced_prompt + f"\n\nUser: {user_text}")
-        
+
         return respond(user_input, generator=generator)
     
     def cleanup(self):
@@ -429,21 +524,29 @@ class VoiceModalInterface(EdgeModalInterface):
         personality_ctx: Dict,
         memory_ctx: str
     ) -> str:
-        """Generate voice response using LLM."""
+        """Generate voice response using LLM with full context integration."""
         from voice_entry import respond, SYSTEM_PROMPT
-        
+
         def generator(system_prompt, user_text):
-            enhanced_prompt = system_prompt
+            # Build enhanced prompt with context, emotion, and semantic memory
+            enhanced_prompt = self._build_contextual_prompt(
+                user_input=user_text,
+                base_prompt=system_prompt,
+                max_context_turns=5
+            )
+
+            # Add personality and legacy memory context
             if memory_ctx:
-                enhanced_prompt += f"\n\nConversation history:\n{memory_ctx}"
+                enhanced_prompt += f"\n\nLegacy conversation history:\n{memory_ctx}"
             if personality_ctx:
                 enhanced_prompt += f"\n\nPersonality context: {personality_ctx}"
-            
+
+            # Call LLM
             if hasattr(self.llm, 'complete'):
                 return self.llm.complete(enhanced_prompt + f"\n\nUser: {user_text}")
             else:
                 return self.llm.generate(enhanced_prompt + f"\n\nUser: {user_text}")
-        
+
         return respond(user_input, generator=generator)
     
     async def _synthesize(self, text: str) -> bytes:

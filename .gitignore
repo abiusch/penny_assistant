@@ -19,3 +19,6 @@ __pycache__/
 # Large model directories
 whisper.cpp/
 piper_models/
+
+# HuggingFace cache (model files)
+.cache/

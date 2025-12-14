@@ -1,6 +1,12 @@
 """
-Semantic Memory System
-Combines embeddings and vector store for intelligent conversation memory
+Semantic Memory System - WEEK 7 REFACTOR
+NOW the ONLY persistent store (no base_memory redundancy)
+
+CHANGES:
+- Integrated encryption for sensitive fields (emotions, sentiment)
+- Stores ALL conversation metadata (was split across 3 systems)
+- NO dependency on base_memory (removed)
+- Automatic persistence via FAISS save/load
 """
 
 import uuid
@@ -10,26 +16,49 @@ import logging
 
 from src.memory.embedding_generator import get_embedding_generator
 from src.memory.vector_store import VectorStore
+from src.security.encryption import get_encryption
 
 logger = logging.getLogger(__name__)
 
 
 class SemanticMemory:
-    """Semantic memory with vector search capabilities"""
+    """
+    Semantic memory with vector search and encryption.
 
-    def __init__(self, base_memory=None, embedding_dim: int = 384):
+    WEEK 7: This is now the ONLY persistent store.
+    - Context Manager = in-memory cache only
+    - Base Memory = REMOVED (redundant)
+    - Semantic Memory = single source of truth for all conversations
+
+    Features:
+    - Vector similarity search (FAISS)
+    - Encrypted sensitive fields (emotions, sentiment)
+    - Stores ALL metadata (research_used, financial_topic, tools_used, etc.)
+    - Automatic persistence to disk
+    """
+
+    def __init__(self, embedding_dim: int = 384, encrypt_sensitive: bool = True):
         """
-        Initialize semantic memory.
+        Initialize semantic memory as the sole persistent store.
 
         Args:
-            base_memory: Optional MemoryManager instance for integration
             embedding_dim: Dimension of embeddings (default: 384)
+            encrypt_sensitive: Encrypt emotion/sentiment fields (default: True)
         """
-        self.base_memory = base_memory
         self.embedding_generator = get_embedding_generator()
         self.vector_store = VectorStore(embedding_dim=embedding_dim)
         self.turn_id_to_vector_id: Dict[str, int] = {}
-        logger.info("Initialized SemanticMemory")
+
+        # WEEK 7: Encryption for sensitive data (GDPR Article 9)
+        self.encrypt_sensitive = encrypt_sensitive
+        if encrypt_sensitive:
+            self.encryption = get_encryption()
+            logger.info("🔐 Semantic Memory initialized with encryption enabled")
+        else:
+            self.encryption = None
+            logger.info("⚠️  Semantic Memory initialized WITHOUT encryption")
+
+        logger.info("✅ SemanticMemory initialized (SOLE persistent store)")
 
     def add_conversation_turn(
         self,
@@ -40,14 +69,27 @@ class SemanticMemory:
         context: Optional[Dict[str, Any]] = None
     ) -> str:
         """
-        Add a conversation turn to semantic memory.
+        Add a conversation turn to semantic memory (ONLY persistent store).
+
+        WEEK 7: Now stores ALL metadata (not split with base_memory)
+        - Encrypts sensitive fields (emotion, sentiment) before storage
+        - Stores research_used, financial_topic, tools_used, ab_test_group, etc.
 
         Args:
             user_input: User's message
             assistant_response: Assistant's response
             turn_id: Optional unique ID for this turn
             timestamp: Optional timestamp
-            context: Optional additional context metadata
+            context: Full metadata dict including:
+                - emotion: str (encrypted)
+                - emotion_confidence: float
+                - sentiment: str (encrypted)
+                - sentiment_score: float (encrypted)
+                - research_used: bool
+                - financial_topic: bool
+                - tools_used: List[str]
+                - ab_test_group: str
+                - user_id: str (future multi-user)
 
         Returns:
             turn_id for this conversation turn
@@ -64,7 +106,7 @@ class SemanticMemory:
         # Generate embedding
         embedding = self.embedding_generator.encode(combined_text)
 
-        # Create metadata
+        # Create base metadata
         metadata = {
             'turn_id': turn_id,
             'user_input': user_input,
@@ -73,15 +115,29 @@ class SemanticMemory:
             'combined_text': combined_text
         }
 
-        # Add optional context to metadata
+        # Add context with encryption for sensitive fields
         if context:
-            metadata['context'] = context
+            # Encrypt sensitive fields (GDPR Article 9 compliance)
+            encrypted_context = context.copy()
+
+            if self.encrypt_sensitive and self.encryption:
+                # Fields to encrypt: emotion, sentiment, sentiment_score
+                sensitive_fields = ['emotion', 'sentiment', 'sentiment_score']
+
+                for field in sensitive_fields:
+                    if field in encrypted_context and encrypted_context[field] is not None:
+                        # Convert to string and encrypt
+                        encrypted_context[field] = self.encryption.encrypt(
+                            str(encrypted_context[field])
+                        )
+
+            metadata['context'] = encrypted_context
 
         # Add to vector store
         vector_ids = self.vector_store.add(embedding, metadata=[metadata])
         self.turn_id_to_vector_id[turn_id] = vector_ids[0]
 
-        logger.debug(f"Added conversation turn {turn_id} to semantic memory")
+        logger.debug(f"✅ Turn {turn_id} added (encrypted={'yes' if self.encrypt_sensitive else 'no'})")
         return turn_id
 
     def semantic_search(
@@ -93,13 +149,15 @@ class SemanticMemory:
         """
         Search for semantically similar conversations.
 
+        WEEK 7: Automatically decrypts sensitive fields before returning results.
+
         Args:
             query: Search query
             k: Number of results to return
             min_similarity: Minimum similarity threshold (0-1)
 
         Returns:
-            List of matching conversations with similarity scores
+            List of matching conversations with similarity scores and decrypted metadata
         """
         # Generate query embedding
         query_embedding = self.embedding_generator.encode(query)
@@ -112,12 +170,36 @@ class SemanticMemory:
         for result in results:
             if result['similarity'] >= min_similarity:
                 metadata = result['metadata']
+
+                # Decrypt sensitive fields if encryption is enabled
+                context = metadata.get('context', {})
+                if self.encrypt_sensitive and self.encryption and context:
+                    decrypted_context = context.copy()
+
+                    # Decrypt sensitive fields
+                    sensitive_fields = ['emotion', 'sentiment', 'sentiment_score']
+                    for field in sensitive_fields:
+                        if field in decrypted_context and decrypted_context[field]:
+                            try:
+                                decrypted_context[field] = self.encryption.decrypt(
+                                    decrypted_context[field]
+                                )
+                                # Convert back to proper type
+                                if field == 'sentiment_score':
+                                    decrypted_context[field] = float(decrypted_context[field])
+                            except Exception as e:
+                                logger.warning(f"Failed to decrypt {field}: {e}")
+
+                    context = decrypted_context
+
+                # Build result with decrypted data
                 filtered_results.append({
                     'turn_id': metadata.get('turn_id'),
                     'user_input': metadata.get('user_input'),
                     'assistant_response': metadata.get('assistant_response'),
                     'timestamp': metadata.get('timestamp'),
-                    'similarity': result['similarity']
+                    'similarity': result['similarity'],
+                    'context': context  # Now includes decrypted sensitive fields
                 })
 
         return filtered_results

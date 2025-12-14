@@ -1,48 +1,53 @@
 """
 Context Manager for Conversation Tracking
-Maintains conversation context windows and topic continuity
+Maintains in-memory conversation context with LRU eviction - NO database persistence
+
+WEEK 7 REFACTOR:
+- In-memory only (no database writes)
+- Uses deque for O(1) append/popleft operations
+- Automatic LRU eviction when window is full
+- Semantic Memory handles ALL persistence
 """
 
 from datetime import datetime
 from typing import List, Dict, Optional, Any
-from dataclasses import dataclass, field
+from collections import deque
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ConversationContext:
-    """Represents current conversation state"""
-    current_topic: Optional[str] = None
-    context_window: List[Dict[str, Any]] = field(default_factory=list)
-    emotional_state: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.now)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {
-            'current_topic': self.current_topic,
-            'context_window': self.context_window,
-            'emotional_state': self.emotional_state,
-            'timestamp': self.timestamp.isoformat()
-        }
-
-
 class ContextManager:
-    """Manages conversation context across turns"""
+    """
+    In-memory conversation context manager with LRU eviction.
+
+    This is a CACHE ONLY - no persistence. All long-term storage
+    happens in SemanticMemory. This manager provides fast access
+    to recent conversation turns for prompt building.
+
+    Performance:
+    - O(1) add_turn (deque append)
+    - O(1) get recent turns (deque slicing)
+    - O(n) topic extraction (n = window size, typically 10)
+    """
 
     def __init__(self, max_window_size: int = 10):
         """
-        Initialize context manager.
+        Initialize in-memory context manager.
 
         Args:
-            max_window_size: Maximum number of turns to keep in context window
+            max_window_size: Maximum number of turns to keep in memory (LRU)
         """
         self.max_window_size = max_window_size
-        self.context = ConversationContext()
-        self._topic_keywords: Dict[str, List[str]] = {}
-        logger.info(f"Initialized ContextManager with window size: {max_window_size}")
+
+        # Use deque with maxlen for automatic LRU eviction
+        self._turns: deque = deque(maxlen=max_window_size)
+
+        # Track current topic and emotional state
+        self._current_topic: Optional[str] = None
+        self._current_emotion: Optional[str] = None
+
+        logger.info(f"✅ ContextManager initialized (in-memory only, window={max_window_size})")
 
     def add_turn(
         self,
@@ -51,7 +56,9 @@ class ContextManager:
         metadata: Optional[Dict[str, Any]] = None
     ) -> None:
         """
-        Add a conversation turn to context.
+        Add a conversation turn to in-memory cache.
+
+        NO DATABASE WRITES - this is cache only. Semantic Memory handles persistence.
 
         Args:
             user_input: User's message
@@ -65,39 +72,34 @@ class ContextManager:
             'metadata': metadata or {}
         }
 
-        # Add to context window
-        self.context.context_window.append(turn)
-
-        # Maintain window size limit
-        if len(self.context.context_window) > self.max_window_size:
-            self.context.context_window.pop(0)
+        # Add to deque (automatically evicts oldest if at maxlen)
+        self._turns.append(turn)
 
         # Update emotional state if provided
         if metadata and 'emotion' in metadata:
-            self.context.emotional_state = metadata['emotion']
+            self._current_emotion = metadata['emotion']
 
         # Extract and update topic
         self._update_topic(user_input, assistant_response)
 
-        # Update timestamp
-        self.context.timestamp = datetime.now()
-
-        logger.debug(f"Added turn to context. Window size: {len(self.context.context_window)}")
+        logger.debug(f"✅ Turn added to cache (window size: {len(self._turns)}/{self.max_window_size})")
 
     def get_context_window(self, max_turns: Optional[int] = None) -> List[Dict[str, Any]]:
         """
-        Get recent conversation turns.
+        Get recent conversation turns from in-memory cache.
 
         Args:
-            max_turns: Maximum number of turns to return (defaults to window size)
+            max_turns: Maximum number of turns to return (defaults to all in cache)
 
         Returns:
-            List of recent conversation turns
+            List of recent conversation turns (most recent last)
         """
         if max_turns is None:
-            return self.context.context_window.copy()
+            return list(self._turns)
 
-        return self.context.context_window[-max_turns:] if max_turns > 0 else []
+        # Get last N turns (deque slicing)
+        n = min(max_turns, len(self._turns))
+        return list(self._turns)[-n:] if n > 0 else []
 
     def get_current_topic(self) -> Optional[str]:
         """
@@ -106,21 +108,21 @@ class ContextManager:
         Returns:
             Current topic string or None
         """
-        return self.context.current_topic
+        return self._current_topic
 
     def summarize_context(self) -> str:
         """
-        Create a summary of the current context.
+        Create a summary of the current in-memory context.
 
         Returns:
             Human-readable context summary
         """
-        if not self.context.context_window:
-            return "No conversation history."
+        if not self._turns:
+            return "No conversation history in cache."
 
-        num_turns = len(self.context.context_window)
-        topic = self.context.current_topic or "general conversation"
-        emotion = self.context.emotional_state or "neutral"
+        num_turns = len(self._turns)
+        topic = self._current_topic or "general conversation"
+        emotion = self._current_emotion or "neutral"
 
         summary = f"Conversation with {num_turns} turn(s) about {topic}. "
         summary += f"Current emotional tone: {emotion}."
@@ -128,9 +130,11 @@ class ContextManager:
         return summary
 
     def clear_context(self) -> None:
-        """Clear all context and reset to initial state"""
-        self.context = ConversationContext()
-        logger.info("Cleared conversation context")
+        """Clear in-memory cache (no database operations)"""
+        self._turns.clear()
+        self._current_topic = None
+        self._current_emotion = None
+        logger.info("✅ Context cache cleared")
 
     def get_context_for_prompt(
         self,
@@ -138,7 +142,7 @@ class ContextManager:
         include_metadata: bool = False
     ) -> str:
         """
-        Format context for LLM prompt injection.
+        Format in-memory context for LLM prompt injection.
 
         Args:
             max_turns: Maximum turns to include
@@ -168,8 +172,8 @@ class ContextManager:
                     lines.append(f"(Emotion: {metadata['emotion']})")
 
         # Add current context summary
-        if self.context.current_topic:
-            lines.append(f"\nCurrent topic: {self.context.current_topic}")
+        if self._current_topic:
+            lines.append(f"\nCurrent topic: {self._current_topic}")
 
         return "\n".join(lines)
 
@@ -205,36 +209,37 @@ class ContextManager:
 
         # Update to highest scoring topic
         if topic_scores:
-            self.context.current_topic = max(topic_scores, key=topic_scores.get)
+            self._current_topic = max(topic_scores, key=topic_scores.get)
         else:
             # Keep previous topic or set to general
-            if self.context.current_topic is None:
-                self.context.current_topic = "general conversation"
+            if self._current_topic is None:
+                self._current_topic = "general conversation"
 
     def get_emotional_trajectory(self) -> List[str]:
         """
-        Get the emotional trajectory over conversation.
+        Get the emotional trajectory over cached conversation.
 
         Returns:
             List of emotions in chronological order
         """
         emotions = []
-        for turn in self.context.context_window:
+        for turn in self._turns:
             if turn.get('metadata') and 'emotion' in turn['metadata']:
                 emotions.append(turn['metadata']['emotion'])
         return emotions
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get statistics about the current context.
+        Get statistics about the in-memory context cache.
 
         Returns:
             Dictionary with context statistics
         """
         return {
-            'window_size': len(self.context.context_window),
+            'window_size': len(self._turns),
             'max_window_size': self.max_window_size,
-            'current_topic': self.context.current_topic,
-            'emotional_state': self.context.emotional_state,
-            'timestamp': self.context.timestamp.isoformat() if self.context.context_window else None
+            'current_topic': self._current_topic,
+            'emotional_state': self._current_emotion,
+            'cache_type': 'in-memory (no persistence)',
+            'timestamp': self._turns[-1]['timestamp'] if self._turns else None
         }

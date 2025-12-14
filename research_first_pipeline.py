@@ -36,6 +36,9 @@ from src.personality.adaptation_ab_test import get_ab_test, ABTestMetrics
 from src.tools.tool_orchestrator import ToolOrchestrator
 from src.tools.tool_registry import get_tool_registry
 
+# Week 6: Context Manager, Emotion Detector, Semantic Memory Integration
+from src.memory import ContextManager, EmotionDetector, SemanticMemory
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,9 +49,10 @@ class ResearchFirstPipeline(PipelineLoop):
         super().__init__()
 
         # Initialize core systems
-        self.base_memory = MemoryManager()
-        self.enhanced_memory = create_enhanced_memory_system(self.base_memory)
-        self.personality = create_personality_integration(self.enhanced_memory)
+        # WEEK 7: Removed base_memory and enhanced_memory (redundant with semantic memory)
+        # self.base_memory = MemoryManager()  # REMOVED - redundant
+        # self.enhanced_memory = create_enhanced_memory_system(self.base_memory)  # REMOVED - redundant
+        # self.personality = create_personality_integration(self.enhanced_memory)  # REMOVED - refactor needed
         self.research_manager = ResearchManager()
 
         # Phase 2: Dynamic Personality Adaptation
@@ -69,13 +73,23 @@ class ResearchFirstPipeline(PipelineLoop):
         self.tool_registry.register_with_orchestrator(self.tool_orchestrator)
         logger.info("🔧 Tool orchestrator initialized with {} tools".format(len(self.tool_registry.tools)))
 
-        print("🔬 Research-First Pipeline initialized")
+        # Week 6: Context Manager, Emotion Detector, Semantic Memory
+        self.context_manager = ContextManager(max_window_size=10)
+        self.emotion_detector = EmotionDetector()
+        self.semantic_memory = SemanticMemory()
+        logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
+
+        print("🔬 Research-First Pipeline initialized (Week 7 Architecture)")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
-        print("   • Enhanced memory and personality integration active")
         print("   • Dynamic personality adaptation enabled (Phase 2)")
         print("   • Active personality learning from conversations enabled")
         print("   • Tool calling system active (Phase 3B Week 3)")
+        print("   • Week 7: Single-store architecture with encryption")
+        print("     - Context Manager: In-memory cache only (10 turns)")
+        print("     - Semantic Memory: ONLY persistent store (encrypted emotions)")
+        print("     - Data encryption: AES-128 for sensitive fields (GDPR compliant)")
+        print("     - PII detection: Ready for culture learning (Week 8-9)")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -97,6 +111,10 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 1: Process input
             actual_command = user_text.strip()
+
+            # Step 1.5: Week 6 - Detect emotion from user input
+            emotion_result = self.emotion_detector.detect_emotion(actual_command)
+            print(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
 
             # Step 2: Research classification
             research_required = self.research_manager.requires_research(actual_command)
@@ -154,9 +172,22 @@ class ResearchFirstPipeline(PipelineLoop):
                     print(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
 
             # Step 4: Build contextual prompt for shared persona responder
-            memory_context = self.enhanced_memory.get_enhanced_context_for_llm()
+            # WEEK 7: Removed enhanced_memory context (now using semantic memory only)
+            # memory_context = self.enhanced_memory.get_enhanced_context_for_llm()  # REMOVED
             tone = self._route_tone(actual_command)
             render_debug: Dict[str, str] = {}
+
+            # Step 4.5: Week 6 - Get conversation context and semantic memories
+            conversation_context = self.context_manager.get_context_for_prompt(max_turns=5, include_metadata=True)
+            print(f"💬 Conversation context: {len(conversation_context)} chars")
+
+            # Get semantic memories (similar past conversations)
+            semantic_results = []
+            try:
+                semantic_results = self.semantic_memory.semantic_search(query=actual_command, k=3)
+                print(f"🧠 Semantic memory: Found {len(semantic_results)} relevant memories")
+            except Exception as e:
+                logger.warning(f"Semantic search failed: {e}")
 
             def _build_research_instructions() -> str:
                 if not research_required:
@@ -204,8 +235,32 @@ class ResearchFirstPipeline(PipelineLoop):
                 if personality_enhancement and not is_control:
                     prompt_sections.append(personality_enhancement)
 
-                if memory_context:
-                    prompt_sections.append(f"Conversation context: {memory_context}")
+                # Week 6: Add conversation context from context manager
+                if conversation_context:
+                    prompt_sections.append(f"\n{conversation_context}")
+
+                # Week 6: Add semantic memory context
+                if semantic_results:
+                    semantic_context = "\n\nRelevant past conversations:"
+                    for result in semantic_results:
+                        semantic_context += f"\n- User: {result.get('user_input', '')[:100]}... (similarity: {result.get('similarity', 0):.2f})"
+                    prompt_sections.append(semantic_context)
+
+                # Week 6: Add current topic and emotional state
+                stats = self.context_manager.get_stats()
+                context_info = []
+                if stats.get('current_topic'):
+                    context_info.append(f"Current topic: {stats['current_topic']}")
+                if stats.get('emotional_state'):
+                    context_info.append(f"User's emotional state: {stats['emotional_state']}")
+                if emotion_result:
+                    context_info.append(f"User's current emotion: {emotion_result.primary_emotion} ({emotion_result.sentiment})")
+                if context_info:
+                    prompt_sections.append("\n\n" + "\n".join(context_info))
+
+                # WEEK 7: Removed legacy memory_context (using semantic memory instead)
+                # if memory_context:
+                #     prompt_sections.append(f"Legacy conversation context: {memory_context}")
 
                 if research_context:
                     prompt_sections.append(research_context)
@@ -230,6 +285,17 @@ class ResearchFirstPipeline(PipelineLoop):
 
                 final_prompt = "\n\n".join(filter(None, prompt_sections))
                 render_debug['prompt'] = final_prompt
+
+                # Week 6+7: Debug logging for prompt length
+                print(f"✨ Final prompt built: {len(final_prompt)} chars (Week 7 architecture)", flush=True)
+                print(f"   📊 Breakdown: base={len(system_prompt if system_prompt else '')}, "
+                      f"conv_ctx={len(conversation_context)}, "
+                      f"semantic={len(str(semantic_results))}, "
+                      f"emotion={'yes' if emotion_result else 'no'}, "
+                      f"research={'yes' if research_context else 'no'}", flush=True)
+
+                # Debug: Show actual prompt being sent to LLM
+                print(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n", flush=True)
 
                 # Phase 3B Week 3: Use tool orchestrator
                 print("🔧 Checking for tool calls...", flush=True)
@@ -290,23 +356,52 @@ class ResearchFirstPipeline(PipelineLoop):
                     )
                     final_response = sanitize_output(final_response + penny_disclaimer)
 
-            # Step 8: Store in memory
+            # Step 8: Store in memory (WEEK 7: Dual-save architecture)
             try:
-                print("💾 Attempting to save conversation to memory...", flush=True)
-                turn = self.base_memory.add_conversation_turn(
+                print("💾 Attempting to save conversation to memory (Week 7 dual-save)...", flush=True)
+
+                # Build enhanced metadata with ALL conversation data
+                # WEEK 7: All metadata now stored in semantic memory (single source of truth)
+                enhanced_metadata = {
+                    "research_used": research_required,
+                    "financial_topic": financial_topic,
+                    "emotion": emotion_result.primary_emotion,
+                    "emotion_confidence": emotion_result.confidence,
+                    "sentiment": emotion_result.sentiment,
+                    "sentiment_score": emotion_result.sentiment_score,
+                    "ab_test_group": group,
+                    "tools_used": [],  # TODO: Track tool usage from orchestrator
+                    "response_time_ms": int((time.time() - start_time) * 1000)
+                }
+
+                # WEEK 7: Removed base_memory and enhanced_memory saves (redundant)
+                # OLD: self.base_memory.add_conversation_turn(...) - REMOVED
+                # OLD: self.enhanced_memory.process_conversation_turn(...) - REMOVED
+
+                # WEEK 7: Generate turn_id for tracking
+                import uuid
+                turn_id = str(uuid.uuid4())
+
+                # SAVE 1: Context Manager (in-memory cache only, NO persistence)
+                self.context_manager.add_turn(
                     user_input=actual_command,
                     assistant_response=final_response,
-                    context={"research_used": research_required, "financial_topic": financial_topic},
-                    response_time_ms=100
+                    metadata=enhanced_metadata
                 )
-                print(f"💾 Base memory saved, turn_id: {turn.turn_id}", flush=True)
+                print(f"💬 Context Manager: Cached turn (in-memory only)", flush=True)
 
-                self.enhanced_memory.process_conversation_turn(actual_command, final_response, turn.turn_id)
-                print("💾 Enhanced memory processing complete", flush=True)
+                # SAVE 2: Semantic Memory (ONLY persistent store)
+                self.semantic_memory.add_conversation_turn(
+                    user_input=actual_command,
+                    assistant_response=final_response,
+                    turn_id=turn_id,
+                    context=enhanced_metadata  # Includes encrypted emotions/sentiment
+                )
+                print(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption", flush=True)
 
                 # Update personality tracking from this conversation
-                self._update_personality_from_conversation(actual_command, final_response, turn.turn_id)
-                print("✅ Conversation saved to memory successfully", flush=True)
+                self._update_personality_from_conversation(actual_command, final_response, turn_id)
+                print("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)", flush=True)
             except Exception as e:
                 import traceback
                 print(f"⚠️ Memory storage failed: {e}", flush=True)

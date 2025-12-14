@@ -48,8 +48,8 @@ def sanitize_output(text: str) -> str:
 
     if _EMOJI_POLICY == "none":
         # Remove emojis but preserve code formatting (backticks, equals, pipes, etc.)
-        # Keep: letters, numbers, whitespace, punctuation, and code symbols
-        sanitized = re.sub(r"[^\w\s.,;:!?\'\"()\-\[\]`=|/*+<>{}#$%&@~\\^_]", "", sanitized)
+        # Keep: letters, numbers, whitespace, punctuation, dashes (including em/en dash), and code symbols
+        sanitized = re.sub(r"[^\w\s.,;:!?\'\"()\-\u2013\u2014\[\]`=|/*+<>{}#$%&@~\\^_]", "", sanitized)
 
     if _MAX_EXCLAMATIONS <= 0:
         sanitized = sanitized.replace("!", ".")

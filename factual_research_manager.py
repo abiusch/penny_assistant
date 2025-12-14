@@ -98,6 +98,17 @@ class FactualQueryClassifier:
         "don't add", "no thanks", "that's fine", "nevermind", "forget it"
     }
 
+    # Conversational/emotional expressions - NOT factual queries
+    CONVERSATIONAL_EXPRESSIONS = {
+        "i'm excited", "i'm thrilled", "i'm happy", "i'm glad", "i'm pleased",
+        "so excited", "so thrilled", "so happy", "so glad",
+        "can't wait", "looking forward", "excited to see", "thrilled to see",
+        "glad to see", "happy to see", "love to see", "great to see",
+        "thanks for", "thank you", "appreciate", "awesome", "amazing",
+        "this is great", "this is awesome", "this is amazing", "love this",
+        "love it", "loving it", "nice work", "good work", "well done"
+    }
+
     # Self-reference keywords - when user is talking about Penny herself
     # Note: Must be specific to avoid false matches (e.g., "do you" catches "do some research")
     SELF_REFERENCE_KEYWORDS = {
@@ -195,6 +206,10 @@ class FactualQueryClassifier:
 
         # PRIORITY 2: Skip research when user is talking about Penny herself
         if any(pattern in lowered for pattern in self.SELF_REFERENCE_KEYWORDS):
+            return False
+
+        # PRIORITY 2.5: Skip research for conversational/emotional expressions
+        if any(pattern in lowered for pattern in self.CONVERSATIONAL_EXPRESSIONS):
             return False
 
         # PRIORITY 3: Check for opinion/preference requests (BEFORE factual checks)

@@ -1,398 +1,703 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penny Assistant - Chat</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Penny Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React via CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: #CBD5E1;
+        border-radius: 9999px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: #94A3B8;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
         }
-        .message-animate {
-            animation: fadeIn 0.3s ease-out;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        .typing-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #9333ea;
-            animation: typing 1.4s infinite;
+      }
+      .message-enter {
+        animation: slideUp 0.2s ease-out;
+      }
+      @keyframes typingPulse {
+        0%, 100% {
+          opacity: 0.3;
+          transform: scale(0.9);
         }
-        .typing-indicator:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing {
-            0%, 60%, 100% { opacity: 0.3; }
-            30% { opacity: 1; }
+        50% {
+          opacity: 1;
+          transform: scale(1);
         }
-        pre code {
-            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-            font-size: 0.9em;
+      }
+      .typing-dot {
+        animation: typingPulse 1.4s ease-in-out infinite;
+      }
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      /* Waveform animations */
+      @keyframes waveIdle {
+        0%, 100% {
+          height: 8px;
+          opacity: 0.3;
         }
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
+        50% {
+          height: 12px;
+          opacity: 0.5;
         }
-        .chat-messages::-webkit-scrollbar-track {
-            background: #1f2937;
+      }
+      @keyframes waveActive {
+        0%, 100% {
+          height: 6px;
         }
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 4px;
+        50% {
+          height: 20px;
         }
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
+      }
+      .wave-bar-idle {
+        animation: waveIdle 2s ease-in-out infinite;
+      }
+      .wave-bar-active {
+        animation: waveActive 0.8s ease-in-out infinite;
+      }
+      .wave-bar:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      .wave-bar:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+      .wave-bar:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(5) {
+        animation-delay: 0.4s;
+      }
+
+      /* Voice recording pulse */
+      @keyframes recordingPulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
         }
+        50% {
+          box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        }
+      }
+      .recording-pulse {
+        animation: recordingPulse 1.5s ease-in-out infinite;
+      }
     </style>
-</head>
-<body class="bg-gray-900 text-gray-100">
-    <div class="flex flex-col h-screen max-w-6xl mx-auto">
-        <!-- Header -->
-        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                        <span class="text-xl">💜</span>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-semibold">Penny Assistant</h1>
-                        <p class="text-sm text-gray-400" id="status">Ready</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button onclick="toggleDebug()" class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors">
-                        Debug Info
-                    </button>
-                    <button onclick="clearChat()" class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors">
-                        Clear Chat
-                    </button>
-                </div>
-            </div>
-        </header>
+  </head>
 
-        <!-- Chat Messages -->
-        <div id="chat-messages" class="flex-1 overflow-y-auto px-6 py-4 space-y-4 chat-messages">
-            <!-- Welcome Message -->
-            <div class="text-center py-8">
-                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-3xl">💜</span>
-                </div>
-                <h2 class="text-2xl font-semibold mb-2">Hey, I'm Penny</h2>
-                <p class="text-gray-400">Your sarcastic AI companion with genuine personality.</p>
-                <p class="text-gray-500 text-sm mt-2">Ask me anything - coding, advice, or just chat.</p>
-            </div>
-        </div>
+  <body class="bg-gray-50 antialiased">
+    <div id="root" class="min-h-screen flex items-center justify-center p-4"></div>
 
-        <!-- Input Area -->
-        <div class="bg-gray-800 border-t border-gray-700 px-6 py-4">
-            <form id="chat-form" class="flex space-x-3">
-                <input 
-                    type="text" 
-                    id="user-input" 
-                    placeholder="Type your message..." 
-                    class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                    autocomplete="off"
-                >
-                <button 
-                    type="submit" 
-                    class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    id="send-button"
-                >
-                    Send
-                </button>
-            </form>
-            <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
-                <div id="personality-info" class="flex items-center space-x-4">
-                    <span>🎭 Formality: <span id="formality">--</span></span>
-                    <span>🧠 Tech: <span id="tech">--</span></span>
-                    <span>📚 Terms: <span id="terms">--</span></span>
-                </div>
-                <div>
-                    Press <kbd class="px-1 bg-gray-700 rounded">Enter</kbd> to send
-                </div>
-            </div>
-        </div>
-    </div>
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
 
-    <!-- Debug Panel (Hidden by default) -->
-    <div id="debug-panel" class="hidden fixed top-0 right-0 w-96 h-full bg-gray-800 border-l border-gray-700 shadow-2xl overflow-y-auto z-50">
-        <div class="p-4">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">Debug Info</h3>
-                <button onclick="toggleDebug()" class="text-gray-400 hover:text-white">✕</button>
-            </div>
-            <div id="debug-content" class="space-y-3 text-sm">
-                <div class="bg-gray-900 rounded p-3">
-                    <div class="text-gray-400 mb-1">Last Response</div>
-                    <pre id="debug-last-response" class="text-xs text-gray-300 overflow-x-auto">No messages yet</pre>
-                </div>
-                <div class="bg-gray-900 rounded p-3">
-                    <div class="text-gray-400 mb-1">Personality State</div>
-                    <pre id="debug-personality" class="text-xs text-gray-300 overflow-x-auto">Loading...</pre>
-                </div>
-                <div class="bg-gray-900 rounded p-3">
-                    <div class="text-gray-400 mb-1">Console Logs</div>
-                    <pre id="debug-logs" class="text-xs text-gray-300 overflow-x-auto max-h-96">Waiting for messages...</pre>
-                </div>
-            </div>
-        </div>
-    </div>
+      // ============================================
+      // Main App Component
+      // ============================================
+      function PennyApp() {
+        const [messages, setMessages] = useState([]);
+        const [inputValue, setInputValue] = useState('');
+        const [isTyping, setIsTyping] = useState(false);
+        const [personality, setPersonality] = useState({
+          formality: 0.52,
+          technical_depth: 0.65,
+          vocabulary_count: 7
+        });
+        const [showDebug, setShowDebug] = useState(false);
+        const [debugData, setDebugData] = useState(null);
+        const [isRecording, setIsRecording] = useState(false);
 
-    <script>
-        let debugLogs = [];
-        let showDebug = false;
+        // Week 6 indicators (stand-in values, can be wired to backend)
+        const [week6Data, setWeek6Data] = useState({
+          joy: 0.75,           // TODO: Wire to emotion detection from backend
+          memoriesActive: 3,   // TODO: Wire to semantic memory count
+          contextTurns: 5      // TODO: Wire to context manager stats
+        });
 
-        // Initialize
-        document.getElementById('chat-form').addEventListener('submit', handleSubmit);
-        loadPersonalityInfo();
+        const messagesEndRef = useRef(null);
 
-        async function handleSubmit(e) {
-            e.preventDefault();
-            const input = document.getElementById('user-input');
-            const message = input.value.trim();
-            
-            if (!message) return;
+        useEffect(() => {
+          loadPersonality();
+        }, []);
 
-            // Clear input and disable button
-            input.value = '';
-            setLoading(true);
+        useEffect(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, [messages, isTyping]);
 
-            // Add user message
-            addMessage('user', message);
-
-            try {
-                // Send to Penny backend
-                const response = await fetch('http://localhost:5001/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
-                });
-
-                const data = await response.json();
-
-                // Add Penny's response
-                addMessage('penny', data.response, data.metadata);
-
-                // Update debug info
-                updateDebugInfo(data);
-
-                // Update personality display
-                updatePersonalityDisplay(data.personality);
-
-            } catch (error) {
-                addMessage('system', `Error: ${error.message}`);
-                console.error('Chat error:', error);
-            } finally {
-                setLoading(false);
-                input.focus();
-            }
+        async function loadPersonality() {
+          try {
+            const res = await fetch('http://localhost:5001/personality');
+            const data = await res.json();
+            setPersonality(data);
+          } catch (err) {
+            console.error('Failed to load personality:', err);
+          }
         }
 
-        function addMessage(sender, text, metadata = null) {
-            const container = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message-animate';
+        async function sendMessage(e) {
+          e.preventDefault();
+          if (!inputValue.trim() || isTyping) return;
 
-            if (sender === 'user') {
-                messageDiv.innerHTML = `
-                    <div class="flex justify-end">
-                        <div class="max-w-3xl">
-                            <div class="bg-blue-600 rounded-lg px-4 py-3">
-                                <div class="text-white whitespace-pre-wrap">${escapeHtml(text)}</div>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-1 text-right">${getCurrentTime()}</div>
-                        </div>
-                    </div>
-                `;
-            } else if (sender === 'penny') {
-                const formattedText = formatPennyResponse(text);
-                const metadataHtml = metadata ? formatMetadata(metadata) : '';
-                
-                messageDiv.innerHTML = `
-                    <div class="flex justify-start">
-                        <div class="max-w-3xl">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                                    <span class="text-sm">💜</span>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="bg-gray-800 rounded-lg px-4 py-3">
-                                        <div class="text-gray-100">${formattedText}</div>
-                                    </div>
-                                    ${metadataHtml}
-                                    <div class="text-xs text-gray-500 mt-1">${getCurrentTime()}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                messageDiv.innerHTML = `
-                    <div class="text-center">
-                        <div class="inline-block bg-red-900/30 border border-red-700 rounded px-4 py-2 text-sm text-red-300">
-                            ${escapeHtml(text)}
-                        </div>
-                    </div>
-                `;
-            }
+          const userMessage = inputValue.trim();
+          setInputValue('');
 
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-        }
+          const newMsg = {
+            id: Date.now(),
+            sender: 'user',
+            text: userMessage,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+          };
+          setMessages(prev => [...prev, newMsg]);
+          setIsTyping(true);
 
-        function formatPennyResponse(text) {
-            // Format code blocks
-            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre class="bg-gray-900 rounded p-3 mt-2 mb-2 overflow-x-auto"><code class="text-sm">${escapeHtml(code.trim())}</code></pre>`;
+          try {
+            const res = await fetch('http://localhost:5001/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: userMessage })
             });
 
-            // Format inline code
-            text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-700 px-1.5 py-0.5 rounded text-sm">$1</code>');
+            const data = await res.json();
 
-            // Format bold
-            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>');
+            const pennyMsg = {
+              id: Date.now() + 1,
+              sender: 'penny',
+              text: data.response,
+              timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+              metadata: data.metadata
+            };
+            setMessages(prev => [...prev, pennyMsg]);
 
-            // Format links
-            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-purple-400 hover:text-purple-300 underline" target="_blank">$1</a>');
+            if (data.personality) setPersonality(data.personality);
+            setDebugData(data);
 
-            // Preserve line breaks
-            text = text.replace(/\n/g, '<br>');
+            // TODO: Update Week 6 data from backend response if available
+            // if (data.emotion) setWeek6Data(prev => ({ ...prev, joy: data.emotion.confidence }));
+            // if (data.memories) setWeek6Data(prev => ({ ...prev, memoriesActive: data.memories.length }));
+            // if (data.context) setWeek6Data(prev => ({ ...prev, contextTurns: data.context.turns }));
 
-            return text;
-        }
-
-        function formatMetadata(metadata) {
-            if (!metadata) return '';
-
-            const parts = [];
-            
-            if (metadata.research !== undefined) {
-                const icon = metadata.research ? '🔍' : '🎯';
-                const text = metadata.research ? 'Research used' : 'No research';
-                parts.push(`<span class="text-xs text-gray-500">${icon} ${text}</span>`);
-            }
-
-            if (metadata.adjustments && metadata.adjustments.length > 0) {
-                parts.push(`<span class="text-xs text-gray-500">🎨 ${metadata.adjustments.join(', ')}</span>`);
-            }
-
-            if (parts.length === 0) return '';
-
-            return `<div class="flex items-center space-x-3 mt-2">${parts.join('')}</div>`;
-        }
-
-        function setLoading(loading) {
-            const button = document.getElementById('send-button');
-            const input = document.getElementById('user-input');
-            const status = document.getElementById('status');
-
-            if (loading) {
-                button.disabled = true;
-                button.textContent = 'Thinking...';
-                input.disabled = true;
-                status.textContent = 'Penny is thinking...';
-                
-                // Add typing indicator
-                const container = document.getElementById('chat-messages');
-                const typingDiv = document.createElement('div');
-                typingDiv.id = 'typing-indicator';
-                typingDiv.className = 'flex items-center space-x-2 text-gray-500';
-                typingDiv.innerHTML = `
-                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                        <span class="text-sm">💜</span>
-                    </div>
-                    <div class="flex space-x-1">
-                        <span class="typing-indicator"></span>
-                        <span class="typing-indicator"></span>
-                        <span class="typing-indicator"></span>
-                    </div>
-                `;
-                container.appendChild(typingDiv);
-                container.scrollTop = container.scrollHeight;
-            } else {
-                button.disabled = false;
-                button.textContent = 'Send';
-                input.disabled = false;
-                status.textContent = 'Ready';
-                
-                // Remove typing indicator
-                const typingIndicator = document.getElementById('typing-indicator');
-                if (typingIndicator) typingIndicator.remove();
-            }
-        }
-
-        function updatePersonalityDisplay(personality) {
-            if (!personality) return;
-
-            document.getElementById('formality').textContent = personality.formality || '--';
-            document.getElementById('tech').textContent = personality.technical_depth || '--';
-            document.getElementById('terms').textContent = personality.vocabulary_count || '--';
-        }
-
-        function updateDebugInfo(data) {
-            debugLogs.push({
-                time: getCurrentTime(),
-                data: data
-            });
-
-            // Keep last 50 logs
-            if (debugLogs.length > 50) debugLogs.shift();
-
-            document.getElementById('debug-last-response').textContent = JSON.stringify(data, null, 2);
-            document.getElementById('debug-logs').textContent = debugLogs.map(log => 
-                `[${log.time}] ${JSON.stringify(log.data, null, 2)}`
-            ).join('\n\n');
-        }
-
-        async function loadPersonalityInfo() {
-            try {
-                const response = await fetch('http://localhost:5001/personality');
-                const data = await response.json();
-                updatePersonalityDisplay(data);
-                document.getElementById('debug-personality').textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                console.error('Failed to load personality info:', error);
-            }
-        }
-
-        function toggleDebug() {
-            showDebug = !showDebug;
-            document.getElementById('debug-panel').classList.toggle('hidden', !showDebug);
+          } catch (err) {
+            const errorMsg = {
+              id: Date.now() + 1,
+              sender: 'system',
+              text: `Error: ${err.message}`,
+              timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            };
+            setMessages(prev => [...prev, errorMsg]);
+          } finally {
+            setIsTyping(false);
+          }
         }
 
         function clearChat() {
-            if (confirm('Clear all messages?')) {
-                const container = document.getElementById('chat-messages');
-                container.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span class="text-3xl">💜</span>
-                        </div>
-                        <h2 class="text-2xl font-semibold mb-2">Chat cleared</h2>
-                        <p class="text-gray-400">Start a new conversation with Penny.</p>
-                    </div>
-                `;
-                debugLogs = [];
-            }
+          if (confirm('Clear all messages?')) {
+            setMessages([]);
+            setDebugData(null);
+          }
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function startVoiceInput() {
+          console.log('Start voice input');
+          setIsRecording(true);
+          // TODO: Implement actual voice recording logic
         }
 
-        function getCurrentTime() {
-            return new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
+        function stopVoiceInput() {
+          console.log('Stop voice input');
+          setIsRecording(false);
+          // TODO: Implement stop recording and transcription logic
         }
 
-        // Auto-focus input on load
-        document.getElementById('user-input').focus();
+        function toggleVoiceInput() {
+          if (isRecording) {
+            stopVoiceInput();
+          } else {
+            startVoiceInput();
+          }
+        }
+
+        return (
+          <div className="w-full max-w-5xl h-[92vh] flex flex-col bg-white rounded-3xl shadow-lg border border-gray-200 overflow-hidden">
+            <Header
+              personality={personality}
+              onClearChat={clearChat}
+              onToggleDebug={() => setShowDebug(!showDebug)}
+              isActive={isTyping}
+              week6Data={week6Data}
+            />
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 scrollbar-thin">
+              {messages.length === 0 ? (
+                <WelcomeScreen />
+              ) : (
+                messages.map(msg => <Message key={msg.id} message={msg} />)
+              )}
+              {isTyping && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={sendMessage}
+              disabled={isTyping}
+              personality={personality}
+              isRecording={isRecording}
+              onToggleVoice={toggleVoiceInput}
+            />
+
+            {showDebug && (
+              <DebugPanel
+                data={debugData}
+                personality={personality}
+                week6Data={week6Data}
+                onClose={() => setShowDebug(false)}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // ============================================
+      // Waveform Component
+      // ============================================
+      function PennyWaveform({ isActive }) {
+        const waveClass = isActive ? 'wave-bar-active' : 'wave-bar-idle';
+
+        return (
+          <div className="flex items-center space-x-0.5 h-6">
+            <div className={`w-1 bg-indigo-500 rounded-full wave-bar ${waveClass}`} style={{ opacity: 0.4 }}></div>
+            <div className={`w-1 bg-indigo-600 rounded-full wave-bar ${waveClass}`} style={{ opacity: 0.5 }}></div>
+            <div className={`w-1 bg-indigo-500 rounded-full wave-bar ${waveClass}`} style={{ opacity: 0.6 }}></div>
+            <div className={`w-1 bg-indigo-600 rounded-full wave-bar ${waveClass}`} style={{ opacity: 0.5 }}></div>
+            <div className={`w-1 bg-indigo-500 rounded-full wave-bar ${waveClass}`} style={{ opacity: 0.4 }}></div>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Week 6 Indicators Component
+      // ============================================
+      function Week6Indicators({ data }) {
+        return (
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full">
+              <span className="text-sm">😊</span>
+              <span className="text-xs text-gray-600">Joy:</span>
+              <span className="text-xs font-medium text-gray-900">{Math.round(data.joy * 100)}%</span>
+            </div>
+            <div className="flex items-center space-x-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full">
+              <span className="text-sm">💬</span>
+              <span className="text-xs text-gray-600">Memories:</span>
+              <span className="text-xs font-medium text-gray-900">{data.memoriesActive}</span>
+            </div>
+            <div className="flex items-center space-x-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full">
+              <span className="text-sm">🧠</span>
+              <span className="text-xs text-gray-600">Context:</span>
+              <span className="text-xs font-medium text-gray-900">{data.contextTurns} turns</span>
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Header Component
+      // ============================================
+      function Header({ personality, onClearChat, onToggleDebug, isActive, week6Data }) {
+        return (
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="relative flex items-center space-x-2">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <PennyWaveform isActive={isActive} />
+                  <div className="absolute -bottom-0.5 left-8 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">Penny Assistant</h1>
+                  <p className="text-xs text-gray-500">AI assistant with personality</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={onToggleDebug}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Debug
+                </button>
+                <button
+                  onClick={onClearChat}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Week 6 Indicators */}
+            <div className="flex justify-end">
+              <Week6Indicators data={week6Data} />
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Welcome Screen
+      // ============================================
+      function WelcomeScreen() {
+        return (
+          <div className="py-12 px-4">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
+                  <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+              </div>
+
+              <h2 className="text-3xl font-bold text-gray-900 text-center mb-2">
+                Hey, I'm Penny
+              </h2>
+              <p className="text-base text-gray-600 text-center mb-1">
+                AI assistant with genuine personality and sharp wit.
+              </p>
+              <p className="text-sm text-gray-500 text-center mb-10">
+                Ask me anything — coding, research, or just chat.
+              </p>
+
+              <div className="grid grid-cols-3 gap-3">
+                <ModeCard
+                  icon={
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  }
+                  label="Code Help"
+                />
+                <ModeCard
+                  icon={
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  }
+                  label="Research"
+                />
+                <ModeCard
+                  icon={
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  }
+                  label="Just Chat"
+                />
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function ModeCard({ icon, label }) {
+        return (
+          <div className="group bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-sm transition-all cursor-pointer">
+            <div className="text-gray-400 group-hover:text-indigo-500 mb-2 transition-colors">
+              {icon}
+            </div>
+            <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+              {label}
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Message Component
+      // ============================================
+      function Message({ message }) {
+        if (message.sender === 'user') {
+          return (
+            <div className="flex justify-end message-enter">
+              <div className="max-w-2xl">
+                <div className="bg-indigo-500 rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+                  <div className="text-white text-sm whitespace-pre-wrap break-words">{message.text}</div>
+                </div>
+                <div className="text-xs text-gray-400 mt-1 text-right">{message.timestamp}</div>
+              </div>
+            </div>
+          );
+        }
+
+        if (message.sender === 'system') {
+          return (
+            <div className="flex justify-center message-enter">
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600">
+                {message.text}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex justify-start message-enter">
+            <div className="max-w-2xl">
+              <div className="flex items-start space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-gray-100 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                    <div className="text-gray-900 text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(message.text) }} />
+                  </div>
+                  {message.metadata && <MessageMetadata metadata={message.metadata} />}
+                  <div className="text-xs text-gray-400 mt-1">{message.timestamp}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function MessageMetadata({ metadata }) {
+        const badges = [];
+
+        if (metadata.research !== undefined) {
+          badges.push(
+            <span key="research" className="inline-flex items-center space-x-1 text-xs text-gray-500">
+              <span>{metadata.research ? '🔍' : '💡'}</span>
+              <span>{metadata.research ? 'Research' : 'Knowledge'}</span>
+            </span>
+          );
+        }
+
+        if (metadata.adjustments && metadata.adjustments.length > 0) {
+          badges.push(
+            <span key="adj" className="inline-flex items-center space-x-1 text-xs text-gray-500">
+              <span>✨</span>
+              <span>{metadata.adjustments.join(', ')}</span>
+            </span>
+          );
+        }
+
+        if (badges.length === 0) return null;
+
+        return (
+          <div className="flex items-center space-x-2 mt-1.5">
+            {badges}
+          </div>
+        );
+      }
+
+      function formatMessage(text) {
+        text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+          const escaped = code.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          return `<pre class="bg-gray-900 rounded-lg p-3 mt-2 mb-2 overflow-x-auto"><code class="text-xs text-gray-100 font-mono">${escaped}</code></pre>`;
+        });
+
+        text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-200 text-gray-900 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-700 underline" target="_blank">$1</a>');
+        text = text.replace(/\n/g, '<br>');
+
+        return text;
+      }
+
+      // ============================================
+      // Typing Indicator
+      // ============================================
+      function TypingIndicator() {
+        return (
+          <div className="flex items-center space-x-2.5 message-enter">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="flex space-x-1 bg-gray-100 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3">
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div>
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Voice Input Button Component
+      // ============================================
+      function VoiceInputButton({ isRecording, onToggle, disabled }) {
+        return (
+          <button
+            type="button"
+            onClick={onToggle}
+            disabled={disabled}
+            className={`
+              w-10 h-10 rounded-full flex items-center justify-center transition-all
+              ${isRecording
+                ? 'bg-red-500 text-white recording-pulse'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+              }
+              disabled:opacity-40 disabled:cursor-not-allowed
+            `}
+            title={isRecording ? 'Stop recording' : 'Start voice input'}
+          >
+            {isRecording ? (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            )}
+          </button>
+        );
+      }
+
+      // ============================================
+      // Message Input
+      // ============================================
+      function MessageInput({ value, onChange, onSubmit, disabled, personality, isRecording, onToggleVoice }) {
+        return (
+          <div className="bg-white border-t border-gray-200 px-6 py-4">
+            <form onSubmit={onSubmit} className="flex items-center space-x-2 mb-3">
+              <VoiceInputButton
+                isRecording={isRecording}
+                onToggle={onToggleVoice}
+                disabled={disabled}
+              />
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={isRecording ? "Listening..." : "Type your message..."}
+                disabled={disabled || isRecording}
+                className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 disabled:bg-gray-50 transition-all"
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                disabled={disabled || !value.trim() || isRecording}
+                className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                {disabled ? '...' : 'Send'}
+              </button>
+            </form>
+
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <MetricBadge label="Formality" value={personality.formality} />
+                <MetricBadge label="Tech" value={personality.technical_depth} />
+                <MetricBadge label="Terms" value={personality.vocabulary_count} />
+              </div>
+              <div className="text-gray-400">
+                {isRecording ? (
+                  <span className="text-red-500 font-medium">● Recording...</span>
+                ) : (
+                  <>Press <kbd className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200 font-mono text-xs">Enter</kbd> to send</>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function MetricBadge({ label, value }) {
+        const displayValue = typeof value === 'number' ?
+          (value < 1 ? value.toFixed(2) : Math.round(value)) :
+          '--';
+
+        return (
+          <span className="inline-flex items-center space-x-1 px-2 py-1 bg-gray-100 rounded-md">
+            <span className="text-gray-500">{label}</span>
+            <span className="text-gray-700 font-medium">{displayValue}</span>
+          </span>
+        );
+      }
+
+      // ============================================
+      // Debug Panel
+      // ============================================
+      function DebugPanel({ data, personality, week6Data, onClose }) {
+        return (
+          <div className="fixed top-0 right-0 w-96 h-full bg-white border-l border-gray-200 shadow-xl overflow-y-auto z-50 scrollbar-thin">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                <h3 className="text-base font-semibold text-gray-900">Debug Panel</h3>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <DebugSection title="Week 6 Data" content={week6Data} />
+                <DebugSection title="Personality State" content={personality} />
+                {data && <DebugSection title="Last Response" content={data} />}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function DebugSection({ title, content }) {
+        return (
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div className="text-xs font-medium text-gray-700 mb-2">{title}</div>
+            <pre className="text-xs text-gray-600 overflow-x-auto font-mono">
+              {JSON.stringify(content, null, 2)}
+            </pre>
+          </div>
+        );
+      }
+
+      // ============================================
+      // Render App
+      // ============================================
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<PennyApp />);
     </script>
-</body>
+  </body>
 </html>

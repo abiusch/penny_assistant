@@ -3,10 +3,14 @@ Embedding Generator for Semantic Search
 Generates 384-dimensional embeddings using sentence-transformers
 """
 
+import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from typing import List, Union
 import logging
+
+# Set HuggingFace cache to local project directory
+os.environ['HF_HOME'] = os.path.join(os.path.dirname(__file__), '..', '..', '.cache', 'huggingface')
 
 logger = logging.getLogger(__name__)
 

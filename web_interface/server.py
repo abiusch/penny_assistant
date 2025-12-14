@@ -15,6 +15,9 @@ import os
 import asyncio
 from pathlib import Path
 
+# Set HuggingFace cache to local project directory BEFORE any imports
+os.environ['HF_HOME'] = str(Path(__file__).parent.parent / '.cache' / 'huggingface')
+
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

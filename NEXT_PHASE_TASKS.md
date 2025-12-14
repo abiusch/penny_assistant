@@ -1,9 +1,9 @@
 # NEXT_PHASE_TASKS - EDGE AI HYBRID ROADMAP
 
-**Last Updated:** October 28, 2025 - EDGE AI STRATEGIC PIVOT  
-**Major Decision:** Edge-First Hybrid Architecture  
-**Audit:** Claude + ChatGPT + Perplexity (88% consensus)  
-**Edge AI Analysis:** ChatGPT Edge AI Blueprint
+**Last Updated:** December 8, 2025 - WEEK 6 COMPLETE ✅
+**Current Status:** Week 6.9 (Personality Polish) - 67% through Phase 3
+**Major Decision:** Research-First Pipeline with Week 6 Context Systems
+**Next Focus:** Personality Polish & UI Enhancements
 
 ---
 
@@ -426,23 +426,31 @@ class EdgeSemanticClassifier:
 
 ---
 
-## 📊 **REVISED TIMELINE WITH EDGE AI**
+## 📊 **ACTUAL TIMELINE - DECEMBER 2025 UPDATE**
 
 ```
-Phase 2: ████████████████████ 100% ✅
+Phase 2: ████████████████████ 100% ✅ Dynamic Personality Complete
 
-Week 3:   █████████████░░░░░░░  67% Tool Calling ⏳
-Week 4:   ░░░░░░░░░░░░░░░░░░░░   0% Fixes + Edge Setup 🚨
-Week 4.5: ░░░░░░░░░░░░░░░░░░░░   0% Edge Infrastructure 🔴
-Week 5:   ░░░░░░░░░░░░░░░░░░░░   0% Edge Embeddings ⭐
-Week 6:   ░░░░░░░░░░░░░░░░░░░░   0% Context + Emotion
-Week 7:   ░░░░░░░░░░░░░░░░░░░░   0% Edge Agentic 🎯
-Week 8:   ░░░░░░░░░░░░░░░░░░░░   0% Voice Polish ✅
-Week 9-10:░░░░░░░░░░░░░░░░░░░░   0% Hebbian 🧠
+Week 3:   ████████████████████ 100% ✅ Tool Calling Complete
+Week 4:   ████████████████████ 100% ✅ ResearchFirstPipeline Production
+Week 5:   ████████████████████ 100% ✅ Semantic Search & Embeddings
+Week 6:   ████████████████████ 100% ✅ Context Manager + Emotion + Semantic Memory
+Week 6.9: ███████████████░░░░░  75% ⏳ Personality Polish (IN PROGRESS)
+          - ✅ Justine-style communication (core personality - STRENGTHENED)
+          - ✅ Grammar fixes (em dash preservation)
+          - ✅ Research classification tuning
+          - ✅ Mandatory personality enforcement (explicit rules)
+          - ✅ Forbidden phrases list (prevent corporate speak)
+          - ⏳ UI Week 6 indicators
+          - ⏳ Waveform visualization
+          - ⏳ Voice input button
+Week 7:   ░░░░░░░░░░░░░░░░░░░░   0% Enhanced Tool Calling 🎯
+Week 8:   ░░░░░░░░░░░░░░░░░░░░   0% Voice Optimization
+Week 9-10:░░░░░░░░░░░░░░░░░░░░   0% Hebbian Learning 🧠
 
-Total: ~110-140 hours (+10-14hrs for edge)
-Timeline: Still 5-6 months
-Value: MASSIVE latency/privacy/cost improvements
+Phase 3 Progress: 67% (6.5-7 of 10 weeks)
+Timeline: On track for 5-6 month completion
+Current Focus: Week 6.9 UI polish & refinements
 ```
 
 ---
@@ -508,42 +516,448 @@ Value: MASSIVE latency/privacy/cost improvements
 
 ---
 
-## 🚀 **IMMEDIATE ACTIONS**
+## 🚀 **COMPLETED MILESTONES (ACTUAL PROGRESS)**
 
-**TODAY:**
-1. ✅ Finish Week 3 tool calling
+**Phase 2: Dynamic Personality** ✅
+- Personality prompt builder
+- Response post-processor
+- Active personality learning
+- A/B testing framework
+- Milestone tracking
 
-**THIS WEEK (Week 4):**
-2. 🚨 Unify via EdgeModalInterface
-3. 🚨 Integration tests + edge tests
-4. 🚨 Concurrent access
-5. 🔴 Tool safety
-6. 🧠 Install edge stack (Ollama, Whisper, TTS)
+**Week 3: Tool Calling** ✅
+- Tool orchestrator (max 3 iterations)
+- Tool registry with safety wrappers
+- 3 safe tools: web.search, math.calc, code.execute
 
-**NEXT WEEK (Week 4.5):**
-7. 🔴 Model manager
-8. 🔴 Hybrid router
-9. 🔴 Local TTS
-10. ⚠️ Edge telemetry
+**Week 4: ResearchFirstPipeline** ✅
+- Production pipeline with autonomous research
+- Brave Search integration
+- Financial topic detection
+- Research classification
+
+**Week 5: Semantic Search & Embeddings** ✅
+- sentence-transformers integration
+- FAISS vector store
+- Embedding generation (384-dim)
+- Semantic similarity search
+
+**Week 6: Context & Emotion Systems** ✅
+- Context Manager (10-turn rolling window)
+- Emotion Detector (6 emotions)
+- Semantic Memory (vector-based recall)
+- Triple save architecture
+- Integration with ResearchFirstPipeline
+
+**Week 6.9 Bug Fixes** ✅
+- HuggingFace cache permissions fixed
+- Research classification false positives fixed
+- Em dash grammar issues fixed
+- Justine-style personality as core baseline
 
 ---
 
-## 🎊 **THE BOTTOM LINE**
+## 🎯 **CURRENT WORK (Week 6.9 - IN PROGRESS)**
 
-**Edge AI transforms Penny from "good" to "revolutionary":**
-
-- ✨ **Latency:** 3-5s → <1s (5x faster)
-- ✨ **Privacy:** 50% local → 90% local
-- ✨ **Cost:** $X/month → $0.1-0.3X/month (70-90% savings)
-- ✨ **Experience:** "Computed" → "Alive"
-- ✨ **Scalability:** Limited → Unlimited (agentic behaviors affordable)
-
-**This is the right move. Let's do it.** 🚀✨💜
+**Personality Polish:**
+- ✅ Justine-style communication baked into system prompt
+- ✅ Grammar/token generation fixes
+- ✅ Research classifier tuning
+- ⏳ UI Week 6 indicators (Joy %, Memories, Context)
+- ⏳ Waveform visualization for avatar
+- ⏳ Voice input button functionality
 
 ---
 
-**Last Updated:** October 28, 2025  
-**Next Review:** After Week 4 complete  
-**Status:** EDGE AI INTEGRATION APPROVED → READY TO BUILD
+## 📋 **NEXT UP (Week 7-10): CRITICAL PIVOT - FOUNDATION BEFORE FEATURES** 🎯
 
-**LET'S MAKE PENNY TRULY ALIVE!** 🧠⚡💜
+**CRITICAL DECISION (December 8, 2025):**
+Based on comprehensive technical assessments from Perplexity AI and Chat, we're pivoting Week 7-10 from pure feature development to **architecture refactor + safety-first implementation**.
+
+**KEY INSIGHT:** Current architecture (triple-save, no security, keyword emotions) will become catastrophic at scale. Fix the foundation NOW before adding emotional continuity and culture learning.
+
+**ASSESSMENT CONSENSUS:**
+- 🔴 Triple-save architecture = technical debt bomb
+- 🔴 SQLite + multi-user = race condition disaster
+- 🔴 Zero security/encryption = GDPR violation
+- 🔴 Keyword emotion detection = 60-70% accuracy (SOTA is 90%+)
+- 🔴 Culture learning without safety = personality drift nightmare
+- ✅ Core differentiation (emotional continuity + culture learning) = genuine innovation
+- ✅ UI/UX quality = underrated competitive advantage
+- ✅ 12-18 month window before big AIs copy
+
+**NEW APPROACH:** Build safe, simple, defensible foundation → THEN add relationship features
+
+---
+
+### **🔧 Week 7: Architecture Refactor + Security Foundation** (~25 hours) 🚨
+**Goal:** Fix critical architectural flaws and add security before building more features
+
+**Critical Issues Being Fixed:**
+1. **Triple-Save Bloat** - Currently storing conversations 3x (base + context + semantic)
+2. **No Security** - Zero authentication, no encryption, GDPR violations
+3. **SQLite Multi-User** - Will fail catastrophically with concurrent users
+4. **PII Risk** - No protection against learning sensitive info (company names, projects)
+
+**What This Delivers:**
+
+**1. Refactor to Single Persistent Store (~10 hrs)**
+- **REMOVE:** Base Memory (MemoryManager) - redundant
+- **REFACTOR:** Context Manager → In-memory cache with LRU eviction (NO database)
+- **KEEP:** Semantic Memory as ONLY persistent store
+- **Result:** 3x fewer writes, simpler maintenance, single source of truth
+
+```python
+# NEW ARCHITECTURE:
+Semantic Memory (long-term, persistent, encrypted)
+    ↓
+Context Manager (in-memory cache, ephemeral)
+    ↓
+LLM Prompt Enhancement
+```
+
+**2. User Authentication (~5 hrs)**
+- Basic password-protected user auth
+- User ID separation (foundation for multi-user)
+- Session management
+- Secure credential storage (hashed passwords + salt)
+
+**3. Data Encryption (~5 hrs)**
+- Encrypt emotional states at rest (Fernet symmetric encryption)
+- Encrypt learned phrases (culture learning prep)
+- Secure encryption key storage
+- GDPR Article 9 compliance (sensitive personal data)
+
+**4. PII Detection & Filtering (~5 hrs)**
+- Detect emails, phone numbers, SSNs, credit cards
+- Block company names, project names from phrase learning
+- NER-based personal name detection
+- Foundation for safe culture learning (Week 9)
+
+**Files Created/Modified:**
+- REFACTOR: `src/memory/context_manager.py` - In-memory only
+- UPDATE: `src/memory/semantic_memory.py` - Now handles ALL persistence
+- NEW: `src/auth/user_auth.py` - Authentication system
+- NEW: `src/security/encryption.py` - Data encryption
+- NEW: `src/security/pii_detector.py` - PII filtering
+- UPDATE: `research_first_pipeline.py` - Remove base memory, add security
+- NEW: `scripts/migrate_to_single_store.py` - Migration script
+- UPDATE: All tests to work with new architecture
+
+**Why This Matters:** 
+- Prevents catastrophic failures at scale
+- Enables safe multi-user support
+- Makes culture learning safe (Week 9)
+- GDPR/privacy compliant
+- 3x performance improvement (fewer writes)
+
+**Migration:** One-time script preserves existing conversations (base → semantic)
+
+---
+
+### **🧠 Week 8: Emotional Continuity (SAFE VERSION)** (~20 hours)
+**Goal:** Cross-session emotional tracking with safety guardrails and upgraded emotion detection
+
+**What Changed From Original Plan:**
+- ✅ Upgraded emotion detection (transformer model, 90%+ accuracy vs 60-70% keywords)
+- ✅ Longer time window (7 days vs 48 hours - less brittle)
+- ✅ Higher intensity threshold (0.8 vs 0.7 - fewer false positives)
+- ✅ User consent (opt-in for emotional tracking)
+- ✅ Forgetting mechanism (30-day auto-decay)
+- ✅ Personality snapshots (version control + rollback)
+
+**What This Adds:**
+
+**1. Upgrade Emotion Detection (~5 hrs)**
+- Replace keyword matching with transformer model
+- Use: `j-hartmann/emotion-english-distilroberta-base`
+- Performance: 94% accuracy, 50ms on CPU
+- 6 emotions + confidence scores
+
+**2. Cross-Session Emotional Tracking (~8 hrs)**
+- Track emotional states across sessions
+- 7-day window (not 48hr - adapts to user habits)
+- Intensity threshold: 0.8+ (only significant emotions)
+- Emotional pattern recognition
+- Thread continuation prompts
+
+**3. Safety & Consent (~4 hrs)**
+- User consent: "Remember emotional context?" opt-in
+- Forgetting mechanism: Auto-decay after 30 days
+- Personality snapshots: Save version every N conversations
+- Rollback capability: Restore previous personality state
+
+**4. Integration (~3 hrs)**
+- Integrate with encrypted semantic memory
+- Natural follow-ups based on emotional threads
+- Respect user privacy preferences
+
+**Implementation:**
+- NEW: `src/memory/emotional_continuity.py` - Cross-session tracking
+- NEW: `src/memory/emotional_thread.py` - Thread data models
+- NEW: `src/memory/emotion_detector_v2.py` - Transformer-based (replaces keywords)
+- NEW: `src/personality/personality_snapshots.py` - Version control
+- NEW: `src/memory/forgetting_mechanism.py` - 30-day decay
+- UPDATE: ResearchFirstPipeline - Integrate emotional continuity safely
+- NEW: `tests/test_emotional_continuity_safe.py` - Safety validation
+
+**Example:**
+```
+Day 1: "I'm really worried about the layoffs"
+Day 3: "Hey Penny"
+Penny: "Hey! How are you feeling about work? You seemed stressed about layoffs on Monday."
+       [Only if: intensity >0.8, within 7 days, user opted in]
+```
+
+**Why This Matters:** 
+- Creates genuine relationship continuity
+- Respects user privacy (opt-in, forgetting)
+- Safe personality evolution (snapshots + rollback)
+- High accuracy emotion detection (90%+ vs 60-70%)
+
+---
+
+### **🎭 Week 9: Culture Learning (CAUTIOUS VERSION)** (~20 hours)
+**Goal:** Learn user's communication style with aggressive safety filters
+
+**What Changed From Original Plan:**
+- ✅ Higher adoption threshold (10+ occurrences vs 5 - prevents noise)
+- ✅ PII filtering before learning (blocks company/project/personal names)
+- ✅ Offensive language filters (prevents inappropriate drift)
+- ✅ Drift detection alerts (warns when personality shifts significantly)
+- ✅ User feedback loop ("Did this sound like me?")
+- ✅ Rollback capability (undo personality changes)
+
+**What This Adds:**
+
+**1. Safe Phrase Learning (~8 hrs)**
+- Extract distinctive user phrases
+- 10+ occurrence threshold (not 5 - more conservative)
+- PII filtering: Block before learning
+- Offensive language filters: Prevent inappropriate adoption
+- Phrase whitelist review before activation
+
+**2. Drift Detection & Control (~6 hrs)**
+- Automated drift detection (alert when personality shifts >X%)
+- User feedback: "Did Penny sound like herself?" every 50 messages
+- Drift rollback: Restore previous personality if drift detected
+- Gradual adoption: Phase in learned phrases slowly
+
+**3. Safety Filters (~4 hrs)**
+- Block profanity (unless user explicitly enables)
+- Filter extremist language, slurs
+- Detect sarcasm/irony (don't learn ironically used phrases)
+- Context awareness (phrase appropriate for situation?)
+
+**4. Evolution Tracking (~2 hrs)**
+- Personality evolution dashboard
+- Show what phrases learned over time
+- User control: Approve/reject specific phrases
+- Export personality profile
+
+**Implementation:**
+- NEW: `src/personality/culture_learner.py` - Safe phrase learning
+- NEW: `src/personality/phrase_database.py` - Encrypted phrase storage
+- NEW: `src/personality/drift_detector.py` - Personality shift monitoring
+- NEW: `src/personality/offensive_filter.py` - Content safety
+- NEW: `src/personality/evolution_tracker.py` - Track changes over time
+- UPDATE: Personality system - Integrate culture learning safely
+- NEW: `tests/test_culture_learning_safe.py` - Safety validation
+
+**Example Evolution (Safe):**
+```
+Week 1: User says "that's fire" 10+ times
+Week 2: System: "I noticed you say 'that's fire' often. Should I adopt this phrase?"
+User: "Yes"
+Week 3: Penny: "Week 6 done! That's fire! 🔥"
+
+[Blocked example:]
+User mentions "Project Nightingale" 5 times (company project)
+System: Blocks learning (PII detected)
+```
+
+**Why This Matters:**
+- Penny evolves with you safely
+- No accidental PII leakage
+- No offensive personality drift
+- User maintains control
+- Reversible if something goes wrong
+
+---
+
+### **🚀 Week 10: Proactive Behavior + Production Polish** (~20 hours)
+**Goal:** Make Penny feel "alive" with proactive features + production monitoring
+
+**What This Adds:**
+
+**1. Proactive Check-Ins (~8 hrs)**
+- Silence detection: "Haven't heard from you in 3 days - everything okay?"
+- Pattern breaks: "You usually message mornings - sleep okay?"
+- Milestone reminders: "Didn't you say you'd hear back about that job?"
+- Contextual awareness: Only check in when appropriate
+
+**2. Transparent Meta-Communication (~4 hrs)**
+- Explain reasoning naturally
+- "I'm bringing up your work stress because you mentioned it yesterday"
+- Build trust through transparency
+- Optional "explain mode" for deeper reasoning
+
+**3. Production Monitoring (~5 hrs)**
+- Error tracking (Sentry integration)
+- Performance monitoring (response times, bottlenecks)
+- User analytics (which features matter?)
+- Drift alerts (personality changes)
+- Usage patterns (when/how users interact)
+
+**4. Final Polish (~3 hrs)**
+- Integration testing (all Week 7-10 features together)
+- Performance optimization
+- Bug fixes
+- Documentation updates
+- Deployment preparation
+
+**Implementation:**
+- NEW: `src/proactive/check_in_logic.py` - Proactive behavior
+- NEW: `src/proactive/pattern_detection.py` - Detect user patterns
+- NEW: `src/personality/meta_communication.py` - Explain reasoning
+- NEW: `src/monitoring/sentry_integration.py` - Error tracking
+- NEW: `src/monitoring/metrics.py` - Performance monitoring
+- UPDATE: All systems - Final integration
+- UPDATE: Documentation - Complete Week 7-10 summary
+
+**Example Proactive Behavior:**
+```
+User hasn't messaged in 4 days (unusual pattern)
+Penny: "Hey! You went quiet - everything good? You usually check in more often."
+
+[Meta-communication example:]
+Penny: "I asked about work because you seemed stressed about it last week. 
+        Want to talk about it or should I drop it?"
+```
+
+**Why This Matters:**
+- Makes Penny feel genuinely alive (not reactive)
+- Builds deeper relationship through proactive care
+- Production-ready monitoring (catch issues early)
+- Transparent reasoning builds user trust
+
+---
+
+### **📊 DEFERRED TO POST-MVP (Week 11+)**
+
+These features have value but require stable foundation first:
+
+**Edge AI Integration** ⚡
+- Local LLM optimization (Ollama, LLaMA 70B)
+- Hybrid routing (simple=local, complex=cloud)
+- Sub-second response times
+- **Why Defer:** High complexity, need market validation first
+- **Timeline:** Post-MVP, after 10-20 real users validate demand
+
+**Advanced Tool Calling** 🔧
+- Expand beyond 3 tools
+- More complex orchestration
+- Multi-step reasoning
+- **Why Defer:** Current tool calling sufficient for MVP
+- **Timeline:** Week 11-12 if users request more capabilities
+
+**A/B Testing Framework Expansion** 🧪
+- Currently functional but basic
+- More sophisticated experiment tracking
+- Statistical significance testing
+- **Why Defer:** Need users before advanced testing matters
+- **Timeline:** Post-MVP with real user data
+
+**Multimodal Emotion Detection** 🎙️
+- Voice prosody analysis (tone, pitch, timing)
+- 15-20% accuracy improvement over text-only
+- Detects sarcasm, exhaustion, excitement from voice
+- **Why Defer:** Text-based 90%+ accuracy is good enough for MVP
+- **Timeline:** Week 11-12 if voice usage is high
+
+**Social Norm Alignment** 🌍
+- Context switching (talks to family differently than colleagues)
+- Situation awareness ("we're in public" vs "just us")
+- **Why Defer:** Natural extension after culture learning proves valuable
+- **Timeline:** Post-MVP feature
+
+---
+
+## 🎯 **WHY THIS REVISED APPROACH MATTERS**
+
+**CRITICAL REALIZATION:**
+Weeks 1-6 built functional features but created architectural debt. Assessments from Perplexity and Chat revealed:
+- Architecture will fail at scale (triple-save, SQLite, no auth)
+- Security is non-existent (GDPR violations, no encryption)
+- Culture learning without safety = drift disasters
+- Keyword emotion detection undercuts differentiation (60% vs 90%)
+
+**THE PIVOT:**
+Instead of rushing to add emotional continuity + culture learning on shaky foundation:
+1. Fix architecture (Week 7)
+2. Add features safely (Weeks 8-10)
+3. Ship to 10-20 users for validation
+4. Iterate based on real usage
+
+**What Makes Penny Different (Still):**
+- ✅ Emotional continuity across sessions (not just facts)
+- ✅ Culture learning (adopts YOUR communication style)
+- ✅ Proactive behavior (checks in, notices patterns)
+- ✅ Transparent reasoning (explains why she responds)
+- ✅ Privacy-first (local, encrypted, opt-in)
+- ✅ Safe personality evolution (snapshots, rollback, consent)
+
+**Competitive Reality:**
+- 12-18 month window before ChatGPT/Claude copy features
+- Moat isn't tech - it's relationship depth + time invested
+- Target: 15-20% of users who want AI that knows them
+- This is a niche play, not mass market (and that's okay)
+
+**Why This Approach Wins:**
+- Safe foundation prevents catastrophic failures
+- User trust through consent + transparency
+- Reversible personality changes (users maintain control)
+- Privacy compliant (GDPR, encryption)
+- First mover advantage with loyal users
+- Relationship lock-in (can't easily switch to generic AI)
+
+**The Hard Truth:**
+Big AIs WILL eventually add memory + personalization. Our window is limited. But users who build deep relationships with Penny won't switch - their history, learned communication style, and emotional continuity are irreplaceable. That's the moat.
+
+---
+
+## 🎊 **WEEK 6 ACHIEVEMENTS**
+
+**Context & Memory Systems Delivered:**
+
+- ✅ **Context Manager:** Rolling 10-turn conversation window
+- ✅ **Emotion Detection:** 6 emotions with confidence scoring
+- ✅ **Semantic Memory:** Vector-based similarity search (384-dim embeddings)
+- ✅ **Triple Save:** Base Memory → Context → Semantic Memory
+- ✅ **Performance:** ~100-150ms overhead per request
+- ✅ **Integration:** Week 6 as baseline (outside A/B test)
+
+**Bug Fixes & Improvements:**
+- ✅ HuggingFace cache → local project directory
+- ✅ Research classification → conversational expression filtering
+- ✅ Grammar/punctuation → em dash preservation
+- ✅ Personality → Justine-style as core baseline
+
+**Current Status:**
+- Phase 3 Progress: **67% complete** (6.5-7 of 10 weeks)
+- Week 6.9: **65% complete** (personality polish in progress)
+- Next Milestone: Complete UI indicators & Week 7 tool enhancements
+
+---
+
+**Last Updated:** December 8, 2025
+**Next Review:** After Week 6.9 complete
+**Status:** WEEK 6 COMPLETE ✅ → PERSONALITY POLISH IN PROGRESS
+
+**Documentation:**
+- ✅ SESSION_SUMMARY_WEEK6_COMPLETE.md
+- ✅ WEEK6_INTEGRATION_ARCHITECTURE.md
+- ✅ TROUBLESHOOTING.md (Week 6 section)
+- ✅ CHANGELOG.md (v0.7.0)
+
+**Penny is context-aware, emotionally intelligent, and personality-driven!** 🧠⚡

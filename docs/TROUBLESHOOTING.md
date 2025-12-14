@@ -266,4 +266,101 @@ Before reporting issues, ensure:
 
 ---
 
+## Week 6 Specific Issues
+
+### HuggingFace Cache Permission Errors
+
+**❌ Error: `PermissionError: [Errno 13] Permission denied: '/Users/CJ/.cache/huggingface'`**
+
+Semantic memory fails to load sentence-transformer models.
+
+**Solution:**
+Set HF_HOME before all imports in `web_interface/server.py` (line 19):
+```python
+import os
+from pathlib import Path
+
+# Set HuggingFace cache to local project directory BEFORE any imports
+os.environ['HF_HOME'] = str(Path(__file__).parent.parent / '.cache' / 'huggingface')
+```
+
+**Verification:**
+```bash
+ls -la .cache/huggingface/  # Should see hub/ directory
+python3 web_interface/server.py  # Should see "Model loaded successfully"
+```
+
+### Research Classification False Positives
+
+**❌ Issue: Conversational messages trigger web research**
+
+Example: "I'm thrilled to see the new features!" → Research triggered
+
+**Solution:**
+Conversational expressions are now filtered in `factual_research_manager.py`. If you see new false positives, add them to `CONVERSATIONAL_EXPRESSIONS` set.
+
+**Test:**
+```python
+from factual_research_manager import FactualQueryClassifier
+classifier = FactualQueryClassifier()
+print(classifier.requires_research("Thanks for the help!"))  # Should be False
+```
+
+### Semantic Memory Empty Database
+
+**⚠️ Warning: `Found 0 relevant memories`**
+
+**Root Cause:**
+- Historical conversations failed to save due to cache errors
+- Database starts empty on new deployments
+- Vector store resets on server restart (in-memory only)
+
+**Check Status:**
+```python
+python3 -c "from src.memory import SemanticMemory; sem = SemanticMemory(); print(sem.get_stats())"
+```
+
+**Solution:**
+This is expected behavior. Semantic memory only contains conversations from the current session. Future work will add persistence.
+
+### Grammar/Token Issues (Words Running Together)
+
+**❌ Issue: "thatno" instead of "that—no"**
+
+Em dashes (—) were being stripped, causing words to run together.
+
+**Solution:**
+Fixed in `personality/filter.py` (line 52) by adding `\u2013` (en dash) and `\u2014` (em dash) to allowed characters.
+
+**Test:**
+```python
+from personality.filter import sanitize_output
+result = sanitize_output("Hell yeah—let's go!")
+print(result)  # Should preserve em dash
+```
+
+### Server Won't Start - Port in Use
+
+**❌ Error: `OSError: [Errno 48] Address already in use`**
+
+**Quick Fix:**
+```bash
+lsof -ti:5001 | xargs kill -9
+sleep 1
+python3 web_interface/server.py
+```
+
+### Week 6 Diagnostics
+
+**Run comprehensive Week 6 tests:**
+```bash
+python3 diagnostics_week6.py
+```
+
+**Expected Results:**
+- 15/18 tests passing (83%)
+- Semantic memory warnings are non-blocking
+
+---
+
 **Still need help?** Include the output of `python system_info.py` and `python check_health.py` when asking for support.

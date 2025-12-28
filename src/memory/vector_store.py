@@ -1,192 +1,217 @@
 """
 Vector Store using FAISS
-Fast vector similarity search for semantic memory
+Fast vector similarity search for semantic memory with persistent storage
 """
 
 import numpy as np
 import faiss
 from typing import List, Tuple, Dict, Any, Optional
+from pathlib import Path
+import pickle
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class VectorStore:
-    """FAISS-based vector store for fast similarity search"""
+    """FAISS-based vector store for fast similarity search with persistent storage"""
 
-    def __init__(self, embedding_dim: int = 384):
+    def __init__(
+        self,
+        embedding_dim: int = 384,
+        storage_path: str = "data/embeddings/vector_store"
+    ):
         """
-        Initialize vector store.
+        Initialize vector store with persistent storage.
 
         Args:
-            embedding_dim: Dimension of embedding vectors (default: 384 for all-MiniLM-L6-v2)
+            embedding_dim: Dimension of embedding vectors (default: 384)
+            storage_path: Base path for storing index and metadata (without extension)
         """
-        self.embedding_dim = embedding_dim
-        self.index = faiss.IndexFlatIP(embedding_dim)  # Inner product (cosine similarity for normalized vectors)
-        self.id_to_metadata: Dict[int, Dict[str, Any]] = {}
-        self.next_id = 0
-        logger.info(f"Initialized VectorStore with dimension: {embedding_dim}")
+        self.embedding_dim = int(embedding_dim)
+        self.storage_path = Path(storage_path)
+        self.index_path = self.storage_path.with_suffix('.index')
+        self.metadata_path = self.storage_path.with_suffix('.pkl')
+
+        # Ensure directory exists
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Try to load existing index
+        if self.index_path.exists() and self.metadata_path.exists():
+            logger.info(f"Loading existing vector store from {self.storage_path}")
+            self.load()
+        else:
+            logger.info(f"Creating new vector store at {self.storage_path}")
+            self.index = faiss.IndexFlatIP(int(embedding_dim))
+            self.id_to_metadata: Dict[int, Dict[str, Any]] = {}
+            self.next_id = 0
+
+        logger.info(f"VectorStore initialized: {self.index.ntotal} vectors, dim={self.embedding_dim}")
 
     def add(self, embeddings: np.ndarray, metadata: Optional[List[Dict[str, Any]]] = None) -> List[int]:
         """
-        Add embeddings to the vector store.
+        Add embeddings to the index with metadata.
 
         Args:
-            embeddings: numpy array of shape (n, embedding_dim) or (embedding_dim,)
-            metadata: Optional list of metadata dicts for each embedding
+            embeddings: Embeddings to add (shape: [n, embedding_dim] or [embedding_dim])
+            metadata: Optional metadata for each embedding
 
         Returns:
             List of assigned IDs
         """
         # Handle single embedding
-        if embeddings.ndim == 1:
+        if len(embeddings.shape) == 1:
             embeddings = embeddings.reshape(1, -1)
 
-        # Validate dimensions
-        if embeddings.shape[1] != self.embedding_dim:
-            raise ValueError(f"Expected embedding dimension {self.embedding_dim}, got {embeddings.shape[1]}")
+        n = embeddings.shape[0]
 
-        # Ensure embeddings are float32 for FAISS
-        if embeddings.dtype != np.float32:
-            embeddings = embeddings.astype(np.float32)
+        # Validate metadata
+        if metadata is None:
+            metadata = [{} for _ in range(n)]
+        elif len(metadata) != n:
+            raise ValueError(f"Metadata length {len(metadata)} doesn't match embeddings {n}")
 
-        # Normalize embeddings for cosine similarity
-        faiss.normalize_L2(embeddings)
+        # Normalize embeddings for cosine similarity with IndexFlatIP
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        norms[norms == 0] = 1  # Prevent division by zero
+        embeddings_normalized = embeddings / norms
 
         # Add to FAISS index
-        num_embeddings = embeddings.shape[0]
-        ids = list(range(self.next_id, self.next_id + num_embeddings))
-
-        self.index.add(embeddings)
+        self.index.add(embeddings_normalized.astype('float32'))
 
         # Store metadata
-        if metadata is None:
-            metadata = [{}] * num_embeddings
-        elif len(metadata) != num_embeddings:
-            raise ValueError(f"Metadata length {len(metadata)} doesn't match embeddings count {num_embeddings}")
+        ids = []
+        for i, meta in enumerate(metadata):
+            idx = self.next_id
+            self.id_to_metadata[idx] = meta
+            ids.append(idx)
+            self.next_id += 1
 
-        for i, meta in zip(ids, metadata):
-            self.id_to_metadata[i] = meta
+        logger.info(f"Added {n} vectors (total: {self.index.ntotal})")
 
-        self.next_id += num_embeddings
-        logger.debug(f"Added {num_embeddings} embeddings to vector store")
+        # Auto-save after adding
+        self.save()
 
         return ids
 
-    def search(self, query_embedding: np.ndarray, k: int = 5) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        query_embedding: np.ndarray,
+        k: int = 5
+    ) -> List[Tuple[int, float, Dict[str, Any]]]:
         """
         Search for similar vectors.
 
         Args:
-            query_embedding: Query embedding vector of shape (embedding_dim,) or (1, embedding_dim)
+            query_embedding: Query embedding (shape: [embedding_dim])
             k: Number of results to return
 
         Returns:
-            List of dicts with keys: 'id', 'distance', 'similarity', 'metadata'
+            List of (id, similarity_score, metadata) tuples
         """
-        # Handle single embedding
-        if query_embedding.ndim == 1:
-            query_embedding = query_embedding.reshape(1, -1)
-
-        # Validate dimensions
-        if query_embedding.shape[1] != self.embedding_dim:
-            raise ValueError(f"Expected embedding dimension {self.embedding_dim}, got {query_embedding.shape[1]}")
-
-        # Ensure float32 and normalized
-        if query_embedding.dtype != np.float32:
-            query_embedding = query_embedding.astype(np.float32)
-
-        faiss.normalize_L2(query_embedding)
-
-        # Search
-        k = min(k, self.index.ntotal)  # Don't ask for more results than we have
-        if k == 0:
+        if self.index.ntotal == 0:
+            logger.warning("Vector store is empty")
             return []
 
-        distances, indices = self.index.search(query_embedding, k)
+        # Handle single embedding
+        if len(query_embedding.shape) == 1:
+            query_embedding = query_embedding.reshape(1, -1)
 
-        # Format results
+        # Normalize query for cosine similarity
+        norm = np.linalg.norm(query_embedding)
+        if norm > 0:
+            query_embedding = query_embedding / norm
+
+        # Search
+        k = min(k, self.index.ntotal)
+        distances, indices = self.index.search(query_embedding.astype('float32'), k)
+
+        # Convert to results
         results = []
         for dist, idx in zip(distances[0], indices[0]):
-            if idx == -1:  # FAISS returns -1 for missing results
+            if idx == -1:  # FAISS returns -1 for empty slots
                 continue
 
-            results.append({
-                'id': int(idx),
-                'distance': float(dist),
-                'similarity': float(dist),  # For normalized vectors, inner product = cosine similarity
-                'metadata': self.id_to_metadata.get(int(idx), {})
-            })
+            # Convert distance to similarity (IndexFlatIP returns inner product)
+            similarity = float(dist)
 
+            # Get metadata
+            metadata = self.id_to_metadata.get(int(idx), {})
+
+            results.append((int(idx), similarity, metadata))
+
+        logger.debug(f"Search found {len(results)} results")
         return results
 
-    def get_by_id(self, id: int) -> Optional[Dict[str, Any]]:
-        """
-        Get metadata for a specific ID.
+    def save(self):
+        """Save index and metadata to disk"""
+        try:
+            # Save FAISS index
+            faiss.write_index(self.index, str(self.index_path))
 
-        Args:
-            id: The ID to retrieve
+            # Save metadata
+            with open(self.metadata_path, 'wb') as f:
+                pickle.dump({
+                    'id_to_metadata': self.id_to_metadata,
+                    'next_id': self.next_id,
+                    'embedding_dim': self.embedding_dim
+                }, f)
 
-        Returns:
-            Metadata dict or None if not found
-        """
-        return self.id_to_metadata.get(id)
+            logger.debug(f"Saved vector store: {self.index.ntotal} vectors")
+        except Exception as e:
+            logger.error(f"Failed to save vector store: {e}")
 
-    def delete(self, ids: List[int]):
-        """
-        Delete entries by ID.
+    def load(self):
+        """Load index and metadata from disk"""
+        try:
+            # Load FAISS index
+            self.index = faiss.read_index(str(self.index_path))
 
-        Note: FAISS doesn't support efficient deletion, so we just remove metadata.
-        The vectors remain in the index but won't be returned in results.
+            # Load metadata
+            with open(self.metadata_path, 'rb') as f:
+                data = pickle.load(f)
+                self.id_to_metadata = data['id_to_metadata']
+                self.next_id = data['next_id']
+                self.embedding_dim = data.get('embedding_dim', 384)
 
-        Args:
-            ids: List of IDs to delete
-        """
-        for id in ids:
-            if id in self.id_to_metadata:
-                del self.id_to_metadata[id]
-                logger.debug(f"Deleted metadata for ID {id}")
+            logger.info(f"Loaded vector store: {self.index.ntotal} vectors")
+        except Exception as e:
+            logger.error(f"Failed to load vector store: {e}")
+            # Fall back to empty index
+            self.index = faiss.IndexFlatIP(int(self.embedding_dim))
+            self.id_to_metadata = {}
+            self.next_id = 0
 
+    def clear(self):
+        """Clear all vectors and metadata"""
+        self.index = faiss.IndexFlatIP(int(self.embedding_dim))
+        self.id_to_metadata = {}
+        self.next_id = 0
+        self.save()
+        logger.info("Vector store cleared")
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get statistics about the vector store"""
+        return {
+            'total_vectors': self.index.ntotal,
+            'embedding_dim': self.embedding_dim,
+            'metadata_count': len(self.id_to_metadata),
+            'storage_path': str(self.storage_path)
+        }
+
+    # Legacy compatibility methods
     def size(self) -> int:
         """Get the number of vectors in the store"""
         return self.index.ntotal
 
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Get statistics about the vector store.
+    def get_by_id(self, id: int) -> Optional[Dict[str, Any]]:
+        """Get metadata for a specific ID"""
+        return self.id_to_metadata.get(id)
 
-        Returns:
-            Dict with stats: total_vectors, embedding_dim, metadata_count
-        """
-        return {
-            'total_vectors': self.index.ntotal,
-            'embedding_dim': self.embedding_dim,
-            'metadata_count': len(self.id_to_metadata)
-        }
-
-    def clear(self):
-        """Clear all vectors and metadata"""
-        self.index = faiss.IndexFlatIP(self.embedding_dim)
-        self.id_to_metadata.clear()
-        self.next_id = 0
-        logger.info("Cleared vector store")
-
-    def save(self, filepath: str):
-        """
-        Save the index to disk.
-
-        Args:
-            filepath: Path to save the index
-        """
-        faiss.write_index(self.index, filepath)
-        logger.info(f"Saved vector store to {filepath}")
-
-    def load(self, filepath: str):
-        """
-        Load the index from disk.
-
-        Args:
-            filepath: Path to load the index from
-        """
-        self.index = faiss.read_index(filepath)
-        logger.info(f"Loaded vector store from {filepath}")
+    def delete(self, ids: List[int]):
+        """Delete entries by ID (removes metadata only)"""
+        for id in ids:
+            if id in self.id_to_metadata:
+                del self.id_to_metadata[id]
+                logger.debug(f"Deleted metadata for ID {id}")
+        self.save()

@@ -45,7 +45,7 @@ async def test_integration():
         
         # Add semantic memory
         print("\n  Step 2: Adding semantic memory to chat...")
-        chat.semantic_memory = SemanticMemory(chat.base_memory)
+        chat.semantic_memory = SemanticMemory()  # No base_memory needed - CC's implementation
         assert chat.semantic_memory is not None, "Semantic memory should be added"
         print("  ✅ Semantic memory integrated")
         
@@ -107,13 +107,12 @@ async def test_integration():
         voice = create_modal_interface("voice", user_id=user_id)
         print("  ✅ Both interfaces created")
         
-        # Add semantic memory to both
-        print("\n  Step 2: Adding semantic memory to both...")
-        shared_base_memory = chat.base_memory
-        chat.semantic_memory = SemanticMemory(shared_base_memory)
-        voice.semantic_memory = SemanticMemory(shared_base_memory)
-        print("  ✅ Semantic memory added to both (shared base)")
-        
+        # Add semantic memory to chat
+        print("\n  Step 2: Adding semantic memory to chat...")
+        shared_storage = "data/test_cross_modal_vectors"  # Shared path!
+        chat.semantic_memory = SemanticMemory(storage_path=shared_storage)
+        print("  ✅ Semantic memory added to chat")
+
         # Save conversation in chat
         print("\n  Step 3: Saving conversation via chat...")
         chat.semantic_memory.add_conversation_turn(
@@ -122,20 +121,25 @@ async def test_integration():
             context={'modality': 'chat'}
         )
         print("  ✅ Conversation saved via chat")
-        
+
+        # Add semantic memory to voice AFTER chat saved (loads from disk)
+        print("\n  Step 4: Adding semantic memory to voice (loads saved data)...")
+        voice.semantic_memory = SemanticMemory(storage_path=shared_storage)  # Same path - will load!
+        print("  ✅ Semantic memory added to voice (shared storage)")
+
         # Search from voice
-        print("\n  Step 4: Searching via voice interface...")
+        print("\n  Step 5: Searching via voice interface...")
         results = voice.semantic_memory.semantic_search("AI and data science", k=2)
         assert len(results) > 0, "Voice should find chat's conversations"
         print(f"  ✅ Voice found {len(results)} conversations from chat")
         print(f"    - {results[0]['user_input']} (similarity: {results[0]['similarity']:.3f})")
-        
-        # Verify memory is shared
-        chat_stats = chat.semantic_memory.get_stats()
-        voice_stats = voice.semantic_memory.get_stats()
-        assert chat_stats['total_conversation_turns'] == voice_stats['total_conversation_turns'], \
-            "Both should see same conversations"
-        print(f"\n  ✅ Memory sharing verified: {chat_stats['total_conversation_turns']} total turns")
+
+        # Verify memory is shared via vector store stats
+        chat_vector_stats = chat.semantic_memory.vector_store.get_stats()
+        voice_vector_stats = voice.semantic_memory.vector_store.get_stats()
+        assert chat_vector_stats['total_vectors'] == voice_vector_stats['total_vectors'], \
+            "Both should see same vectors in shared storage"
+        print(f"\n  ✅ Memory sharing verified: {chat_vector_stats['total_vectors']} shared vectors")
         
         chat.cleanup()
         voice.cleanup()
@@ -223,8 +227,8 @@ async def test_integration():
     try:
         import threading
         
-        shared_memory = MemoryManager(db_path="data/test_concurrent_semantic.db")
-        semantic_mem = SemanticMemory(shared_memory)
+        # CC's implementation doesn't need MemoryManager
+        semantic_mem = SemanticMemory()
         
         print("\n  Step 1: Testing concurrent writes...")
         

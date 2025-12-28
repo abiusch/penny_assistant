@@ -37,16 +37,25 @@ class SemanticMemory:
     - Automatic persistence to disk
     """
 
-    def __init__(self, embedding_dim: int = 384, encrypt_sensitive: bool = True):
+    def __init__(
+        self,
+        embedding_dim: int = 384,
+        encrypt_sensitive: bool = True,
+        storage_path: str = "data/embeddings/vector_store"
+    ):
         """
         Initialize semantic memory as the sole persistent store.
 
         Args:
             embedding_dim: Dimension of embeddings (default: 384)
             encrypt_sensitive: Encrypt emotion/sentiment fields (default: True)
+            storage_path: Path for vector store persistence (default: "data/embeddings/vector_store")
         """
         self.embedding_generator = get_embedding_generator()
-        self.vector_store = VectorStore(embedding_dim=embedding_dim)
+        self.vector_store = VectorStore(
+            embedding_dim=embedding_dim,
+            storage_path=storage_path  # CROSS-MODAL FIX: Pass storage path
+        )
         self.turn_id_to_vector_id: Dict[str, int] = {}
 
         # WEEK 7: Encryption for sensitive data (GDPR Article 9)
@@ -58,7 +67,7 @@ class SemanticMemory:
             self.encryption = None
             logger.info("⚠️  Semantic Memory initialized WITHOUT encryption")
 
-        logger.info("✅ SemanticMemory initialized (SOLE persistent store)")
+        logger.info(f"✅ SemanticMemory initialized (SOLE persistent store) at {storage_path}")
 
     def add_conversation_turn(
         self,
@@ -168,8 +177,16 @@ class SemanticMemory:
         # Filter by minimum similarity and format results
         filtered_results = []
         for result in results:
-            if result['similarity'] >= min_similarity:
+            # CROSS-MODAL FIX: VectorStore now returns tuples (id, similarity, metadata)
+            if isinstance(result, tuple):
+                vector_id, similarity, metadata = result
+            else:
+                # Legacy dict format compatibility
+                vector_id = result['id']
+                similarity = result['similarity']
                 metadata = result['metadata']
+
+            if similarity >= min_similarity:
 
                 # Decrypt sensitive fields if encryption is enabled
                 context = metadata.get('context', {})
@@ -198,7 +215,7 @@ class SemanticMemory:
                     'user_input': metadata.get('user_input'),
                     'assistant_response': metadata.get('assistant_response'),
                     'timestamp': metadata.get('timestamp'),
-                    'similarity': result['similarity'],
+                    'similarity': similarity,  # Use unpacked similarity
                     'context': context  # Now includes decrypted sensitive fields
                 })
 
@@ -319,10 +336,10 @@ class SemanticMemory:
         """
         vector_stats = self.vector_store.get_stats()
         return {
-            'total_conversations': len(self.turn_id_to_vector_id),
-            'vector_store_size': vector_stats['total_vectors'],
-            'embedding_dim': vector_stats['embedding_dim'],
-            'model_name': self.embedding_generator.get_model_name()
+            'total_conversations': len(self.turn_id_to_vector_id),  # Use actual count
+            'vector_store': vector_stats,
+            'embedding_dim': self.embedding_generator.embedding_dim,
+            'encryption_enabled': self.encrypt_sensitive
         }
 
     def clear(self):

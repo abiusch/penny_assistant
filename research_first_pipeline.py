@@ -39,6 +39,9 @@ from src.tools.tool_registry import get_tool_registry
 # Week 6: Context Manager, Emotion Detector, Semantic Memory Integration
 from src.memory import ContextManager, EmotionDetector, SemanticMemory
 
+# Week 7.5: Nemotron-3 Nano Local LLM
+from src.llm.nemotron_client import create_nemotron_client
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,6 +50,18 @@ class ResearchFirstPipeline(PipelineLoop):
 
     def __init__(self):
         super().__init__()
+
+        # WEEK 7.5: Replace OpenAI with Nemotron-3 Nano (local LLM)
+        try:
+            self.llm = create_nemotron_client(
+                reasoning_mode="auto",  # Intelligent: Fast for chat, reasoning for complex queries
+                temperature=0.7
+            )
+            logger.info("✅ Using Nemotron-3 Nano (100% local, zero cost)")
+        except Exception as e:
+            logger.warning(f"⚠️ Nemotron not available: {e}")
+            # Fallback to parent's LLM (OpenAI via factory)
+            logger.info("Fallback to LLMFactory (from config)")
 
         # Initialize core systems
         # WEEK 7: Removed base_memory and enhanced_memory (redundant with semantic memory)
@@ -79,7 +94,7 @@ class ResearchFirstPipeline(PipelineLoop):
         self.semantic_memory = SemanticMemory()
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
-        print("🔬 Research-First Pipeline initialized (Week 7 Architecture)")
+        print("🔬 Research-First Pipeline initialized (Week 7.5 Architecture)")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
         print("   • Dynamic personality adaptation enabled (Phase 2)")
@@ -90,6 +105,10 @@ class ResearchFirstPipeline(PipelineLoop):
         print("     - Semantic Memory: ONLY persistent store (encrypted emotions)")
         print("     - Data encryption: AES-128 for sensitive fields (GDPR compliant)")
         print("     - PII detection: Ready for culture learning (Week 8-9)")
+        print("   • Week 7.5: Nemotron-3 Nano Local LLM")
+        print("     - 100% local inference (zero API costs)")
+        print("     - 1M token context window")
+        print("     - Built for agentic AI workflows")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""

@@ -42,6 +42,13 @@ from src.memory import ContextManager, EmotionDetector, SemanticMemory
 # Week 7.5: Nemotron-3 Nano Local LLM
 from src.llm.nemotron_client import create_nemotron_client
 
+# Week 8: Emotional Continuity System
+from src.memory.emotion_detector_v2 import EmotionDetectorV2
+from src.memory.emotional_continuity import EmotionalContinuity
+from src.personality.personality_snapshots import PersonalitySnapshotManager
+from src.memory.forgetting_mechanism import ForgettingMechanism
+from src.memory.consent_manager import ConsentManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -94,6 +101,23 @@ class ResearchFirstPipeline(PipelineLoop):
         self.semantic_memory = SemanticMemory()
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
+        # Week 8: Emotional Continuity System
+        self.consent_manager = ConsentManager()
+        self.emotion_detector_v2 = EmotionDetectorV2()
+        self.emotional_continuity = EmotionalContinuity(
+            semantic_memory=self.semantic_memory,
+            emotion_detector=self.emotion_detector_v2,
+            window_days=self.consent_manager.get_memory_window(),
+            intensity_threshold=self.consent_manager.get_intensity_threshold(),
+            enabled=self.consent_manager.is_tracking_enabled()
+        )
+        self.personality_snapshots = PersonalitySnapshotManager(
+            storage_path="data/personality_snapshots",
+            snapshot_interval=50
+        )
+        self.forgetting_mechanism = ForgettingMechanism(decay_days=30)
+        logger.info("🧠 Week 8 Emotional Continuity initialized")
+
         print("🔬 Research-First Pipeline initialized (Week 7.5 Architecture)")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
@@ -109,6 +133,13 @@ class ResearchFirstPipeline(PipelineLoop):
         print("     - 100% local inference (zero API costs)")
         print("     - 1M token context window")
         print("     - Built for agentic AI workflows")
+        print("   • Week 8: Emotional Continuity System")
+        print("     - Advanced emotion detection (transformer-based, 27 emotions)")
+        print("     - Cross-session emotional tracking (7-day window)")
+        print("     - Natural check-ins about past emotional moments")
+        print("     - Personality snapshots with rollback capability")
+        print("     - Gradual forgetting mechanism (30-day decay)")
+        print("     - User consent & privacy controls (GDPR Article 17)")
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -134,6 +165,35 @@ class ResearchFirstPipeline(PipelineLoop):
             # Step 1.5: Week 6 - Detect emotion from user input
             emotion_result = self.emotion_detector.detect_emotion(actual_command)
             print(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
+
+            # Step 1.6: Week 8 - Track significant emotions and check for emotional context
+            turn_id = f"turn_{int(time.time() * 1000)}"
+            emotional_thread = None
+            check_in_thread = None
+            emotional_context = ""
+
+            if self.consent_manager.is_tracking_enabled():
+                # Track emotion if significant
+                emotional_thread = self.emotional_continuity.track_emotion(
+                    user_input=actual_command,
+                    turn_id=turn_id
+                )
+
+                if emotional_thread:
+                    logger.info(
+                        f"📌 Tracked emotion: {emotional_thread.emotion} "
+                        f"(intensity={emotional_thread.intensity:.2f})"
+                    )
+
+                # Check if we should reference previous emotional context
+                if self.consent_manager.is_checkins_enabled():
+                    check_in_thread = self.emotional_continuity.should_check_in()
+
+                    if check_in_thread:
+                        emotional_context = self.emotional_continuity.generate_check_in_prompt(
+                            check_in_thread
+                        )
+                        logger.info(f"💭 Suggesting emotional check-in: {check_in_thread.emotion}")
 
             # Step 2: Research classification
             research_required = self.research_manager.requires_research(actual_command)
@@ -264,6 +324,10 @@ class ResearchFirstPipeline(PipelineLoop):
                     for result in semantic_results:
                         semantic_context += f"\n- User: {result.get('user_input', '')[:100]}... (similarity: {result.get('similarity', 0):.2f})"
                     prompt_sections.append(semantic_context)
+
+                # Week 8: Add emotional context if check-in suggested
+                if emotional_context:
+                    prompt_sections.append(emotional_context)
 
                 # Week 6: Add current topic and emotional state
                 stats = self.context_manager.get_stats()
@@ -421,6 +485,36 @@ class ResearchFirstPipeline(PipelineLoop):
                 # Update personality tracking from this conversation
                 self._update_personality_from_conversation(actual_command, final_response, turn_id)
                 print("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)", flush=True)
+
+                # Week 8: Mark emotional follow-up if we referenced past emotion
+                if check_in_thread and self._response_references_emotion(final_response, check_in_thread):
+                    self.emotional_continuity.mark_followed_up(check_in_thread, turn_id)
+                    logger.info(f"✅ Marked emotional follow-up for {check_in_thread.turn_id}")
+
+                # Week 8: Check if snapshot needed
+                stats = self.semantic_memory.get_stats()
+                conversation_count = stats.get('total_conversations', 0)
+                if self.personality_snapshots.should_snapshot(conversation_count):
+                    try:
+                        personality_state = self.personality_tracker.get_personality_state()
+                        emotional_threads = [t.to_dict() for t in self.emotional_continuity.threads]
+
+                        snapshot = self.personality_snapshots.create_snapshot(
+                            personality_state=personality_state,
+                            emotional_threads=emotional_threads,
+                            conversation_count=conversation_count
+                        )
+                        logger.info(f"📸 Created personality snapshot v{snapshot.version}")
+                    except Exception as snap_e:
+                        logger.warning(f"Snapshot creation failed: {snap_e}")
+
+                # Week 8: Apply forgetting mechanism (every 10 conversations)
+                if conversation_count % 10 == 0:
+                    self.emotional_continuity.threads = self.forgetting_mechanism.apply_decay(
+                        self.emotional_continuity.threads
+                    )
+                    logger.info(f"🧹 Applied forgetting mechanism ({conversation_count} conversations)")
+
             except Exception as e:
                 import traceback
                 print(f"⚠️ Memory storage failed: {e}", flush=True)
@@ -606,6 +700,26 @@ class ResearchFirstPipeline(PipelineLoop):
         except Exception as e:
             print(f"⚠️ Failed to update dimension {dimension}: {e}", flush=True)
             return False
+
+    def _response_references_emotion(self, response: str, thread) -> bool:
+        """
+        Check if Penny's response references the emotional thread.
+
+        Simple heuristic: Does response mention the emotion or context?
+        """
+        response_lower = response.lower()
+
+        # Check for emotion mention
+        if thread.emotion.lower() in response_lower:
+            return True
+
+        # Check for context keywords
+        context_words = thread.context.lower().split()[:5]  # First 5 words
+        for word in context_words:
+            if len(word) > 4 and word in response_lower:  # Only meaningful words
+                return True
+
+        return False
 
 
 def main():

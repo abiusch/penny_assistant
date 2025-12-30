@@ -1,0 +1,44 @@
+{
+  "preferences": {
+    "emotional_tracking_enabled": true,
+    "proactive_checkins_enabled": true,
+    "intensity_threshold": 0.8,
+    "memory_window_days": 7,
+    "consent_given_at": "2025-12-30T13:06:09.281325",
+    "last_modified_at": "2025-12-30T13:06:09.281332"
+  },
+  "audit_log": [
+    {
+      "timestamp": "2025-12-30T11:36:01.635906",
+      "event_type": "consent_granted",
+      "details": {
+        "emotional_tracking": true,
+        "proactive_checkins": true
+      }
+    },
+    {
+      "timestamp": "2025-12-30T11:38:48.104161",
+      "event_type": "consent_granted",
+      "details": {
+        "emotional_tracking": true,
+        "proactive_checkins": true
+      }
+    },
+    {
+      "timestamp": "2025-12-30T11:59:55.936606",
+      "event_type": "consent_granted",
+      "details": {
+        "emotional_tracking": true,
+        "proactive_checkins": true
+      }
+    },
+    {
+      "timestamp": "2025-12-30T13:06:09.281333",
+      "event_type": "consent_granted",
+      "details": {
+        "emotional_tracking": true,
+        "proactive_checkins": true
+      }
+    }
+  ]
+}

@@ -36,6 +36,29 @@ class PersonalityDimension:
     learning_rate: float
     value_type: str  # 'continuous', 'categorical'
 
+    def to_dict(self) -> dict:
+        """Convert PersonalityDimension to JSON-serializable dict"""
+        return {
+            'name': self.name,
+            'current_value': self.current_value,
+            'confidence': self.confidence,
+            'value_type': self.value_type,
+            'learning_rate': self.learning_rate,
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'PersonalityDimension':
+        """Create PersonalityDimension from dict"""
+        return cls(
+            name=data['name'],
+            current_value=data['current_value'],
+            confidence=data['confidence'],
+            last_updated=datetime.fromisoformat(data['last_updated']) if data.get('last_updated') else datetime.now(),
+            learning_rate=data.get('learning_rate', 0.1),
+            value_type=data['value_type']
+        )
+
 @dataclass
 class PersonalityUpdate:
     """Represents a personality dimension update"""
@@ -549,6 +572,28 @@ class PersonalityTracker:
             cache.set("default", personality_state)
 
         return personality_state
+
+    def get_personality_state(self) -> Dict[str, Any]:
+        """
+        Synchronous wrapper for get_current_personality_state().
+        Used by Week 8 snapshot system which runs in sync context.
+        Returns JSON-serializable dict format for snapshots.
+        """
+        loop = asyncio.new_event_loop()
+        try:
+            state = loop.run_until_complete(self.get_current_personality_state())
+
+            # Convert PersonalityDimension objects to dicts for JSON serialization
+            serializable_state = {}
+            for key, dim in state.items():
+                if hasattr(dim, 'to_dict'):
+                    serializable_state[key] = dim.to_dict()
+                else:
+                    serializable_state[key] = dim
+
+            return serializable_state
+        finally:
+            loop.close()
 
     async def update_personality_dimension(self, dimension: str, new_value: Union[float, str],
                                          confidence_change: float, context: str) -> bool:

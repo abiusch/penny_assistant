@@ -55,14 +55,22 @@ class TestVagueReferentDetection:
         assert decision.confidence > 0.7
 
     def test_clear_with_file_name(self, engine, empty_context):
-        """Test: 'Delete test_file.py' does NOT trigger clarification"""
+        """Test: 'Delete test_file.py' has clear referent (not vague)
+
+        Note: As of Phase 1B, this WILL trigger clarification due to
+        destructive keyword 'delete' (MEDIUM stakes), but the important
+        thing is it's NOT being flagged for vague referent.
+        """
         decision = engine.analyze_request(
             "Delete test_file.py",
             empty_context
         )
 
-        assert decision.clarify_needed is False
-        assert decision.response_strategy == ResponseStrategy.ANSWER
+        # Phase 1B: This triggers MEDIUM stakes confirmation (expected)
+        assert decision.clarify_needed is True
+        assert decision.stakes_level == StakesLevel.MEDIUM
+        # But it should NOT be due to vague referent
+        assert "Vague referent" not in decision.reasoning
 
     def test_vague_this_without_context(self, engine, empty_context):
         """Test: 'Update this' triggers clarification"""

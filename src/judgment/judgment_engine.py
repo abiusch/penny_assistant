@@ -78,8 +78,34 @@ class JudgmentEngine:
             'fix', 'delete', 'create', 'update', 'build',
             'remove', 'add', 'change', 'modify', 'debug',
             'make', 'do', 'get', 'set', 'run', 'start',
-            'stop', 'restart', 'install', 'uninstall'
+            'stop', 'restart', 'install', 'uninstall',
+            'schedule', 'meeting', 'send', 'email', 'deploy',
+            'move', 'copy'
         ]
+
+        # Phase 1B: High-stakes keywords
+        self.high_stakes_keywords = {
+            'financial': ['invest', 'buy', 'sell', 'transfer', 'payment',
+                         'money', 'pay', 'purchase', 'transaction'],
+            'destructive': ['delete', 'remove', 'drop', 'destroy', 'erase',
+                           'wipe', 'clear', 'purge', 'truncate'],
+            'medical': ['medical', 'health', 'diagnosis', 'prescription',
+                       'treatment', 'surgery', 'medicine', 'drug'],
+            'legal': ['legal', 'contract', 'sign', 'agreement',
+                     'lawsuit', 'sue', 'liability']
+        }
+
+        # Phase 1B: Action verbs that require parameters
+        self.actions_requiring_params = {
+            'schedule': ['date', 'time'],
+            'meeting': ['date', 'time', 'attendees'],
+            'send': ['recipient', 'content'],
+            'email': ['recipient', 'subject'],
+            'deploy': ['environment', 'version'],
+            'create': ['name', 'type'],
+            'move': ['source', 'destination'],
+            'copy': ['source', 'destination']
+        }
 
         # Context window size for checking antecedents
         self.context_window = 50  # characters to look back
@@ -113,16 +139,19 @@ class JudgmentEngine:
             >>> decision.clarify_needed
             True
         """
-        # For Phase 1A: Only check vague referents
+        # Phase 1A: Check vague referents
         has_vague_referent = self._detect_vague_referents(user_input, context)
+
+        # Phase 1B: Check stakes level
+        stakes = self._assess_stakes(user_input, context)
+
+        # Phase 1B: Check for missing parameters
+        missing_param = self._detect_missing_params(user_input, context)
 
         # Extract basic intent
         intent = self._extract_intent(user_input)
 
-        # For Phase 1A: All requests are LOW stakes (will implement in 1B)
-        stakes = StakesLevel.LOW
-
-        # Decide whether to clarify
+        # Decide whether to clarify (priority: vague > missing param > high stakes)
         if has_vague_referent:
             question = self._generate_clarifying_question_for_vague_referent(
                 user_input,
@@ -138,7 +167,41 @@ class JudgmentEngine:
                 confidence=0.3,  # Low confidence due to ambiguity
                 reasoning="Vague referent detected without clear antecedent"
             )
+
+        elif missing_param:
+            question = self._generate_clarifying_question_for_missing_param(
+                user_input,
+                context
+            )
+
+            return Decision(
+                intent=intent,
+                stakes_level=stakes,
+                clarify_needed=True,
+                clarify_question=question,
+                response_strategy=ResponseStrategy.CLARIFY,
+                confidence=0.4,  # Low-medium confidence due to missing info
+                reasoning="Action requires parameters that weren't provided"
+            )
+
+        elif stakes in [StakesLevel.MEDIUM, StakesLevel.HIGH]:
+            question = self._generate_clarifying_question_for_high_stakes(
+                user_input,
+                context
+            )
+
+            return Decision(
+                intent=intent,
+                stakes_level=stakes,
+                clarify_needed=True,
+                clarify_question=question,
+                response_strategy=ResponseStrategy.ESCALATE if stakes == StakesLevel.HIGH else ResponseStrategy.CLARIFY,
+                confidence=0.6,  # Medium confidence - request is clear but high-risk
+                reasoning=f"{stakes.value.upper()} stakes detected, confirming before proceeding"
+            )
+
         else:
+            # No issues detected, proceed with answer
             return Decision(
                 intent=intent,
                 stakes_level=stakes,
@@ -285,3 +348,188 @@ class JudgmentEngine:
                 return verb
 
         return 'do'  # Default
+
+    def _assess_stakes(self, user_input: str, context: dict) -> StakesLevel:
+        """
+        Assess the stakes/risk level of the user's request.
+
+        Phase 1B Algorithm:
+        1. Check for HIGH stakes keywords (medical, legal, financial destructive)
+        2. If multiple HIGH stakes categories found → HIGH
+        3. If 1 HIGH stakes category found → MEDIUM
+        4. Otherwise → LOW
+
+        Args:
+            user_input: The user's message
+            context: Context dictionary (unused in Phase 1B)
+
+        Returns:
+            StakesLevel (LOW, MEDIUM, HIGH)
+
+        Examples:
+            "Delete all production data" → MEDIUM (destructive)
+            "Buy stocks and delete my account" → HIGH (financial + destructive)
+            "Fix the bug" → LOW (no high-stakes keywords)
+        """
+        input_lower = user_input.lower()
+
+        # Count how many HIGH stakes categories are triggered
+        categories_triggered = []
+
+        for category, keywords in self.high_stakes_keywords.items():
+            if any(keyword in input_lower for keyword in keywords):
+                categories_triggered.append(category)
+
+        # Assess stakes level based on number of categories
+        if len(categories_triggered) >= 2:
+            return StakesLevel.HIGH  # Multiple high-stakes categories
+        elif len(categories_triggered) == 1:
+            return StakesLevel.MEDIUM  # Single high-stakes category
+        else:
+            return StakesLevel.LOW  # No high-stakes keywords
+
+    def _detect_missing_params(self, user_input: str, context: dict) -> bool:
+        """
+        Detect if an action requires parameters that weren't provided.
+
+        Phase 1B Algorithm:
+        1. Check if input contains an action that requires parameters
+        2. For each required parameter, check if it's present in the input
+        3. If ANY required parameter is missing → True
+
+        Args:
+            user_input: The user's message
+            context: Context dictionary (unused in Phase 1B)
+
+        Returns:
+            True if action requires missing parameters, False otherwise
+
+        Examples:
+            "Schedule a meeting" → True (missing date, time, attendees)
+            "Schedule a meeting tomorrow at 3pm with John" → False (all params present)
+            "Send an email" → True (missing recipient, subject)
+            "Fix the bug" → False (fix doesn't require specific params)
+        """
+        input_lower = user_input.lower()
+
+        # Check each action that requires parameters
+        for action, required_params in self.actions_requiring_params.items():
+            if action in input_lower:
+                # This action requires parameters - check if they're present
+                for param in required_params:
+                    # Simple heuristic: check for param-related keywords
+                    param_indicators = self._get_param_indicators(param)
+
+                    # If none of the indicators are present, param is missing
+                    if not any(indicator in input_lower for indicator in param_indicators):
+                        return True  # Missing at least one parameter
+
+        return False  # No missing parameters detected
+
+    def _get_param_indicators(self, param: str) -> list:
+        """
+        Get indicator keywords that suggest a parameter is present.
+
+        Args:
+            param: Parameter name (e.g., 'date', 'time', 'recipient')
+
+        Returns:
+            List of indicator keywords
+
+        Examples:
+            'date' → ['tomorrow', 'today', 'monday', 'january', '2025', 'on']
+            'time' → ['at', '3pm', 'noon', 'morning', 'evening', ':']
+            'recipient' → ['to', '@', 'john', 'with']
+        """
+        indicators = {
+            'date': ['tomorrow', 'today', 'monday', 'tuesday', 'wednesday',
+                    'thursday', 'friday', 'saturday', 'sunday', 'january',
+                    'february', 'march', 'april', 'may', 'june', 'july',
+                    'august', 'september', 'october', 'november', 'december',
+                    '2025', '2026', 'on ', 'next week', 'next month'],
+            'time': ['at ', ':', 'am', 'pm', 'noon', 'morning', 'afternoon',
+                    'evening', 'night', 'o\'clock'],
+            'attendees': ['with ', 'and ', '@', 'john', 'jane', 'team'],
+            'recipient': ['to ', '@', 'john', 'jane', 'customer', 'client'],
+            'content': ['about ', 'regarding ', 'message:', 'body:', 'text:'],
+            'subject': ['subject:', 're:', 'about ', 'regarding '],
+            'environment': ['prod', 'dev', 'staging', 'production', 'development', 'test'],
+            'version': ['v1', 'v2', 'version ', '1.0', '2.0', 'latest'],
+            'name': ['called ', 'named ', 'name:', 'label:'],
+            'type': ['type:', 'kind:', 'as a ', 'as an '],
+            'source': ['from ', 'source:', 'origin:'],
+            'destination': ['to ', 'dest:', 'target:', 'into ']
+        }
+
+        return indicators.get(param, [])
+
+    def _generate_clarifying_question_for_missing_param(
+        self,
+        user_input: str,
+        context: dict
+    ) -> str:
+        """
+        Generate clarifying question for missing parameter.
+
+        This returns a RAW question. The personality layer (Phase 2) will
+        format it in Penny's voice.
+
+        Args:
+            user_input: The user's message
+            context: Context dictionary
+
+        Returns:
+            Raw clarifying question (will be styled later)
+
+        Example:
+            "Schedule a meeting" → "missing_params: date, time, attendees"
+        """
+        input_lower = user_input.lower()
+
+        # Find which action and which params are missing
+        for action, required_params in self.actions_requiring_params.items():
+            if action in input_lower:
+                missing = []
+                for param in required_params:
+                    param_indicators = self._get_param_indicators(param)
+                    if not any(indicator in input_lower for indicator in param_indicators):
+                        missing.append(param)
+
+                if missing:
+                    return f"missing_params: action={action}, params={', '.join(missing)}"
+
+        return "missing_params: unspecified"
+
+    def _generate_clarifying_question_for_high_stakes(
+        self,
+        user_input: str,
+        context: dict
+    ) -> str:
+        """
+        Generate clarifying question for high-stakes action.
+
+        This returns a RAW question. The personality layer (Phase 2) will
+        format it in Penny's voice.
+
+        Args:
+            user_input: The user's message
+            context: Context dictionary
+
+        Returns:
+            Raw clarifying question (will be styled later)
+
+        Example:
+            "Delete all production data" → "confirm_high_stakes: category=destructive"
+        """
+        input_lower = user_input.lower()
+
+        # Find which high-stakes categories are triggered
+        categories_triggered = []
+        for category, keywords in self.high_stakes_keywords.items():
+            if any(keyword in input_lower for keyword in keywords):
+                categories_triggered.append(category)
+
+        if categories_triggered:
+            return f"confirm_high_stakes: categories={', '.join(categories_triggered)}"
+
+        return "confirm_high_stakes: unspecified"

@@ -9,105 +9,215 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** December 31, 2025
+**Last Updated:** January 16, 2026
+
+---
+
+## 🚨 URGENT: REPOSITORY CLEANUP (JUST COMPLETED!)
+
+**Status:** ✅ COMPLETE
+
+**What was done:**
+- Moved 117 test files → `tests/`
+- Moved 35 experimental scripts → `experiments/`
+- Archived 41 completed docs → `docs/archive/phases/`
+- Consolidated 27 databases → `data/`
+- Created `ENTRY_POINTS.md`
+- Split requirements into core/platform/optional
+- Added `.env.example` and `MINIMAL_SETUP.md`
+
+**Why this was critical:**
+Three external reviews (Manus, ChatGPT, Perplexity) unanimously flagged:
+> "Root directory sprawl will directly hurt velocity if not cleaned"
+
+**Next:** Week 8.5 Judgment & Clarify System
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Week 8 Complete ✅  
-**Next:** Week 9-10 Hebbian Learning (2 weeks)  
-**Phase 3:** 85% Complete  
-**Server:** 🟢 Port 5001  
-**Tests:** 🟢 100% pass rate (9/9 integration tests)
+**Current:** Repository Cleanup Complete ✅
+**Next:** Week 8.5 Judgment & Clarify System (1 week) ⭐
+**Then:** Week 9-10 Hebbian Learning (2 weeks)
+**Phase 3:** 85% Complete → 90% after Week 8.5
+**Server:** 🟢 Port 5001
+**Tests:** 🟢 100% pass rate
 
 ---
 
 ## ✅ RECENTLY COMPLETED
 
 **Week 8: Emotional Continuity** (December 30, 2025)
-- ✅ Transformer-based emotion detection (27 emotions, 90%+ accuracy)
+- ✅ Emotion detection (27 emotions, 90%+ accuracy)
 - ✅ Cross-session emotional tracking (7-day memory window)
 - ✅ Personality snapshots with version control + rollback
 - ✅ Forgetting mechanism (30-day gradual decay)
 - ✅ Consent management (GDPR Article 17 compliant)
 - ✅ 100% test pass rate (9/9 integration tests)
-- ✅ Production ready, committed to GitHub (commit 1691de4)
+- ✅ Production ready, committed to GitHub
 
 **Status:** Production deployed, server running on port 5001
 
-**Complete details:** See [CURRENT_STATUS.md](CURRENT_STATUS.md)
-
 ---
 
-## 🧠 ACTIVE WORK: WEEK 9-10 HEBBIAN LEARNING
+## 🎯 ACTIVE WORK: WEEK 8.5 JUDGMENT & CLARIFY SYSTEM
 
-**Goal:** Brain-inspired associative learning ("neurons that fire together, wire together")
+**Goal:** Control layer that prevents drift in all learning systems
 
-**Duration:** 2 weeks (14-22 hours estimated)
+**Duration:** 1 week (15-20 hours estimated)
 
-**Status:** ⏳ Specs complete (187KB documentation), ready for implementation
+**Priority:** ⭐ **CRITICAL - Must complete before Week 9**
+
+### **Why This First:**
+
+**The Problem:**
+- LLMs optimize for progress (always output something)
+- "Answering immediately" is often a failure mode
+- Learning systems can reinforce patterns from ambiguous inputs
+- This causes drift over time
+
+**The Solution:**
+Penny should default to:
+- ✅ Answering when request is clear and low-stakes
+- ✅ Asking clarifying question when ambiguity/stakes present
+- ✅ Slowing down when cost of being wrong is high
+
+**The Benefit:**
+- Prevents Hebbian from learning bad patterns (Week 9-10)
+- Makes outcome tracking more reliable (Week 11)
+- Protects goal continuity from ambiguity (Week 12)
+- Ensures user model builds correct beliefs (Week 13)
 
 ### **What It Does:**
 
-**1. Vocabulary Association Matrix**
-- Learns: "ngl" + casual_context → strength 0.85
-- Learns: "ngl" + formal_context → strength 0.12
-- **Result:** Penny knows when to use which vocabulary contextually
+**1. Ambiguity Detection**
+- Detects vague referents ("that", "it", "the thing")
+- Identifies missing key parameters (date, scope, audience)
+- Triggers: "Quick check so I don't go off into the weeds—do you mean X or Y?"
 
-**2. Dimension Co-activation Matrix**
-- Learns: stress + empathy + brevity → co-activate together
-- Learns: casual + sarcasm + emojis → co-activate together
-- **Result:** Personality dimensions adapt in coherent patterns
+**2. Risk Assessment**
+- Detects high-stakes tasks (finance, irreversible actions)
+- Flags requests requiring high accuracy
+- Triggers: "Wanna make sure I nail this—{clarification}?"
 
-**3. Conversation Sequence Learner**
-- Learns: problem → technical answer → "simplify?" → simplified answer
-- Predicts: Next time, skip directly to simple explanation
-- **Result:** Anticipates user needs based on conversation patterns
+**3. Confidence Monitoring**
+- Detects contradictions with past context/memory
+- Identifies when response would require guessing
+- Triggers: "Hold up—last time you said X. Did that change?"
 
-### **Implementation Timeline:**
+**4. Personality Preservation**
+- All clarifications sound like Penny (casual, confident, witty)
+- Maximum 1-2 questions, no corporate disclaimers
+- Examples:
+  - "Before I sprint in the wrong direction: what's the end goal here?"
+  - "Two-second clarity question: what's the {parameter}?"
 
-**Week 9 (10-12 hours):**
-- Day 1-2: Vocabulary Association Matrix (3-4 hours)
-- Day 3-4: Dimension Co-activation Learning (3-4 hours)
-- Day 5-6: Conversation Sequence Learner (3-4 hours)
-- Day 7: Testing & validation (1 hour)
+### **Implementation Plan:**
 
-**Week 10 (4-10 hours):**
-- Day 1-2: Database migration (1-2 hours)
-- Day 3-4: Orchestration layer (2-3 hours)
-- Day 5-6: Full integration (2-3 hours)
-- Day 7: End-to-end testing (1-2 hours)
+**Phase 1: Detection Layer (6-9 hours)**
+- Phase 1A: Vague referent detection (2-3 hours)
+- Phase 1B: Stakes assessment + missing parameters (2-3 hours)
+- Phase 1C: Contradiction detection + confidence (2-3 hours)
 
-### **Documentation:**
+**Phase 2: Personality Layer (4-6 hours)**
+- Build PennyStyleClarifier
+- Format questions in Penny's voice
+- Templates for different trigger types
+- Frustration detection
 
-**Hebbian specs location:** Check `/hebbian_specs/` or `/docs/specs/hebbian/`
+**Phase 3: Pipeline Integration (4-6 hours)**
+- Integrate into research_first_pipeline.py
+- Add judgment check before processing
+- Return clarifying questions
+- Full integration tests
 
-**Start here:**
-1. Find and read `HEBBIAN_LEARNING_ARCHITECTURE.md` (system overview)
-2. Follow `HEBBIAN_INTEGRATION_PLAN.md` (day-by-day implementation)
-3. Use `HEBBIAN_IMPLEMENTATION_SKELETONS.md` (code templates)
+### **Implementation Prompts Available:**
+- `CLAUDE_CODE_PHASE1A_PROMPT.md` - Vague referents
+- `CLAUDE_CODE_PHASE1B_PROMPT.md` - Stakes + parameters
+- `CLAUDE_CODE_PHASE1C_PROMPT.md` - Contradictions + confidence
 
-**Complete roadmap:** See [ROADMAP.md](ROADMAP.md)
+### **Test Scenarios:**
+
+**Ambiguous:**
+```
+User: "Fix that thing"
+Penny: "Quick check—you mean the auth bug or the TTS latency?"
+```
+
+**Missing Parameter:**
+```
+User: "Schedule a meeting with the team"
+Penny: "Two-second clarity question: what's the date and time?"
+```
+
+**High Stakes:**
+```
+User: "Delete all test data"
+Penny: "Wanna make sure I nail this—you mean just test_* tables, 
+        or everything in the test database?"
+```
+
+**Contradiction:**
+```
+Previous: "Use Rust for this"
+Current: "Use Python for the API"
+Penny: "Hold up—last time you said Rust. Did that change, or is 
+        this a different project?"
+```
+
+**Low Stakes (No Clarification):**
+```
+User: "What's 2+2?"
+Penny: "4"
+```
+
+---
+
+## 🧠 UPCOMING: WEEK 9-10 HEBBIAN LEARNING
+
+**Goal:** Brain-inspired associative learning
+
+**Duration:** 2 weeks (14-22 hours)
+
+**Status:** ⏸️ Waiting for Week 8.5 completion
+
+**Why Wait:** Hebbian learns patterns from conversations. Week 8.5 ensures it learns from CLEAR inputs, not ambiguous ones.
+
+**What It Does:**
+1. **Vocabulary Association** - Learns when to use which words
+2. **Dimension Co-activation** - Personality dimensions adapt together
+3. **Conversation Sequences** - Anticipates user needs
+
+**Implementation:**
+- Week 9: Core components (10-12 hours)
+- Week 10: Integration & polish (4-10 hours)
+
+**Specs:** Already complete (187KB documentation from October)
+
+**Start after:** Week 8.5 complete
 
 ---
 
 ## 🔮 AFTER WEEK 10 (FUTURE PHASES)
 
-**Phase 4 Planning (Not Yet Scheduled):**
+**Phase 4 Planning:**
 
-Potential features being evaluated:
-- **Week 11:** Outcome Tracking (causal feedback loops)
-- **Week 12:** Goal Continuity (persistent intent across sessions)
-- **Week 13:** User Model (explicit beliefs about user)
-- **Week 14+:** Voice Optimization & Prosody matching
+**Week 11: Outcome Tracking** (1 week)
+- Track whether responses helped or hurt
+- Learn from success/failure patterns
+- Adapt strategies based on outcomes
 
-**Decision Point:** After Week 10, evaluate Hebbian results and decide:
-- Continue Phase 4 (build more features)
-- Polish & Ship (production deployment focus)
-- Optimize existing features
+**Week 12: Goal Continuity** (1 week)
+- Track unfinished business across sessions
+- Remember suspended tasks
+- Proactive follow-ups
 
-**Complete future roadmap:** See [ROADMAP.md](ROADMAP.md)
+**Week 13: User Model** (2-3 weeks)
+- Penny maintains explicit beliefs about you
+- Confidence scores for each belief
+- Transparent reasoning, user can correct
+
+**All protected by Week 8.5 Judgment layer!**
 
 ---
 
@@ -125,9 +235,9 @@ Potential features being evaluated:
 - Response Time: 5-10s (acceptable for local LLM)
 - Emotion Accuracy: 90%+ on 27 emotions
 - Test Coverage: 100% (9/9 integration + 30/30 diagnostic)
-- Cost: $0/month (was $5-20/month with GPT-4o-mini)
+- Cost: $0/month forever
 
-**Complete system details:** See [CURRENT_STATUS.md](CURRENT_STATUS.md)
+**Complete details:** [CURRENT_STATUS.md](CURRENT_STATUS.md)
 
 ---
 
@@ -137,22 +247,18 @@ Potential features being evaluated:
 
 **Status & Planning:**
 - **[CURRENT_STATUS.md](CURRENT_STATUS.md)** - Complete system status, active systems, metrics
-- **[ROADMAP.md](ROADMAP.md)** - Detailed roadmap (Week 9-13+), decision framework
+- **[ROADMAP.md](ROADMAP.md)** - Detailed roadmap, decision framework
 - **[README.md](README.md)** - Project overview, quick start guide
 
 **Specifications:**
-- Check `/hebbian_specs/` - Week 9-10 Hebbian Learning specs (187KB)
-- Check `/docs/specs/emotional_continuity/` - Week 8 Emotional Continuity specs
+- Week 8.5 specs: Implementation prompts available (CLAUDE_CODE_PHASE*.md)
+- Hebbian specs: Check `/hebbian_specs/` or `/docs/specs/hebbian/`
+- Week 8 specs: Check root or `/docs/specs/emotional_continuity/`
 
-### **Additional Documentation:**
-
-**Guides & How-Tos:**
-- Look for guides in `/docs/guides/` or root directory
-- Setup guides, troubleshooting, implementation guides
-
-**Historical Record:**
-- Weekly progress reports may be in `/docs/progress/2025/`
-- Archived/completed work may be in `/docs/archive/`
+**Additional Documentation:**
+- Guides: Look for guides in `/docs/guides/` or root directory
+- History: Weekly progress in `/docs/progress/2025/`
+- Archive: Completed work in `/docs/archive/`
 
 ---
 
@@ -165,25 +271,27 @@ Potential features being evaluated:
    - ✅ [CURRENT_STATUS.md](CURRENT_STATUS.md) - Complete current state
    - ✅ [ROADMAP.md](ROADMAP.md) - What's happening next
 
-**2. FOR IMPLEMENTATION:**
-   - ✅ Find Hebbian specs (check `/hebbian_specs/` or `/docs/specs/hebbian/`)
-   - ✅ Start with README or ARCHITECTURE doc
-   - ✅ Follow INTEGRATION_PLAN day-by-day
+**2. FOR WEEK 8.5 IMPLEMENTATION:**
+   - ✅ Current priority is Judgment & Clarify System
+   - ✅ Three prompts available for Claude Code (Phase 1A, 1B, 1C)
+   - ✅ Build detection layer first, then personality layer, then integrate
+   - ✅ Do NOT start Week 9 until Week 8.5 is complete
 
-**3. NEVER REFERENCE:**
+**3. FOR FUTURE WEEKS:**
+   - ✅ Week 8.5 comes before Week 9-10 (control layer for learning)
+   - ✅ Hebbian specs are ready but should wait
+   - ✅ All future learning protected by Week 8.5 judgment layer
+
+**4. NEVER REFERENCE:**
    - ❌ Files in `/docs/archive/` - Outdated/superseded
-   - ❌ Old roadmaps or plans - Use current docs only
+   - ❌ Old roadmaps - Use current docs only
    - ❌ Completed feature announcements (*_COMPLETE.md files)
 
-**4. IF CONFUSED:**
-   - ❓ Ask user: "Which document should I reference?"
-   - ❓ Check file modification dates (newer = more current)
-   - ❓ Default to CURRENT_STATUS.md for facts
-
 **5. VERIFY BEFORE SUGGESTING:**
-   - ✅ Check CURRENT_STATUS.md for what's already implemented
-   - ✅ Check ROADMAP.md for planned features
-   - ✅ Don't suggest features already marked "What NOT to Build"
+   - ✅ Check CURRENT_STATUS.md for what's implemented
+   - ✅ Check this file for current priorities
+   - ✅ Week 8.5 comes before Week 9-10
+   - ✅ Don't suggest features marked "What NOT to Build"
 
 ---
 
@@ -191,34 +299,42 @@ Potential features being evaluated:
 
 ### **This File is Updated:**
 - After each completed week
-- When starting new phases  
-- When major milestones are reached
+- When priorities change
+- When new phases are added
 - When system status changes significantly
 
-### **How to Update:**
+### **Recent Updates:**
+- **January 16, 2026:** Added Week 8.5 as immediate priority
+- **December 31, 2025:** Initial Week 8 completion documented
+- **December 30, 2025:** Week 8 marked complete
 
-**After completing a week:**
-1. Move "ACTIVE WORK" section to "RECENTLY COMPLETED"
+### **How to Update After Each Week:**
+1. Move completed work from "ACTIVE WORK" to "RECENTLY COMPLETED"
 2. Update "QUICK STATUS" (current week, percentage)
-3. Add new "ACTIVE WORK" section for next week
+3. Update "UPCOMING" section for next work
 4. Update "Last Updated" date
-
-**Keep this file under 300 lines for quick scanning by AI assistants.**
+5. Keep file under 400 lines for quick AI scanning
 
 ---
 
 ## 📝 QUICK REFERENCE
 
 ### **Most Important Files:**
-- 🎯 **This file** (NEXT_PHASE_TASKS.md) - Quick status + next steps
+- 🎯 **This file** (NEXT_PHASE_TASKS.md) - Quick status + priorities
 - 📊 [CURRENT_STATUS.md](CURRENT_STATUS.md) - Complete system state
-- 📋 [ROADMAP.md](ROADMAP.md) - Detailed implementation plans
+- 📋 [ROADMAP.md](ROADMAP.md) - Detailed plans
 
-### **Getting Started with Week 9:**
-1. Find Hebbian specs (check `/hebbian_specs/` folder)
-2. Read HEBBIAN_LEARNING_ARCHITECTURE.md (overview)
-3. Follow HEBBIAN_INTEGRATION_PLAN.md (step-by-step)
-4. Use HEBBIAN_IMPLEMENTATION_SKELETONS.md (code templates)
+### **Getting Started with Week 8.5:**
+1. Start with Phase 1A (vague referent detection)
+2. Use `CLAUDE_CODE_PHASE1A_PROMPT.md` with Claude Code
+3. Then Phase 1B, then Phase 1C (detection layer complete)
+4. Then Phase 2 (personality layer)
+5. Then Phase 3 (pipeline integration)
+
+### **After Week 8.5:**
+- Move to Week 9-10 Hebbian Learning
+- Hebbian will learn from CLEAR inputs (thanks to Week 8.5)
+- All specs already complete and ready
 
 ### **Questions About Current State:**
 - Check [CURRENT_STATUS.md](CURRENT_STATUS.md) first
@@ -230,17 +346,19 @@ Potential features being evaluated:
 
 **Where we are:** Week 8 (Emotional Continuity) complete and production-ready
 
-**What's next:** Week 9-10 Hebbian Learning (brain-inspired associative learning)
+**What's next:** Week 8.5 Judgment & Clarify System (NEW - 1 week)
 
-**How to start:** Find Hebbian specs, read ARCHITECTURE doc, follow INTEGRATION_PLAN
+**Why:** Control layer that prevents drift in all future learning systems
 
-**Questions?** 
-- Status: Check [CURRENT_STATUS.md](CURRENT_STATUS.md)
-- Plans: Check [ROADMAP.md](ROADMAP.md)
-- Ask CJ if something's unclear
+**Then:** Week 9-10 Hebbian Learning (2 weeks)
+
+**Questions?**
+- Status: [CURRENT_STATUS.md](CURRENT_STATUS.md)
+- Plans: [ROADMAP.md](ROADMAP.md)
+- Ask CJ if unclear
 
 ---
 
-**Last Updated:** December 31, 2025  
+**Last Updated:** January 16, 2026  
 **Maintained By:** CJ  
-**Status:** ✅ Active - Single source of truth for Penny development
+**Status:** ✅ Active - Week 8.5 is immediate priority

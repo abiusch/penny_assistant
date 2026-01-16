@@ -1,0 +1,27 @@
+{
+  "preferences": {
+    "emotional_tracking_enabled": false,
+    "proactive_checkins_enabled": false,
+    "intensity_threshold": 0.8,
+    "memory_window_days": 7,
+    "consent_given_at": "2025-12-30T11:32:48.386390",
+    "last_modified_at": "2025-12-30T11:32:48.386478"
+  },
+  "audit_log": [
+    {
+      "timestamp": "2025-12-30T11:32:48.386392",
+      "event_type": "consent_granted",
+      "details": {
+        "emotional_tracking": true,
+        "proactive_checkins": true
+      }
+    },
+    {
+      "timestamp": "2025-12-30T11:32:48.386480",
+      "event_type": "consent_revoked",
+      "details": {
+        "delete_data": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "timestamp": "2025-12-30T11:32:48.386190",
+  "personality_state": {
+    "formality": 0.3,
+    "sarcasm": 0.6
+  },
+  "emotional_threads": [],
+  "conversation_count": 50
+}

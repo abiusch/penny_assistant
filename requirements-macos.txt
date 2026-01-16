@@ -1,0 +1,7 @@
+# macOS-specific dependencies
+pyobjc-core==11.1
+pyobjc-framework-applicationservices==11.1
+pyobjc-framework-cocoa==11.1
+pyobjc-framework-coretext==11.1
+pyobjc-framework-quartz==11.1
+pynput>=1.7.6

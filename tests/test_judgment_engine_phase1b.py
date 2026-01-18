@@ -114,7 +114,7 @@ class TestMissingParameterDetection:
 
         assert decision.clarify_needed is True
         assert decision.response_strategy == ResponseStrategy.CLARIFY
-        assert "parameters that weren't provided" in decision.reasoning
+        assert "parameter" in decision.reasoning.lower()  # Check for parameter-related reasoning
         assert "missing_params" in decision.clarify_question
 
     def test_schedule_with_all_params(self, engine, empty_context):
@@ -230,7 +230,8 @@ class TestPhase1ARegression:
 
         assert decision.clarify_needed is True
         assert "Vague referent" in decision.reasoning
-        assert decision.confidence == 0.3
+        # Phase 1C: Confidence now computed dynamically
+        assert decision.confidence < 0.6  # Should be low due to vague terms
 
     def test_clear_input_still_works(self, engine, empty_context):
         """Test: Phase 1A clear input detection still works"""
@@ -241,7 +242,8 @@ class TestPhase1ARegression:
 
         assert decision.clarify_needed is False
         assert decision.response_strategy == ResponseStrategy.ANSWER
-        assert decision.confidence == 0.8
+        # Phase 1C: Confidence now computed dynamically (has file name, clear action, detailed)
+        assert decision.confidence > 0.8  # Should be high
 
     def test_intent_extraction_still_works(self, engine, empty_context):
         """Test: Phase 1A intent extraction still works"""

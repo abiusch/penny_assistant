@@ -8,6 +8,7 @@ import sys
 import os
 import time
 import logging
+import json
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -48,6 +49,9 @@ from src.memory.emotional_continuity import EmotionalContinuity
 from src.personality.personality_snapshots import PersonalitySnapshotManager
 from src.memory.forgetting_mechanism import ForgettingMechanism
 from src.memory.consent_manager import ConsentManager
+
+# Week 8.5: Judgment & Clarify System
+from src.judgment import JudgmentEngine, PennyStyleClarifier
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +122,18 @@ class ResearchFirstPipeline(PipelineLoop):
         self.forgetting_mechanism = ForgettingMechanism(decay_days=30)
         logger.info("🧠 Week 8 Emotional Continuity initialized")
 
+        # Week 8.5: Initialize Judgment & Clarify System
+        self.judgment_enabled = True  # Will be configurable via config.json
+        if self.judgment_enabled:
+            self.judgment_engine = JudgmentEngine()
+            self.clarifier = PennyStyleClarifier()
+            logger.info("🧠 Week 8.5 Judgment & Clarify System initialized")
+            print("   • Week 8.5: Judgment & Clarify System active")
+            print("     - Detects vague referents, missing parameters, contradictions")
+            print("     - Stakes assessment (LOW/MEDIUM/HIGH)")
+            print("     - Confidence scoring (0.0-1.0)")
+            print("     - Penny-style clarifications (casual, confident, brief)")
+
         print("🔬 Research-First Pipeline initialized (Week 7.5 Architecture)")
         print("   • Factual queries trigger autonomous research")
         print("   • Financial topics require research validation")
@@ -141,6 +157,87 @@ class ResearchFirstPipeline(PipelineLoop):
         print("     - Gradual forgetting mechanism (30-day decay)")
         print("     - User consent & privacy controls (GDPR Article 17)")
 
+    def _should_clarify(self, user_input: str, context: dict) -> tuple[bool, Optional[str]]:
+        """
+        Check if we should clarify before proceeding.
+
+        Args:
+            user_input: The user's message
+            context: Conversation context
+
+        Returns:
+            (should_clarify: bool, clarifying_question: str or None)
+
+        Example:
+            should_clarify, question = self._should_clarify("Fix that bug", context)
+            if should_clarify:
+                return question  # Ask for clarification
+            # else: proceed with tools
+        """
+        # Check if judgment is enabled
+        if not self.judgment_enabled:
+            return False, None
+
+        # Build context for judgment engine
+        judgment_context = {
+            'conversation_history': context.get('conversation_history', []),
+            'semantic_memory': context.get('semantic_memory', []),
+            'emotional_state': context.get('emotional_state'),
+            'personality_state': context.get('personality_state')
+        }
+
+        # Get judgment decision
+        decision = self.judgment_engine.analyze_request(user_input, judgment_context)
+
+        # Log judgment decision
+        self._log_judgment_decision(decision, user_input)
+
+        # If clarification needed, format in Penny's voice
+        if decision.clarify_needed:
+            clarifying_question = self.clarifier.format_question(
+                decision,
+                user_input=user_input
+            )
+
+            # Log judgment decision
+            logger.info(f"🤔 Judgment: Clarifying due to {decision.reasoning}")
+            print(f"🤔 Judgment: Clarifying due to {decision.reasoning}")
+            print(f"💬 Question: {clarifying_question}")
+
+            return True, clarifying_question
+
+        return False, None
+
+    def _log_judgment_decision(self, decision, user_input: str):
+        """
+        Log judgment decision for analysis.
+
+        Useful for:
+        - Understanding when judgment triggers
+        - Tuning detection thresholds
+        - Debugging clarification logic
+
+        Args:
+            decision: Decision object from JudgmentEngine
+            user_input: Original user input
+        """
+        log_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'user_input': user_input,
+            'clarify_needed': decision.clarify_needed,
+            'reasoning': decision.reasoning,
+            'stakes_level': decision.stakes_level.value,
+            'confidence': decision.confidence,
+            'intent': decision.intent
+        }
+
+        # Log to file for analysis
+        log_file = 'data/judgment_logs.jsonl'
+        os.makedirs('data', exist_ok=True)
+
+        with open(log_file, 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -161,6 +258,24 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 1: Process input
             actual_command = user_text.strip()
+
+            # Step 1.2: Week 8.5 - Judgment check (should we clarify first?)
+            # Build initial context for judgment
+            initial_judgment_context = {
+                'conversation_history': [],  # Will populate from context manager
+                'semantic_memory': [],
+                'emotional_state': None,
+                'personality_state': None
+            }
+
+            # Check if we should clarify before proceeding
+            should_clarify, clarifying_question = self._should_clarify(actual_command, initial_judgment_context)
+
+            if should_clarify:
+                # Return clarifying question instead of processing
+                logger.info(f"✋ Judgment system returned clarification - not proceeding with tools")
+                self.state = State.SPEAKING
+                return clarifying_question
 
             # Step 1.5: Week 6 - Detect emotion from user input
             emotion_result = self.emotion_detector.detect_emotion(actual_command)

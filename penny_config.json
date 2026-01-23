@@ -76,5 +76,11 @@
     "routing_rules": {
         "enable_plugin_routing": true,
         "fallback_to_llm": true
+    },
+    "judgment": {
+        "enabled": true,
+        "log_decisions": true,
+        "confidence_threshold": 0.4,
+        "always_clarify_high_stakes": true
     }
 }

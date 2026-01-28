@@ -22,3 +22,18 @@ piper_models/
 
 # HuggingFace cache (model files)
 .cache/
+
+# Experimental/test files (not production)
+penny_with_elevenlabs.py
+penny_with_tts.py
+voice_enhanced_penny.py
+test_improved_adapter.py
+test_openai_compat.py
+test_optimized_calendar.py
+test_tts_latency.py
+
+# Database backups
+*.db.backup
+
+# Logs
+*.log

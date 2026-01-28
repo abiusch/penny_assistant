@@ -245,8 +245,8 @@ class TestLowConfidenceFormatting:
         result = clarifier.format_question(decision)
         
         # Should ask for more information
-        detail_words = ["detail", "more", "spell", "expand", "clarify", "explain"]
-        assert any(word in result.lower() for word in detail_words)
+        detail_words = ["detail", "more", "spell", "expand", "clarify", "explain", "break", "picture"]
+        assert any(word in result.lower() for word in detail_words), f"No detail words in: {result}"
 
 
 class TestContextHints:

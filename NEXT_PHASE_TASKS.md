@@ -9,17 +9,17 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** January 18, 2026
+**Last Updated:** January 28, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Week 8.5 COMPLETE! 🎉  
-**Next:** Week 9-10 Hebbian Learning (2 weeks)  
-**Phase 3:** 85% → 95% (Week 8.5 complete!) → 100% after Week 13  
-**Server:** 🟢 Port 5001  
-**Tests:** 🟢 73/73 passing (100% pass rate!)
+**Current:** Week 9 COMPLETE! 🎉
+**Next:** Week 10 Hebbian Integration (1 week)
+**Phase 3:** 85% → 97% (Week 9 complete!) → 100% after Week 13
+**Server:** 🟢 Port 5001
+**Tests:** 🟢 138/138 passing (100% pass rate!)
 
 ---
 
@@ -69,7 +69,49 @@
 
 ---
 
-## ✅ RECENTLY COMPLETED (January 16-18, 2026)
+## ✅ RECENTLY COMPLETED (January 16-28, 2026)
+
+### **Week 9: Hebbian Learning - Core Components** (January 28, 2026)
+**Status:** ✅ COMPLETE (75/75 Hebbian tests + 63 Week 8.5 tests = 138 total)
+
+**What Was Built:**
+
+**Component 1: Vocabulary Associator (24 tests)**
+- Learns word-context associations via Hebbian strengthening
+- Example: "ngl" → casual contexts (0.85), not formal (0.12)
+- Temporal decay for old patterns
+- 400 lines of code
+
+**Component 2: Dimension Associator (15 tests)**
+- Learns personality dimension co-activation patterns
+- Example: emotional_support → brief_responses (0.72)
+- Multi-dimensional pattern detection
+- 380 lines of code
+
+**Component 3: Sequence Learner (22 tests)**
+- Learns conversation flow patterns (12 states)
+- Example: problem → clarification → solution
+- Predicts next conversation states
+- 500 lines of code
+
+**Integration (14 tests)**
+- All 3 components working together
+- Data persistence validated
+- Performance: 5ms overhead (<10ms target)
+- Statistics and export functions
+
+**Total:** ~1,280 lines of production code, 75 tests, 138 total with Week 8.5
+
+**Final Commit:** 526d61e - "Week 9 Hebbian Learning - Core Components Complete"
+
+**Protected by:** Week 8.5 Judgment System (no learning from vague inputs)
+
+**What Penny Learned:**
+- Vocabulary patterns (word-context associations)
+- Personality patterns (dimension co-activations)
+- Conversation patterns (state transitions)
+
+---
 
 ### **Repository Cleanup** (January 16, 2026)
 - ✅ Organized 118 test files → `tests/`
@@ -125,39 +167,44 @@ Penny: "4" (no clarification needed)
 
 ---
 
-## 🧠 NEXT UP: WEEK 9-10 HEBBIAN LEARNING
+## 🚀 NEXT UP: WEEK 10 HEBBIAN INTEGRATION
 
-**Goal:** Brain-inspired associative learning
+**Goal:** Integrate Hebbian Learning into production pipeline
 
-**Duration:** 2 weeks (14-22 hours estimated)
+**Duration:** 4-10 hours estimated
 
 **Status:** 🎯 READY TO START
 
-**Why Now is Perfect:**
-- ✅ Week 8.5 judgment layer protects against learning from vague inputs
-- ✅ Detection system ensures clear training data
-- ✅ Contradictions caught before reinforcement
-- ✅ Confidence scoring prevents guessing
+**Why Now:**
+- ✅ Week 9 core components complete (all 3 working)
+- ✅ 138 tests passing (100%)
+- ✅ Protected by Week 8.5 judgment system
+- ✅ Performance validated (<10ms overhead)
 
-**What Hebbian Learning Does:**
-1. **Vocabulary Association** - Learns when to use which words
-2. **Dimension Co-activation** - Personality dimensions adapt together
-3. **Conversation Sequences** - Anticipates user needs
+**What Week 10 Does:**
 
-**Implementation Plan:**
-- Week 9: Core components (10-12 hours)
-  - Hebbian weight matrix
-  - Association tracking
-  - Decay mechanisms
-  
-- Week 10: Integration & polish (4-10 hours)
-  - Connect to personality system
-  - Memory integration
-  - Testing and validation
+**Day 8: Hebbian Learning Manager (2-3 hours)**
+- Create orchestration layer
+- Single entry point: `process_conversation_turn()`
+- LRU caching for performance
+- Batch updates for efficiency
 
-**Specs:** Already complete (187KB documentation from October)
+**Day 9: Pipeline Integration (2-4 hours)**
+- Connect to research_first_pipeline.py
+- Work with Week 8.5 judgment system
+- Feature flag: HEBBIAN_LEARNING_ENABLED
+- Integration with personality post-processor
 
-**Protected by:** Week 8.5 Judgment System ✅
+**Day 10: Documentation & Polish (1-3 hours)**
+- User documentation
+- Performance profiling
+- Learning rate tuning
+- Visualization tools
+
+**After Week 10:**
+- ✅ Complete Hebbian Learning system
+- ✅ Production ready and deployed
+- ✅ Move to Week 11: Outcome Tracking
 
 ---
 
@@ -283,7 +330,8 @@ Penny: "4" (no clarification needed)
 - **Memory:** 539 conversation vectors (AES-128 encrypted)
 - **Personality:** 7 dimensions tracking, 0.74 confidence (technical depth)
 - **Emotional Intelligence:** Week 8 active (7-day memory, 0.8 intensity threshold)
-- **Judgment System:** Week 8.5 active (73/73 tests, production-ready) ⭐ NEW!
+- **Judgment System:** Week 8.5 active (73/73 tests, production-ready)
+- **Hebbian Learning:** Week 9 active (75/75 tests, core components complete) ⭐ NEW!
 - **Security:** GDPR Article 17 compliant, encrypted, PII-protected
 - **Server:** Port 5001, stable
 
@@ -291,7 +339,8 @@ Penny: "4" (no clarification needed)
 - Response Time: 5-10s (acceptable for local LLM)
 - Emotion Accuracy: 90%+ on 27 emotions
 - Judgment Tests: 73/73 passing (100%)
-- Total Tests: 100+ passing
+- Hebbian Tests: 75/75 passing (100%)
+- Total Tests: 138 passing
 - Cost: $0/month forever
 
 **Complete details:** [CURRENT_STATUS.md](CURRENT_STATUS.md)
@@ -340,21 +389,21 @@ Penny: "4" (no clarification needed)
    - ✅ [ROADMAP.md](ROADMAP.md) - What's happening next
 
 **2. CURRENT PRIORITY:**
-   - ⭐ Week 9-10: Hebbian Learning (NEXT UP!)
-   - Use existing Hebbian specs from October
-   - Judgment system now protects learning
+   - ⭐ Week 10: Hebbian Integration (NEXT UP!)
+   - Week 9 core components complete
+   - Judgment system protects learning
 
-**3. WEEK 8.5 STATUS:**
-   - ✅ COMPLETE - 73/73 tests passing
-   - ✅ Committed: ddfd369
-   - ✅ Production ready
-   - ✅ Protects all future learning
+**3. WEEK 9 STATUS:**
+   - ✅ COMPLETE - 75/75 Hebbian tests passing
+   - ✅ Committed: 526d61e
+   - ✅ 3 core components working
+   - ✅ 138 total tests passing
 
-**4. FOR HEBBIAN LEARNING:**
-   - ✅ Judgment system ensures clear training data
-   - ✅ Specs are ready (187KB documentation)
-   - ✅ Start with Week 9 core components
-   - ✅ Week 10 for integration and polish
+**4. FOR WEEK 10 INTEGRATION:**
+   - ✅ Create HebbianLearningManager
+   - ✅ Connect to research_first_pipeline.py
+   - ✅ Feature flag: HEBBIAN_LEARNING_ENABLED
+   - ✅ Documentation and polish
 
 **5. NEVER REFERENCE:**
    - ❌ Files in `/docs/archive/` - Outdated/superseded
@@ -378,7 +427,8 @@ Penny: "4" (no clarification needed)
 - When external feedback received
 
 ### **Recent Updates:**
-- **January 18, 2026 (Evening):** Week 8.5 marked COMPLETE! 73/73 tests passing 🎉
+- **January 28, 2026:** Week 9 Hebbian Learning marked COMPLETE! 138/138 tests passing 🎉
+- **January 18, 2026 (Evening):** Week 8.5 marked COMPLETE! 73/73 tests passing
 - **January 18, 2026 (Afternoon):** Updated with Phase 3 in progress
 - **January 18, 2026 (Morning):** Added Phase 1 & 2 completion
 - **January 16, 2026:** Added repository cleanup and Week 8.5 start
@@ -407,34 +457,37 @@ python demo_week8_5.py
 ```
 
 ### **Next Work:**
-- **START:** Week 9 Hebbian Learning (core components)
-- **Specs:** Check `/hebbian_specs/` folder
-- **Duration:** 10-12 hours for Week 9
-- **Protected:** Judgment system ensures quality training data
+- **START:** Week 10 Hebbian Integration
+- **Files:** `src/personality/hebbian/` (Week 9 complete)
+- **Duration:** 4-10 hours for Week 10
+- **Create:** HebbianLearningManager orchestration layer
 
 ---
 
 ## ✨ SUMMARY
 
-**Where we are:** Week 8.5 COMPLETE! 🎉
+**Where we are:** Week 9 COMPLETE! 🎉
 
 **What we accomplished:**
 - ✅ Repository cleanup (200+ files organized)
 - ✅ Judgment & Clarify System (73/73 tests)
-- ✅ Detection layer (5 methods)
-- ✅ Personality layer (Penny's voice)
-- ✅ Pipeline integration (production ready)
+- ✅ HebbianVocabularyAssociator (24 tests)
+- ✅ HebbianDimensionAssociator (15 tests)
+- ✅ HebbianSequenceLearner (22 tests)
+- ✅ Integration tests (14 tests)
+- ✅ **138 total tests passing!**
 
-**What's next:** Week 9-10 Hebbian Learning (brain-inspired associative learning)
+**What's next:** Week 10 Hebbian Integration (manager + pipeline)
 
 **Questions?**
 - Status: [CURRENT_STATUS.md](CURRENT_STATUS.md)
 - Setup: [MINIMAL_SETUP.md](MINIMAL_SETUP.md)
 - Demo: `python demo_week8_5.py`
+- Week 9 Report: [WEEK9_COMPLETE.md](WEEK9_COMPLETE.md)
 - Ask CJ if unclear
 
 ---
 
-**Last Updated:** January 18, 2026  
-**Maintained By:** CJ  
-**Status:** ✅ Week 8.5 COMPLETE - Ready for Week 9-10 Hebbian Learning! 🚀
+**Last Updated:** January 28, 2026
+**Maintained By:** CJ
+**Status:** ✅ Week 9 COMPLETE - Ready for Week 10 Hebbian Integration! 🚀

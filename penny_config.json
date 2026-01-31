@@ -82,5 +82,37 @@
         "log_decisions": true,
         "confidence_threshold": 0.4,
         "always_clarify_high_stakes": true
+    },
+    "hebbian": {
+        "enabled": false,
+        "db_path": "data/hebbian_learning.db",
+        "quarantine": {
+            "min_observations": 5,
+            "min_days_span": 7,
+            "min_unique_days": 3,
+            "expiration_days": 30
+        },
+        "turn_budget": {
+            "max_time_ms": 15000,
+            "max_writes": 5,
+            "max_lookups": 20,
+            "max_queries": 10
+        },
+        "observability": {
+            "drift_threshold_staging_count": 100,
+            "drift_threshold_promotion_rate": 0.1,
+            "drift_threshold_old_pattern_days": 60,
+            "log_learning_events": true
+        },
+        "learning_safety": {
+            "min_confidence": 0.7,
+            "min_message_length": 5,
+            "skip_if_judgment_issues": true
+        },
+        "caching": {
+            "enabled": true,
+            "size": 100,
+            "refresh_interval": 50
+        }
     }
 }

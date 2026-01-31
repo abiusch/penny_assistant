@@ -53,6 +53,13 @@ from src.memory.consent_manager import ConsentManager
 # Week 8.5: Judgment & Clarify System
 from src.judgment import JudgmentEngine, PennyStyleClarifier
 
+# Week 10: Hebbian Learning System (with safety features)
+try:
+    from src.personality.hebbian import HebbianLearningManager
+    HEBBIAN_AVAILABLE = True
+except ImportError:
+    HEBBIAN_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -133,6 +140,37 @@ class ResearchFirstPipeline(PipelineLoop):
             print("     - Stakes assessment (LOW/MEDIUM/HIGH)")
             print("     - Confidence scoring (0.0-1.0)")
             print("     - Penny-style clarifications (casual, confident, brief)")
+
+        # Week 10: Initialize Hebbian Learning System (with safety features)
+        self.hebbian_enabled = False  # Disabled by default until Day 10 testing
+        self.hebbian = None
+        self.last_judgment_result = None  # Store for safety check
+
+        if HEBBIAN_AVAILABLE and self.hebbian_enabled:
+            try:
+                self.hebbian = HebbianLearningManager(
+                    db_path='data/personality_tracking.db',
+                    enable_caching=True,
+                    # Safety configuration
+                    promotion_min_observations=5,
+                    promotion_min_days=7,
+                    max_staging_age_days=30,
+                    turn_budget_max_writes=5,
+                    turn_budget_max_time_ms=15000
+                )
+                logger.info("🧠 Week 10 Hebbian Learning initialized (with safety)")
+                print("   • Week 10: Hebbian Learning System active")
+                print("     - Learning quarantine (staging → permanent)")
+                print("     - Turn budgets (max 5 writes, 15s time limit)")
+                print("     - Mini-observability (drift detection)")
+            except Exception as e:
+                logger.warning(f"⚠️ Hebbian Learning not available: {e}")
+                self.hebbian = None
+        else:
+            if not HEBBIAN_AVAILABLE:
+                logger.info("Hebbian Learning not available (import failed)")
+            else:
+                logger.info("Hebbian Learning disabled (set hebbian_enabled=True to enable)")
 
         print("🔬 Research-First Pipeline initialized (Week 7.5 Architecture)")
         print("   • Factual queries trigger autonomous research")
@@ -231,12 +269,60 @@ class ResearchFirstPipeline(PipelineLoop):
             'intent': decision.intent
         }
 
+        # Store for safety check
+        self.last_judgment_result = log_entry
+
         # Log to file for analysis
         log_file = 'data/judgment_logs.jsonl'
         os.makedirs('data', exist_ok=True)
 
         with open(log_file, 'a') as f:
             f.write(json.dumps(log_entry) + '\n')
+
+    def _is_safe_to_learn(self, message: str, context: dict) -> bool:
+        """
+        Additional safety checks before Hebbian learning.
+
+        Week 10 Day 9: Safety-first approach to learning.
+        Prevents learning from ambiguous or low-confidence inputs.
+
+        Args:
+            message: User message
+            context: Conversation context
+
+        Returns:
+            bool: Whether it's safe to learn from this interaction
+        """
+        # Check 1: Don't learn if judgment flagged issues
+        if self.last_judgment_result:
+            judgment = self.last_judgment_result
+            if judgment.get('clarify_needed', False):
+                logger.debug("Skipping Hebbian learning: judgment flagged ambiguity")
+                return False
+
+            if judgment.get('confidence', 1.0) < 0.7:
+                logger.debug("Skipping Hebbian learning: low judgment confidence")
+                return False
+
+        # Check 2: Message must be substantive
+        if len(message.strip()) < 5:
+            logger.debug("Skipping Hebbian learning: message too short")
+            return False
+
+        # Check 3: Context must be clear (not 'unclear' type)
+        if context.get('context_type') == 'unclear':
+            logger.debug("Skipping Hebbian learning: unclear context")
+            return False
+
+        return True
+
+    def _get_personality_state_for_learning(self) -> dict:
+        """Get current personality state for Hebbian learning."""
+        try:
+            return self.personality_tracker.get_personality_state()
+        except Exception as e:
+            logger.warning(f"Could not get personality state: {e}")
+            return {}
 
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
@@ -600,6 +686,32 @@ class ResearchFirstPipeline(PipelineLoop):
                 # Update personality tracking from this conversation
                 self._update_personality_from_conversation(actual_command, final_response, turn_id)
                 print("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)", flush=True)
+
+                # Week 10: Hebbian Learning (with safety checks)
+                if self.hebbian and self._is_safe_to_learn(actual_command, enhanced_metadata):
+                    try:
+                        hebbian_result = self.hebbian.process_conversation_turn(
+                            user_message=actual_command,
+                            assistant_response=final_response,
+                            context={
+                                'formality': enhanced_metadata.get('formality', 0.5),
+                                'technical_depth': enhanced_metadata.get('technical_depth', 0.5),
+                                'emotion': enhanced_metadata.get('emotion'),
+                                'sentiment': enhanced_metadata.get('sentiment')
+                            },
+                            active_dimensions=self._get_personality_state_for_learning(),
+                            session_id=turn_id
+                        )
+                        logger.debug(f"Hebbian learning: staging={hebbian_result['staging_count']}, "
+                                   f"permanent={hebbian_result['permanent_count']}, "
+                                   f"latency={hebbian_result['latency_ms']:.1f}ms")
+                        print(f"🧠 Hebbian Learning: {hebbian_result['staging_count']} staging, "
+                              f"{hebbian_result['permanent_count']} permanent patterns", flush=True)
+                    except Exception as heb_e:
+                        # Don't break response if Hebbian learning fails
+                        logger.error(f"Hebbian learning error (non-fatal): {heb_e}")
+                elif self.hebbian:
+                    logger.debug("Hebbian learning skipped: safety check failed")
 
                 # Week 8: Mark emotional follow-up if we referenced past emotion
                 if check_in_thread and self._response_references_emotion(final_response, check_in_thread):

@@ -38,6 +38,7 @@ from .hebbian_config import HebbianConfig, HEBBIAN_DEFAULT_CONFIG
 from .hebbian_vocabulary_associator import HebbianVocabularyAssociator
 from .hebbian_dimension_associator import HebbianDimensionAssociator
 from .hebbian_sequence_learner import HebbianSequenceLearner
+from .hebbian_learning_manager import HebbianLearningManager, TurnBudget
 
 __all__ = [
     # Types
@@ -70,4 +71,6 @@ __all__ = [
     'HebbianVocabularyAssociator',
     'HebbianDimensionAssociator',
     'HebbianSequenceLearner',
+    'HebbianLearningManager',
+    'TurnBudget',
 ]

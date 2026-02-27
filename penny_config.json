@@ -125,5 +125,14 @@
             "permission_required_after_days": 7,
             "min_confidence_for_proactive": 0.8
         }
+    },
+    "goal_continuity": {
+        "enabled": false,
+        "db_path": "data/personality_tracking.db",
+        "auto_suspend_days": 1,
+        "followup": {
+            "max_per_session": 1,
+            "min_confidence": 0.8
+        }
     }
 }

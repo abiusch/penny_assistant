@@ -68,6 +68,14 @@ try:
 except ImportError:
     OUTCOME_TRACKING_AVAILABLE = False
 
+# Week 12: Goal Continuity
+try:
+    from src.personality.goal_tracker import GoalTracker
+    from src.personality.followup_engine import FollowUpEngine
+    GOAL_CONTINUITY_AVAILABLE = True
+except ImportError:
+    GOAL_CONTINUITY_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -176,6 +184,30 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.info("Outcome Tracking not available (import failed)")
             else:
                 logger.info("Outcome Tracking disabled (set outcome_tracking_enabled=True to enable)")
+
+        # Week 12: Goal Continuity (disabled by default)
+        self.goal_continuity_enabled = False
+        self.goal_tracker = None
+        self.followup_engine = None
+
+        if GOAL_CONTINUITY_AVAILABLE and self.goal_continuity_enabled:
+            try:
+                db = 'data/personality_tracking.db'
+                self.goal_tracker = GoalTracker(db_path=db)
+                # Reuse proactivity_budget if available, else create new instance
+                _budget = self.proactivity_budget or ProactivityBudget(db_path=db)
+                self.followup_engine = FollowUpEngine(self.goal_tracker, _budget)
+                logger.info("🎯 Week 12 Goal Continuity initialized")
+                print("   • Week 12: Goal Continuity active")
+                print("     - Tracks unfinished goals across sessions")
+                print("     - Proactive follow-ups within ProactivityBudget limits")
+            except Exception as e:
+                logger.warning(f"⚠️ Goal Continuity not available: {e}")
+        else:
+            if not GOAL_CONTINUITY_AVAILABLE:
+                logger.info("Goal Continuity not available (import failed)")
+            else:
+                logger.info("Goal Continuity disabled (set goal_continuity_enabled=True to enable)")
 
         if HEBBIAN_AVAILABLE and self.hebbian_enabled:
             try:
@@ -398,6 +430,19 @@ class ResearchFirstPipeline(PipelineLoop):
                         logger.info(f"📊 Outcome recorded: {reaction} (conf={conf:.2f})")
                 except Exception as oc_e:
                     logger.warning(f"Outcome detection error (non-fatal): {oc_e}")
+
+            # Step 1.15: Week 12 - Goal Continuity
+            if self.goal_tracker:
+                try:
+                    goal_result = self.goal_tracker.process_turn(
+                        actual_command, session_id=conversation_id
+                    )
+                    if goal_result["new_goal"]:
+                        logger.info(f"🎯 New goal tracked: {goal_result['new_goal']['description'][:60]}")
+                    if goal_result["updated_goals"]:
+                        logger.info(f"🎯 {len(goal_result['updated_goals'])} goal(s) updated")
+                except Exception as gc_e:
+                    logger.warning(f"Goal tracking error (non-fatal): {gc_e}")
 
             # Step 1.2: Week 8.5 - Judgment check (should we clarify first?)
             # Build initial context for judgment

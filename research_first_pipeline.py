@@ -76,6 +76,14 @@ try:
 except ImportError:
     GOAL_CONTINUITY_AVAILABLE = False
 
+# Week 13: User Model (Knowledge Graph beliefs)
+try:
+    from src.personality.user_belief_store import UserBeliefStore
+    from src.personality.belief_extractor import BeliefExtractor
+    USER_MODEL_AVAILABLE = True
+except ImportError:
+    USER_MODEL_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,6 +216,29 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.info("Goal Continuity not available (import failed)")
             else:
                 logger.info("Goal Continuity disabled (set goal_continuity_enabled=True to enable)")
+
+        # Week 13: User Model (disabled by default)
+        self.user_model_enabled = False
+        self.belief_store = None
+        self.belief_extractor = None
+
+        if USER_MODEL_AVAILABLE and self.user_model_enabled:
+            try:
+                db = 'data/personality_tracking.db'
+                self.belief_store    = UserBeliefStore(db_path=db, subject="user")
+                self.belief_extractor = BeliefExtractor(self.belief_store)
+                logger.info("🧠 Week 13 User Model initialized")
+                print("   • Week 13: User Model active")
+                print("     - Extracts beliefs from conversation")
+                print("     - Knowledge graph: subject → predicate → object")
+                print("     - User-correctable at any time")
+            except Exception as e:
+                logger.warning(f"⚠️ User Model not available: {e}")
+        else:
+            if not USER_MODEL_AVAILABLE:
+                logger.info("User Model not available (import failed)")
+            else:
+                logger.info("User Model disabled (set user_model_enabled=True to enable)")
 
         if HEBBIAN_AVAILABLE and self.hebbian_enabled:
             try:
@@ -444,7 +475,18 @@ class ResearchFirstPipeline(PipelineLoop):
                 except Exception as gc_e:
                     logger.warning(f"Goal tracking error (non-fatal): {gc_e}")
 
-            # Step 1.2: Week 8.5 - Judgment check (should we clarify first?)
+            # Step 1.2: Week 13 - Extract beliefs from user message
+            if self.belief_extractor:
+                try:
+                    new_beliefs = self.belief_extractor.extract_from_turn(
+                        actual_command, session_id=conversation_id
+                    )
+                    if new_beliefs:
+                        logger.info(f"🧠 UserModel: {len(new_beliefs)} belief(s) extracted")
+                except Exception as um_e:
+                    logger.warning(f"Belief extraction error (non-fatal): {um_e}")
+
+            # Step 1.3: Week 8.5 - Judgment check (should we clarify first?)
             # Build initial context for judgment
             initial_judgment_context = {
                 'conversation_history': [],  # Will populate from context manager

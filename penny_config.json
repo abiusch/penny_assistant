@@ -134,5 +134,18 @@
             "max_per_session": 1,
             "min_confidence": 0.8
         }
+    },
+    "user_model": {
+        "enabled": false,
+        "db_path": "data/personality_tracking.db",
+        "subject": "user",
+        "extraction": {
+            "min_confidence_for_context": 0.65,
+            "max_beliefs_in_context": 5
+        },
+        "summary": {
+            "min_confidence": 0.6,
+            "max_beliefs": 10
+        }
     }
 }

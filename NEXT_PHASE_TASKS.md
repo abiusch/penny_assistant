@@ -9,17 +9,17 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** January 28, 2026
+**Last Updated:** February 27, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Week 9 COMPLETE! 🎉
-**Next:** Week 10 Hebbian Integration (1 week)
-**Phase 3:** 85% → 97% (Week 9 complete!) → 100% after Week 13
+**Current:** Week 11 COMPLETE! 🎉
+**Next:** Week 12 Goal Continuity
+**Phase 3:** 100% complete (Weeks 8.5–11 done)
 **Server:** 🟢 Port 5001
-**Tests:** 🟢 138/138 passing (100% pass rate!)
+**Tests:** 🟢 272/272 passing (100% pass rate!)
 
 ---
 
@@ -167,44 +167,57 @@ Penny: "4" (no clarification needed)
 
 ---
 
-## 🚀 NEXT UP: WEEK 10 HEBBIAN INTEGRATION
+## ✅ COMPLETED: WEEKS 10 & 11
 
-**Goal:** Integrate Hebbian Learning into production pipeline
+### **Week 10: Hebbian Integration** (January 31, 2026) - COMPLETE
+- ✅ HebbianLearningManager orchestration layer (36 tests)
+- ✅ Learning Quarantine system (staging → permanent promotion)
+- ✅ TurnBudget safety limits (5 writes, 20 lookups, 15s)
+- ✅ Mini-observability (drift detection, reports, export)
+- ✅ Pipeline integration with feature flag
+- ✅ **199/199 tests passing**
 
-**Duration:** 4-10 hours estimated
+### **Week 11: Outcome Tracking** (February 27, 2026) - COMPLETE
+- ✅ OutcomeTracker (auto-detect reactions, strategy success rates)
+- ✅ ProactivityBudget (Risk 2 safety: 2 nudges/day, 1 resurrection/week)
+- ✅ Pipeline integration (turn-start detection, turn-end tagging)
+- ✅ **272/272 tests passing** (+73 new tests)
+
+---
+
+## 🚀 NEXT UP: WEEK 12 GOAL CONTINUITY
+
+**Goal:** Track unfinished business across sessions; proactive follow-ups within safety limits.
+
+**Duration:** 6-10 hours estimated
 
 **Status:** 🎯 READY TO START
 
 **Why Now:**
-- ✅ Week 9 core components complete (all 3 working)
-- ✅ 138 tests passing (100%)
-- ✅ Protected by Week 8.5 judgment system
-- ✅ Performance validated (<10ms overhead)
+- ✅ Week 11 ProactivityBudget already enforces nudge limits
+- ✅ Judgment system ensures only clear goals are tracked
+- ✅ Outcome Tracker measures if follow-ups help or hurt
+- ✅ 272 tests passing (solid foundation)
 
-**What Week 10 Does:**
+**What Week 12 Does:**
 
-**Day 8: Hebbian Learning Manager (2-3 hours)**
-- Create orchestration layer
-- Single entry point: `process_conversation_turn()`
-- LRU caching for performance
-- Batch updates for efficiency
+**Component 1: GoalTracker (3-4 hours)**
+- Track in-progress and suspended goals across sessions
+- Store: goal_id, description, state, created_at, last_mentioned
+- States: active → suspended → completed / abandoned
+- Integrate with ProactivityBudget for follow-up gating
 
-**Day 9: Pipeline Integration (2-4 hours)**
-- Connect to research_first_pipeline.py
-- Work with Week 8.5 judgment system
-- Feature flag: HEBBIAN_LEARNING_ENABLED
-- Integration with personality post-processor
+**Component 2: FollowUpEngine (2-3 hours)**
+- Decide when and how to follow up on suspended goals
+- Uses ProactivityBudget.can_nudge_about_goal() before every follow-up
+- Generates follow-up prompts in Penny's voice
 
-**Day 10: Documentation & Polish (1-3 hours)**
-- User documentation
-- Performance profiling
-- Learning rate tuning
-- Visualization tools
+**Component 3: Pipeline Integration (1-2 hours)**
+- Detect goal mentions in user messages
+- Update goal states from conversation turns
+- Feature flag: goal_continuity_enabled (default: false)
 
-**After Week 10:**
-- ✅ Complete Hebbian Learning system
-- ✅ Production ready and deployed
-- ✅ Move to Week 11: Outcome Tracking
+**Target:** 307+ tests (35+ new)
 
 ---
 
@@ -488,6 +501,6 @@ python demo_week8_5.py
 
 ---
 
-**Last Updated:** January 28, 2026
+**Last Updated:** February 27, 2026
 **Maintained By:** CJ
-**Status:** ✅ Week 9 COMPLETE - Ready for Week 10 Hebbian Integration! 🚀
+**Status:** ✅ Week 11 COMPLETE (272 tests) - Ready for Week 12 Goal Continuity! 🚀

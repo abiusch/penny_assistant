@@ -60,6 +60,14 @@ try:
 except ImportError:
     HEBBIAN_AVAILABLE = False
 
+# Week 11: Outcome Tracking & Proactivity Budget
+try:
+    from src.personality.outcome_tracker import OutcomeTracker, classify_response_type
+    from src.personality.proactivity_budget import ProactivityBudget
+    OUTCOME_TRACKING_AVAILABLE = True
+except ImportError:
+    OUTCOME_TRACKING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -145,6 +153,29 @@ class ResearchFirstPipeline(PipelineLoop):
         self.hebbian_enabled = False  # Disabled by default until Day 10 testing
         self.hebbian = None
         self.last_judgment_result = None  # Store for safety check
+
+        # Week 11: Outcome Tracking & Proactivity Budget (disabled by default)
+        self.outcome_tracking_enabled = False
+        self.outcome_tracker = None
+        self.proactivity_budget = None
+        self._last_response_id: Optional[str] = None
+        self._last_response_type: Optional[str] = None
+
+        if OUTCOME_TRACKING_AVAILABLE and self.outcome_tracking_enabled:
+            try:
+                self.outcome_tracker = OutcomeTracker(db_path='data/personality_tracking.db')
+                self.proactivity_budget = ProactivityBudget(db_path='data/personality_tracking.db')
+                logger.info("📊 Week 11 Outcome Tracking initialized")
+                print("   • Week 11: Outcome Tracking active")
+                print("     - Strategy success rate tracking")
+                print("     - Proactivity budget (max 2 nudges/day, 1 resurrection/week)")
+            except Exception as e:
+                logger.warning(f"⚠️ Outcome Tracking not available: {e}")
+        else:
+            if not OUTCOME_TRACKING_AVAILABLE:
+                logger.info("Outcome Tracking not available (import failed)")
+            else:
+                logger.info("Outcome Tracking disabled (set outcome_tracking_enabled=True to enable)")
 
         if HEBBIAN_AVAILABLE and self.hebbian_enabled:
             try:
@@ -344,6 +375,29 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 1: Process input
             actual_command = user_text.strip()
+
+            # Step 1.1: Week 11 - Detect reaction to previous response
+            if self.outcome_tracker and self._last_response_id:
+                try:
+                    reaction, conf = self.outcome_tracker.detect_user_reaction(
+                        actual_command,
+                        prior_response_id=self._last_response_id,
+                        session_id=conversation_id,
+                    )
+                    if reaction != "neutral":
+                        context_type = "general"
+                        self.outcome_tracker.observe_outcome(
+                            response_id=self._last_response_id,
+                            response_type=self._last_response_type or "conversational",
+                            reaction=reaction,
+                            context_type=context_type,
+                            strategy=self._last_response_type or "default",
+                            confidence=conf,
+                            session_id=conversation_id,
+                        )
+                        logger.info(f"📊 Outcome recorded: {reaction} (conf={conf:.2f})")
+                except Exception as oc_e:
+                    logger.warning(f"Outcome detection error (non-fatal): {oc_e}")
 
             # Step 1.2: Week 8.5 - Judgment check (should we clarify first?)
             # Build initial context for judgment
@@ -793,6 +847,16 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.info(f"📊 A/B metrics recorded: {group} group")
             except Exception as e:
                 logger.error(f"Failed to record A/B test metrics: {e}")
+
+            # Week 11: Store response metadata for next-turn reaction detection
+            if self.outcome_tracker:
+                try:
+                    resp_type = classify_response_type(final_response)
+                    self._last_response_id = OutcomeTracker.generate_response_id()
+                    self._last_response_type = resp_type
+                    logger.debug(f"📊 Response tagged: id={self._last_response_id}, type={resp_type}")
+                except Exception as tag_e:
+                    logger.warning(f"Response tagging error (non-fatal): {tag_e}")
 
             self.state = State.SPEAKING
             return final_response

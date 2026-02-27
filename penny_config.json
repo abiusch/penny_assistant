@@ -114,5 +114,16 @@
             "size": 100,
             "refresh_interval": 50
         }
+    },
+    "outcome_tracking": {
+        "enabled": false,
+        "db_path": "data/personality_tracking.db",
+        "proactivity_budget": {
+            "max_nudges_per_day": 2,
+            "max_resurrections_per_week": 1,
+            "dormant_threshold_days": 14,
+            "permission_required_after_days": 7,
+            "min_confidence_for_proactive": 0.8
+        }
     }
 }

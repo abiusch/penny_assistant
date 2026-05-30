@@ -37,3 +37,17 @@ test_tts_latency.py
 
 # Logs
 *.log
+
+# --- Runtime data & state (regenerated at runtime; not source) ---
+data/*.db
+data/embeddings/
+data/test_*
+data/test_snapshots/
+data/judgment_logs.jsonl
+data/user_consent.json
+*.db.corrupt-*
+
+# Runtime JSON state at repo root
+brave_search_usage.json
+sass_learning.json
+diagnostic_results.json

@@ -47,7 +47,7 @@ class EmotionDetector:
             '😢', '😭', '😞', '☹️'
         ],
         'anger': [
-            'angry', 'mad', 'furious', 'annoyed', 'frustrated', 'irritated',
+            'angry', 'mad', 'furious', 'annoyed', 'frustrated', 'frustrating', 'irritated',
             'rage', 'hate', 'disgusted', 'outraged', 'pissed', 'upset',
             'annoying', 'terrible', 'awful', 'horrible', 'worst', 'stupid',
             '😠', '😡', '🤬'

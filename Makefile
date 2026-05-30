@@ -3,7 +3,7 @@ VENV := .venv
 PY := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-.PHONY: venv setup precommit test smoke run plugin-test scan-repos
+.PHONY: venv setup precommit test test-all smoke run plugin-test scan-repos
 
 venv:
 	@test -d $(VENV) || python3 -m venv $(VENV)
@@ -16,8 +16,14 @@ setup: venv
 precommit:
 	pre-commit run --all-files --show-diff-on-failure
 
+# Canonical suite: curated Weeks 8.5-13 feature tests (~408, 100% green, ~2s).
+# File list is in pytest.ini (testpaths). PYTHONPATH=src is also set by conftest.py.
 test:
-	PYTHONPATH=$(PYTHONPATH) pytest -q tests --ignore=whisper --tb=short
+	PYTHONPATH=$(PYTHONPATH) pytest --tb=short
+
+# Everything, including legacy/live/audio/LLM tests (many fail offline). See QUARANTINE_NOTES.md.
+test-all:
+	PYTHONPATH=$(PYTHONPATH) pytest tests --ignore=whisper --run-slow --tb=short
 
 # Test plugin system integration
 plugin-test:

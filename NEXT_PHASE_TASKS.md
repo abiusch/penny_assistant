@@ -9,17 +9,19 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** February 27, 2026
+**Last Updated:** May 29, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Week 11 COMPLETE! 🎉
-**Next:** Week 12 Goal Continuity
+**Current:** Week 13 COMPLETE! 🎉 (Phase 4 done)
+**Next:** Streaming TTS + Barge-In (🔴 HIGH PRIORITY voice UX — see AI Landscape Review)
 **Phase 3:** 100% complete (Weeks 8.5–11 done)
+**Phase 4:** 100% complete (Weeks 12–13 done)
 **Server:** 🟢 Port 5001
-**Tests:** 🟢 272/272 passing (100% pass rate!)
+**Tests:** 🟢 397/397 passing (100% pass rate!)
+**Diagnostics:** 🟢 18/18 (week6 suite) — restored 2 modules lost in cleanup, rebuilt corrupt tracking DB
 
 ---
 
@@ -183,65 +185,140 @@ Penny: "4" (no clarification needed)
 - ✅ Pipeline integration (turn-start detection, turn-end tagging)
 - ✅ **272/272 tests passing** (+73 new tests)
 
+### **Week 12: Goal Continuity** (February 27, 2026) - COMPLETE
+- ✅ GoalTracker (`src/personality/goal_tracker.py`) — 29 tests
+- ✅ FollowUpEngine (`src/personality/followup_engine.py`) — 17 tests
+- ✅ Integration (`test_goal_continuity_integration.py`) — 13 tests
+- ✅ **331/331 tests passing** (+59 new tests)
+- ✅ Commit: `04d2308` — pushed
+
+**How it works:**
+```
+Turn: "I want to set up monitoring"
+  → GoalTracker detects goal, stores as active
+
+[next session, 3 days later]
+FollowUpEngine: "Hey, still working on set up monitoring?"
+  → ProactivityBudget confirms: 1 nudge used (1 remaining today)
+```
+
 ---
 
-## 🚀 NEXT UP: WEEK 12 GOAL CONTINUITY
+## ✅ WEEK 13 USER MODEL — COMPLETE (May 2026)
 
-**Goal:** Track unfinished business across sessions; proactive follow-ups within safety limits.
+**Goal:** Penny maintains explicit, inspectable beliefs about CJ — confidence scores per belief, user-correctable. ✅ DONE.
 
-**Duration:** 6-10 hours estimated
+**What shipped (commit `4d82a94`, 397/397 tests):**
+- `src/personality/user_belief_store.py` — SQLite triple store (subject→predicate→object_value) with typed `Predicate` vocabulary, Bayesian confidence (BASE 0.5, +0.08/evidence, MAX 0.97), correction audit trail. Tables: `user_beliefs`, `belief_evidence`, `belief_corrections`.
+- `src/personality/belief_extractor.py` — high-precision regex extraction per predicate, `build_context_snippet()` for prompt injection, `detect_correction()`.
+- Pipeline integration at Step 1.2 (feature flag `user_model_enabled`, default false).
+- Tests: 28 + 24 + 14 = 66 new.
+
+**⚠️ Carry-over from the KG recommendation (see Idea #1 below):** The store is a *triple store* (graph-shaped: subject→predicate→object), which satisfies the typed-belief goal, but it does **not yet expose graph traversal** (multi-hop queries). Two-path RAG was deferred — it needs a query layer on top of these triples. Logged as a Phase 5 medium-priority item.
+
+---
+
+## 🚀 NEXT UP: STREAMING TTS + BARGE-IN  (🔴 HIGH PRIORITY)
+
+**Goal:** Cut perceived voice latency 50–70% by speaking the first sentence while the rest of the response is still generating, and let CJ interrupt mid-utterance.
 
 **Status:** 🎯 READY TO START
 
 **Why Now:**
-- ✅ Week 11 ProactivityBudget already enforces nudge limits
-- ✅ Judgment system ensures only clear goals are tracked
-- ✅ Outcome Tracker measures if follow-ups help or hurt
-- ✅ 272 tests passing (solid foundation)
+- ✅ Phase 4 learning systems complete (Weeks 12–13) — voice UX is now the highest-leverage gap.
+- ✅ Substantial scaffolding already exists (see audit below) — this is wiring + a sentence pump, not a rebuild.
+- 2026 gold standard: sub-300ms first-audio latency + real-time interruption.
 
-**What Week 12 Does:**
+**📋 Audit of what already exists (May 2026):**
+- `src/adapters/tts/streaming_tts_adapter.py` — `StreamingTTS` with a playback queue, `stop_playback` Event, and `stop()`. NOTE: today it streams *playback of pre-generated phrase files*, not LLM-token-driven sentences.
+- `allow_barge_in` param is already threaded through every TTS adapter (Google, ElevenLabs, cached).
+- `src/core/pipeline.py` already has `handle_barge_in()` + `barge_in_enabled` + a SPEAKING state.
+- `voice_activity_detector.py` exists (silence-based VAD) — reusable for barge-in detection.
+- GAP: the real voice loop (`real_time_voice_loop.py`) calls `self.pipeline.speak(response)` with the **full** response — TTS only starts after the LLM finishes. No sentence-level streaming, and VAD is not monitored *during* playback for barge-in.
 
-**Component 1: GoalTracker (3-4 hours)**
-- Track in-progress and suspended goals across sessions
-- Store: goal_id, description, state, created_at, last_mentioned
-- States: active → suspended → completed / abandoned
-- Integrate with ProactivityBudget for follow-up gating
+**Component 1: Sentence-streaming bridge**
+- Split LLM output into sentences as they arrive (the pipeline already produces text; need a streaming/generator path or a sentence buffer that flushes on `.!?`).
+- Feed each completed sentence to TTS immediately so audio of sentence 1 plays while sentence 2 generates.
 
-**Component 2: FollowUpEngine (2-3 hours)**
-- Decide when and how to follow up on suspended goals
-- Uses ProactivityBudget.can_nudge_about_goal() before every follow-up
-- Generates follow-up prompts in Penny's voice
+**Component 2: Barge-in during playback**
+- Run VAD on the mic *while* TTS is playing; on detected speech above threshold, call `tts.stop()`, flush the queue, transition SPEAKING → LISTENING.
+- Debounce so Penny's own audio bleed doesn't trigger self-interruption (echo gate / brief cooldown).
 
-**Component 3: Pipeline Integration (1-2 hours)**
-- Detect goal mentions in user messages
-- Update goal states from conversation turns
-- Feature flag: goal_continuity_enabled (default: false)
+**Component 3: Pipeline integration**
+- Feature flag: `streaming_tts_enabled` (default false), `barge_in_enabled` (already present).
+- Wire into `real_time_voice_loop.py` replacing the single blocking `speak(full_response)`.
 
-**Target:** 307+ tests (35+ new)
+**Component 4: Latency measurement**
+- Track time-to-first-audio (TTFA) vs current time-to-full-response. Target: TTFA < 1s, ideally < 300ms with cached lead-ins.
+
+**Target:** 30+ new tests (sentence splitter, barge-in state machine, queue flush) → 425+ total.
 
 ---
 
-## 🔮 PHASE 4: ADVANCED LEARNING (Weeks 11-13)
+## 🔬 AI LANDSCAPE REVIEW: RECOMMENDATIONS (February 27, 2026)
 
-**After Hebbian Learning completes:**
+> Researched by Claude (Cowork) — full report: [PENNY_AI_LANDSCAPE_REVIEW_FEB2026.md](PENNY_AI_LANDSCAPE_REVIEW_FEB2026.md)
+>
+> **Bottom line:** Penny is architecturally ahead of most personal AI projects. Gaps are refinements, not rebuilds. Two areas deserve near-term action; the rest are Phase 5+.
 
-**Week 11: Outcome Tracking** (1 week)
-- Track whether responses helped or hurt
-- Learn from success/failure patterns
-- Adapt strategies based on outcomes
-- **Protected by judgment system**
+### 🔴 HIGH PRIORITY (Act in Weeks 12–13)
 
-**Week 12: Goal Continuity** (1 week)
-- Track unfinished business across sessions
-- Remember suspended tasks
-- Proactive follow-ups
-- **Judgment ensures clear goals**
+**Voice UX: Streaming TTS + Barge-In**
+- Add **streaming TTS** — begin audio playback as first sentence generates, not after full response. Cuts perceived latency 50–70%. ElevenLabs and Piper both support streaming.
+- Add **barge-in support** — detect voice activity during TTS playback, interrupt pipeline, re-listen. Eliminates the "walkie-talkie" feel.
+- Estimated effort: 1–2 days each. Transformative UX impact.
+- 2026 gold standard: sub-300ms latency + real-time interruption (NVIDIA PersonaPlex pattern)
 
-**Week 13: User Model** (2-3 weeks)
-- Penny maintains explicit beliefs about you
-- Confidence scores for each belief
-- Transparent reasoning, user can correct
-- **Judgment prevents incorrect assumptions**
+**Week 13 User Model: Build as Knowledge Graph, not flat store**
+- The field has converged on **dual memory**: implicit statistical patterns (Hebbian ✅) + explicit, human-readable facts in a knowledge graph
+- Implement User Model as a lightweight KG (NetworkX or SQLite + JSON relationships) so Penny holds queryable, typed beliefs: `CJ → prefers → short answers → context: quick questions`
+- Reference: **Mem0** open-source library and **Memoria framework** (arXiv Dec 2025)
+- Bonus: exposes **two-path RAG** for free — simple queries use vectors, complex multi-hop queries use KG
+- Penny should be able to surface her beliefs on demand: *"Here's what I think I know about you — want to correct anything?"* (no commercial assistant does this)
+
+### 🟡 MEDIUM PRIORITY (Phase 5, Weeks 14–15)
+
+**LLM Benchmark: Nemotron vs. Qwen3-8B / Llama 3.1 8B**
+- The 2026 trend has shifted toward smaller, well-quantized models for personal agents
+- A 4-bit quantized 8B model runs at 2–4x the tokens/second of a 30B model with surprisingly similar quality on focused tasks
+- **Action:** Run Qwen3-8B alongside Nemotron on 20–30 real Penny conversations. Measure response quality, judgment accuracy, and Hebbian signal quality. Only switch if quality holds — latency win would be 5–10s → 1–3s, which is massive for voice.
+- Do NOT switch without benchmarking. Penny's personality/judgment is tuned to Nemotron.
+
+**Two-Path RAG (Vector + Knowledge Graph)**
+- Once KG memory exists (Week 13), route complex multi-hop queries through graph retrieval
+- Simple queries keep the fast vector path; complex queries use KG path
+- Microsoft GraphRAG shows +6.4 points multi-hop recall and 18–30% hallucination reduction
+- No framework needed — a simple graph query layer on top of existing pipeline
+
+### 🟢 LONGER TERM (Phase 5+, Post-Week 18)
+
+**Full-Duplex Voice** — Simultaneous listen + speak. High impact, high complexity. Research NVIDIA PersonaPlex implementation post-Week 18.
+
+**Multi-Agent Research Tasks** — Penny as orchestrator, spawning specialist sub-agents for deep research or code review. LangGraph or CrewAI patterns. Phase 5+ only.
+
+### ❌ WHAT NOT TO DO
+
+- **Don't rewrite the pipeline in LangGraph** — Penny's custom pipeline already implements what these frameworks offer. Migration cost isn't worth it.
+- **Don't switch LLMs without benchmarking first** — personality + judgment are tuned to Nemotron.
+- **Don't build the continuous learning scraper** — external review consensus was correct. Defer post-Week 18.
+
+---
+
+## ✅ PHASE 4: ADVANCED LEARNING (Weeks 11-13) — COMPLETE
+
+**Week 11: Outcome Tracking** ✅ COMPLETE
+- Tracks whether responses helped or hurt; strategy success rates
+- ProactivityBudget hard limits (anti-runaway-autonomy)
+- 272/272 tests passing
+
+**Week 12: Goal Continuity** ✅ COMPLETE
+- GoalTracker + FollowUpEngine built
+- 331/331 tests passing
+
+**Week 13: User Model** ✅ COMPLETE
+- Explicit, confidence-scored, user-correctable beliefs (triple store)
+- BeliefExtractor + context-snippet injection
+- 397/397 tests passing
 
 ---
 
@@ -440,6 +517,8 @@ Penny: "4" (no clarification needed)
 - When external feedback received
 
 ### **Recent Updates:**
+- **February 27, 2026:** Week 12 Goal Continuity COMPLETE — 331/331 tests, commit 04d2308
+- **February 27, 2026:** Added AI Landscape Review section with recommendations (voice UX, KG User Model, LLM benchmark, two-path RAG)
 - **January 28, 2026:** Week 9 Hebbian Learning marked COMPLETE! 138/138 tests passing 🎉
 - **January 18, 2026 (Evening):** Week 8.5 marked COMPLETE! 73/73 tests passing
 - **January 18, 2026 (Afternoon):** Updated with Phase 3 in progress
@@ -479,18 +558,18 @@ python demo_week8_5.py
 
 ## ✨ SUMMARY
 
-**Where we are:** Week 9 COMPLETE! 🎉
+**Where we are:** Week 12 COMPLETE! 🎉
 
-**What we accomplished:**
+**What we accomplished (Phase 3 + 4 so far):**
 - ✅ Repository cleanup (200+ files organized)
 - ✅ Judgment & Clarify System (73/73 tests)
-- ✅ HebbianVocabularyAssociator (24 tests)
-- ✅ HebbianDimensionAssociator (15 tests)
-- ✅ HebbianSequenceLearner (22 tests)
-- ✅ Integration tests (14 tests)
-- ✅ **138 total tests passing!**
+- ✅ Hebbian Learning — all 3 core components (75 tests)
+- ✅ Hebbian Integration — manager + pipeline (Week 10)
+- ✅ Outcome Tracking + ProactivityBudget (Week 11)
+- ✅ Goal Continuity — GoalTracker + FollowUpEngine (Week 12, +59 tests)
+- ✅ **331 total tests passing!**
 
-**What's next:** Week 10 Hebbian Integration (manager + pipeline)
+**What's next:** Week 13 User Model (knowledge graph — NOT flat store)
 
 **Questions?**
 - Status: [CURRENT_STATUS.md](CURRENT_STATUS.md)
@@ -503,4 +582,4 @@ python demo_week8_5.py
 
 **Last Updated:** February 27, 2026
 **Maintained By:** CJ
-**Status:** ✅ Week 11 COMPLETE (272 tests) - Ready for Week 12 Goal Continuity! 🚀
+**Status:** ✅ Week 12 COMPLETE (331 tests) - Ready for Week 13 User Model! 🚀

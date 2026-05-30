@@ -19,7 +19,7 @@ from enum import Enum
 
 # Import existing security components
 try:
-    from enhanced_security_logging import EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
+    from enhanced_security_logging import EnhancedSecurityLogger as EnhancedSecurityLogging, SecurityEventType, SecuritySeverity
     from command_whitelist_system import CommandWhitelistSystem, PermissionLevel, SecurityRisk
     from multi_channel_emergency_stop import MultiChannelEmergencyStop, EmergencyTrigger, EmergencyState
     from security_violation_handler import SecurityViolationHandler, ViolationType

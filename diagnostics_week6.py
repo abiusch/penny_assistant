@@ -173,11 +173,8 @@ def diagnostic_7_integration_pipeline():
         from research_first_pipeline import ResearchFirstPipeline
 
         # Check if Week 6 attributes exist
-        pipeline = ResearchFirstPipeline(
-            llm=None,  # We won't call it
-            base_memory=None,
-            enhanced_memory=None
-        )
+        # ResearchFirstPipeline.__init__ takes no args; it wires up its own components
+        pipeline = ResearchFirstPipeline()
 
         if not hasattr(pipeline, 'context_manager'):
             test_result("Pipeline integration: context_manager", False, "Attribute missing")

@@ -80,6 +80,7 @@ except ImportError:
 try:
     from src.personality.user_belief_store import UserBeliefStore
     from src.personality.belief_extractor import BeliefExtractor
+    from src.personality import belief_integration
     USER_MODEL_AVAILABLE = True
 except ImportError:
     USER_MODEL_AVAILABLE = False
@@ -226,7 +227,7 @@ class ResearchFirstPipeline(PipelineLoop):
             try:
                 db = 'data/personality_tracking.db'
                 self.belief_store    = UserBeliefStore(db_path=db, subject="user")
-                self.belief_extractor = BeliefExtractor(self.belief_store)
+                self.belief_extractor = BeliefExtractor(self.belief_store, use_staging=True)
                 logger.info("🧠 Week 13 User Model initialized")
                 print("   • Week 13: User Model active")
                 print("     - Extracts beliefs from conversation")
@@ -495,6 +496,18 @@ class ResearchFirstPipeline(PipelineLoop):
                 'personality_state': None
             }
 
+            # Fix 4a: give Judgment the user's relevant beliefs so it can reason
+            # about (and later flag contradictions against) what we already know.
+            if getattr(self, "belief_extractor", None) and self.user_model_enabled:
+                try:
+                    kw = [w.strip(".,!?;:'\"").lower()
+                          for w in actual_command.split() if len(w) > 3]
+                    initial_judgment_context['user_beliefs'] = (
+                        belief_integration.beliefs_for_judgment(self.belief_extractor, kw)
+                    )
+                except Exception as jb_e:
+                    logger.warning(f"Belief→judgment context failed (non-fatal): {jb_e}")
+
             # Check if we should clarify before proceeding
             should_clarify, clarifying_question = self._should_clarify(actual_command, initial_judgment_context)
 
@@ -659,6 +672,27 @@ class ResearchFirstPipeline(PipelineLoop):
                 # Week 6: Add conversation context from context manager
                 if conversation_context:
                     prompt_sections.append(f"\n{conversation_context}")
+
+                # Week 13: Inject user-model beliefs (what Penny knows about the user).
+                # build_context_snippet() already filters to relevant, confident beliefs
+                # and caps the count, so we never dump the whole store into the prompt.
+                if getattr(self, "belief_extractor", None) and self.user_model_enabled:
+                    try:
+                        keywords = [
+                            w.strip(".,!?;:'\"").lower()
+                            for w in user_input.split()
+                            if len(w) > 3
+                        ]
+                        belief_snippet = self.belief_extractor.build_context_snippet(
+                            context_keywords=keywords, min_confidence=0.6
+                        )
+                        if belief_snippet:
+                            prompt_sections.append(
+                                "What I know about you (use naturally, don't recite):\n"
+                                f"{belief_snippet}"
+                            )
+                    except Exception as um_e:
+                        logger.warning(f"Belief context injection failed (non-fatal): {um_e}")
 
                 # Week 6: Add semantic memory context
                 if semantic_results:

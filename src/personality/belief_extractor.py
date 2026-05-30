@@ -115,8 +115,17 @@ class BeliefExtractor:
         new_beliefs = extractor.extract_from_turn(user_message, session_id)
     """
 
-    def __init__(self, belief_store: UserBeliefStore):
+    def __init__(self, belief_store: UserBeliefStore, use_staging: bool = False):
+        """
+        Args:
+            belief_store: the UserBeliefStore to write to.
+            use_staging:  when True, new beliefs go through staging/quarantine
+                          (observe_belief) instead of writing permanently on the
+                          first observation. Defaults False for backward
+                          compatibility; the live pipeline opts in.
+        """
         self.store = belief_store
+        self.use_staging = use_staging
 
     def extract_from_turn(
         self,
@@ -145,17 +154,33 @@ class BeliefExtractor:
                     if object_value in {"it", "that", "this", "them", "a", "an", "the"}:
                         continue
 
-                    belief = self.store.add_or_update_belief(
-                        predicate=predicate,
-                        object_value=object_value,
-                        evidence_text=user_message[:200],
-                        session_id=session_id,
-                        source="inferred",
-                    )
-                    extracted.append(belief)
-                    logger.debug(
-                        f"Extracted belief: {predicate}→{object_value}"
-                    )
+                    if self.use_staging:
+                        # Route through staging/quarantine; only promoted or
+                        # reinforced beliefs surface as a concrete belief dict.
+                        result = self.store.observe_belief(
+                            predicate=predicate,
+                            object_value=object_value,
+                            evidence_text=user_message[:200],
+                            session_id=session_id,
+                        )
+                        if result.get("belief"):
+                            extracted.append(result["belief"])
+                        logger.debug(
+                            f"Observed belief: {predicate}→{object_value} "
+                            f"({result['status']})"
+                        )
+                    else:
+                        belief = self.store.add_or_update_belief(
+                            predicate=predicate,
+                            object_value=object_value,
+                            evidence_text=user_message[:200],
+                            session_id=session_id,
+                            source="inferred",
+                        )
+                        extracted.append(belief)
+                        logger.debug(
+                            f"Extracted belief: {predicate}→{object_value}"
+                        )
                 except (IndexError, AttributeError):
                     continue
 

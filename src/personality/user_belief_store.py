@@ -20,8 +20,9 @@ The user can inspect and correct beliefs at any time:
 
 import sqlite3
 import uuid
+import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any, Tuple
 
 logger = logging.getLogger(__name__)
@@ -103,13 +104,43 @@ class UserBeliefStore:
     # Minimum confidence to include in summary
     SUMMARY_MIN_CONFIDENCE = 0.6
 
+    # --- Temporal decay (Fix 3) ---
+    DEFAULT_DECAY_RATE = 0.005            # confidence lost per idle day
+    MIN_CONFIDENCE_BEFORE_ARCHIVE = 0.3   # below this, archive instead of keep
+
+    # --- Contradiction detection (Fix 5) ---
+    # Predicate pairs that conflict when they share the same object.
+    CONTRADICTORY_PREDICATES = {
+        "prefers": "dislikes",
+        "likes": "dislikes",
+        "expert_in": "unfamiliar_with",
+        "responds_well_to": "frustrated_by",
+    }
+    # Object words that conflict under the same predicate.
+    CONTRADICTORY_OBJECTS = [
+        ("brief", "detailed"),
+        ("brief", "verbose"),
+        ("short", "long"),
+        ("formal", "casual"),
+        ("morning", "night"),
+        ("simple", "complex"),
+        ("dark", "light"),
+    ]
+
     def __init__(
         self,
         db_path: str = "data/personality_tracking.db",
         subject: str = "user",
+        staging_min_observations: int = 3,
+        staging_min_days: int = 3,
+        staging_max_age_days: int = 30,
     ):
         self.db_path = db_path
         self.subject = subject   # The user's identifier (e.g. "CJ")
+        # --- Staging / quarantine config (Fix 2) ---
+        self.STAGING_MIN_OBSERVATIONS = staging_min_observations
+        self.STAGING_MIN_DAYS = staging_min_days
+        self.STAGING_MAX_AGE_DAYS = staging_max_age_days
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -154,12 +185,40 @@ class UserBeliefStore:
                     reason         TEXT
                 );
 
+                -- Fix 2: provisional beliefs awaiting promotion to permanent
+                CREATE TABLE IF NOT EXISTS belief_staging (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    subject           TEXT NOT NULL,
+                    predicate         TEXT NOT NULL,
+                    object_value      TEXT NOT NULL,
+                    observations      TEXT NOT NULL,   -- JSON array of {ts, evidence}
+                    first_seen        TIMESTAMP NOT NULL,
+                    last_seen         TIMESTAMP NOT NULL,
+                    observation_count INTEGER NOT NULL DEFAULT 1,
+                    UNIQUE(subject, predicate, object_value)
+                );
+
+                -- Fix 3: beliefs that decayed below the archive threshold
+                CREATE TABLE IF NOT EXISTS belief_archive (
+                    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                    subject          TEXT NOT NULL,
+                    predicate        TEXT NOT NULL,
+                    object_value     TEXT NOT NULL,
+                    final_confidence REAL NOT NULL,
+                    context          TEXT,
+                    source           TEXT,
+                    archived_at      TIMESTAMP NOT NULL,
+                    UNIQUE(subject, predicate, object_value)
+                );
+
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_belief_triple
                     ON user_beliefs(subject, predicate, object_value);
                 CREATE INDEX IF NOT EXISTS idx_belief_predicate
                     ON user_beliefs(predicate, subject);
                 CREATE INDEX IF NOT EXISTS idx_evidence_belief
                     ON belief_evidence(belief_id);
+                CREATE INDEX IF NOT EXISTS idx_staging_triple
+                    ON belief_staging(subject, predicate, object_value);
             """)
 
     # ------------------------------------------------------------------
@@ -174,9 +233,13 @@ class UserBeliefStore:
         context: str = "",
         session_id: Optional[str] = None,
         source: str = "inferred",
+        initial_confidence: float = BASE_CONFIDENCE,
     ) -> Dict[str, Any]:
         """
         Add a new belief or strengthen an existing one.
+
+        ``initial_confidence`` sets the starting confidence for a *brand new*
+        belief (defaults to BASE_CONFIDENCE; staging promotions pass 0.6).
 
         Returns the belief dict (with updated confidence).
         """
@@ -204,10 +267,10 @@ class UserBeliefStore:
                     """,
                     (
                         belief_id, subject, predicate, object_value,
-                        BASE_CONFIDENCE, context, now, now, source,
+                        initial_confidence, context, now, now, source,
                     ),
                 )
-                new_confidence = BASE_CONFIDENCE
+                new_confidence = initial_confidence
             else:
                 belief_id = existing["belief_id"]
                 new_count      = existing["evidence_count"] + 1
@@ -412,3 +475,340 @@ class UserBeliefStore:
             "low_confidence":  totals["low_confidence"]  or 0,
             "by_predicate":    [dict(r) for r in by_predicate],
         }
+
+    # ------------------------------------------------------------------
+    # Fix 2: Staging / quarantine
+    # ------------------------------------------------------------------
+
+    def observe_belief(
+        self,
+        predicate: str,
+        object_value: str,
+        evidence_text: str = "",
+        session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Observe a *candidate* belief from conversation.
+
+        New beliefs go to STAGING first and only become permanent after
+        STAGING_MIN_OBSERVATIONS spanning STAGING_MIN_DAYS. Already-permanent
+        beliefs are reinforced immediately. Contradictions are blocked.
+
+        Returns {"status": "reinforced"|"staged"|"promoted"|"contradiction",
+                 "belief": <dict or None>, "observation_count": int}.
+
+        NOTE: user corrections bypass staging entirely (use correct_belief()).
+        """
+        now = datetime.now()
+        now_iso = now.isoformat()
+        subject = self.subject
+
+        # Already permanent → reinforce immediately.
+        if self._get_permanent_belief(predicate, object_value) is not None:
+            belief = self.add_or_update_belief(
+                predicate, object_value, evidence_text, session_id=session_id
+            )
+            return {"status": "reinforced", "belief": belief,
+                    "observation_count": belief["evidence_count"]}
+
+        # Block observations that contradict an existing permanent belief.
+        conflict = self.check_before_write(predicate, object_value)
+        if conflict:
+            self._log_contradiction(conflict, predicate, object_value)
+            return {"status": "contradiction", "belief": None,
+                    "observation_count": 0, "conflict": conflict}
+
+        with self._get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM belief_staging
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (subject, predicate, object_value),
+            ).fetchone()
+
+            if row is None:
+                observations = [{"ts": now_iso, "evidence": evidence_text[:200]}]
+                conn.execute(
+                    """
+                    INSERT INTO belief_staging
+                        (subject, predicate, object_value, observations,
+                         first_seen, last_seen, observation_count)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (subject, predicate, object_value,
+                     json.dumps(observations), now_iso, now_iso),
+                )
+                return {"status": "staged", "belief": None, "observation_count": 1}
+
+            # Existing staging entry → add observation
+            observations = json.loads(row["observations"])
+            observations.append({"ts": now_iso, "evidence": evidence_text[:200]})
+            new_count = row["observation_count"] + 1
+            conn.execute(
+                """
+                UPDATE belief_staging
+                   SET observations = ?, last_seen = ?, observation_count = ?
+                 WHERE id = ?
+                """,
+                (json.dumps(observations), now_iso, new_count, row["id"]),
+            )
+            staging = {
+                "first_seen": row["first_seen"],
+                "last_seen": now_iso,
+                "observation_count": new_count,
+            }
+
+        if self._should_promote(staging):
+            belief = self._promote_to_permanent(
+                predicate, object_value, evidence_text, session_id
+            )
+            return {"status": "promoted", "belief": belief,
+                    "observation_count": new_count}
+
+        return {"status": "staged", "belief": None, "observation_count": new_count}
+
+    def _get_permanent_belief(self, predicate: str, object_value: str) -> Optional[Dict]:
+        with self._get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM user_beliefs
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (self.subject, predicate, object_value),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def _should_promote(self, staging: Dict[str, Any]) -> bool:
+        if staging["observation_count"] < self.STAGING_MIN_OBSERVATIONS:
+            return False
+        first = datetime.fromisoformat(staging["first_seen"])
+        last = datetime.fromisoformat(staging["last_seen"])
+        return (last - first).days >= self.STAGING_MIN_DAYS
+
+    def _promote_to_permanent(
+        self, predicate: str, object_value: str,
+        evidence_text: str = "", session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        belief = self.add_or_update_belief(
+            predicate, object_value, evidence_text,
+            session_id=session_id, source="promoted_from_staging",
+            initial_confidence=0.6,
+        )
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                DELETE FROM belief_staging
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (self.subject, predicate, object_value),
+            )
+        logger.info(f"Promoted belief from staging: {predicate}→{object_value}")
+        return belief
+
+    def get_staging(self) -> List[Dict]:
+        """Return all staged (not-yet-permanent) candidate beliefs."""
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM belief_staging WHERE subject = ? ORDER BY observation_count DESC",
+                (self.subject,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def cleanup_expired_staging(self) -> int:
+        """Drop staging entries older than STAGING_MAX_AGE_DAYS. Returns count removed."""
+        cutoff = (datetime.now() - timedelta(days=self.STAGING_MAX_AGE_DAYS)).isoformat()
+        with self._get_conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM belief_staging WHERE subject = ? AND first_seen < ?",
+                (self.subject, cutoff),
+            )
+        return cur.rowcount
+
+    # ------------------------------------------------------------------
+    # Fix 3: Temporal decay + archiving
+    # ------------------------------------------------------------------
+
+    def _get_all_beliefs(self) -> List[Dict]:
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM user_beliefs WHERE subject = ?", (self.subject,)
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def apply_temporal_decay(self, decay_rate: Optional[float] = None) -> Dict[str, int]:
+        """
+        Reduce confidence of beliefs by their idle time. Beliefs that fall below
+        MIN_CONFIDENCE_BEFORE_ARCHIVE are moved to belief_archive.
+
+        Intended to run during an IDLE phase (end of session / manual trigger),
+        NOT per-turn. Returns {"decayed": n, "archived": n}.
+        """
+        rate = self.DEFAULT_DECAY_RATE if decay_rate is None else decay_rate
+        now = datetime.now()
+        decayed = archived = 0
+
+        for belief in self._get_all_beliefs():
+            last = datetime.fromisoformat(belief["last_updated"])
+            days_idle = (now - last).days
+            if days_idle <= 0:
+                continue  # observed today → no decay
+
+            new_conf = max(0.0, belief["confidence"] - rate * days_idle)
+            if new_conf < self.MIN_CONFIDENCE_BEFORE_ARCHIVE:
+                self._archive_belief(belief, new_conf)
+                archived += 1
+            else:
+                with self._get_conn() as conn:
+                    conn.execute(
+                        "UPDATE user_beliefs SET confidence = ? WHERE belief_id = ?",
+                        (new_conf, belief["belief_id"]),
+                    )
+                decayed += 1
+
+        if decayed or archived:
+            logger.info(f"Temporal decay: {decayed} decayed, {archived} archived")
+        return {"decayed": decayed, "archived": archived}
+
+    def _archive_belief(self, belief: Dict[str, Any], final_confidence: float) -> None:
+        now_iso = datetime.now().isoformat()
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO belief_archive
+                    (subject, predicate, object_value, final_confidence,
+                     context, source, archived_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (belief["subject"], belief["predicate"], belief["object_value"],
+                 final_confidence, belief.get("context"), belief.get("source"), now_iso),
+            )
+            conn.execute(
+                "DELETE FROM user_beliefs WHERE belief_id = ?", (belief["belief_id"],)
+            )
+        logger.info(f"Archived belief: {belief['predicate']}→{belief['object_value']}")
+
+    def get_archived_beliefs(self) -> List[Dict]:
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM belief_archive WHERE subject = ? ORDER BY archived_at DESC",
+                (self.subject,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def restore_belief(self, predicate: str, object_value: str) -> bool:
+        """Restore an archived belief back to the active store at MIN+0.1 confidence."""
+        with self._get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM belief_archive
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (self.subject, predicate, object_value),
+            ).fetchone()
+            if row is None:
+                return False
+            conn.execute(
+                """
+                DELETE FROM belief_archive
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (self.subject, predicate, object_value),
+            )
+        restore_conf = round(self.MIN_CONFIDENCE_BEFORE_ARCHIVE + 0.1, 3)
+        self.add_or_update_belief(
+            predicate, object_value, source="restored_from_archive",
+            initial_confidence=restore_conf,
+        )
+        logger.info(f"Restored belief from archive: {predicate}→{object_value}")
+        return True
+
+    # ------------------------------------------------------------------
+    # Fix 5: Contradiction detection
+    # ------------------------------------------------------------------
+
+    def _objects_contradict(self, obj_a: str, obj_b: str) -> bool:
+        a, b = obj_a.lower(), obj_b.lower()
+        if a == b:
+            return False
+        for x, y in self.CONTRADICTORY_OBJECTS:
+            if (x in a and y in b) or (y in a and x in b):
+                return True
+        return False
+
+    def _are_contradictory(self, a: Dict, b: Dict) -> bool:
+        # Same object, opposing predicates (either direction)
+        if a["object_value"] == b["object_value"]:
+            pa, pb = a["predicate"], b["predicate"]
+            if self.CONTRADICTORY_PREDICATES.get(pa) == pb:
+                return True
+            if self.CONTRADICTORY_PREDICATES.get(pb) == pa:
+                return True
+        # Same predicate, opposing objects
+        if a["predicate"] == b["predicate"]:
+            if self._objects_contradict(a["object_value"], b["object_value"]):
+                return True
+        return False
+
+    def detect_contradictions(self) -> List[Dict[str, Any]]:
+        """Find contradictory pairs among existing permanent beliefs."""
+        beliefs = self._get_all_beliefs()
+        out: List[Dict[str, Any]] = []
+        for i, a in enumerate(beliefs):
+            for b in beliefs[i + 1:]:
+                if self._are_contradictory(a, b):
+                    out.append({"belief_a": a, "belief_b": b,
+                                "type": "predicate_conflict"})
+        return out
+
+    def check_before_write(self, predicate: str, object_value: str) -> Optional[Dict]:
+        """Return conflict info if (predicate, object_value) contradicts an
+        existing permanent belief, else None."""
+        candidate = {"predicate": predicate, "object_value": object_value}
+        for existing in self._get_all_beliefs():
+            if self._are_contradictory(existing, candidate):
+                return {"conflict": True, "existing": existing,
+                        "new_predicate": predicate, "new_object": object_value}
+        return None
+
+    def _log_contradiction(self, conflict: Dict, predicate: str, object_value: str) -> None:
+        ex = conflict["existing"]
+        logger.warning(
+            "Contradiction blocked: existing "
+            f"'{ex['predicate']}→{ex['object_value']}' vs new "
+            f"'{predicate}→{object_value}'"
+        )
+
+    # ------------------------------------------------------------------
+    # Fix 4: outcome-driven reinforcement / weakening
+    # ------------------------------------------------------------------
+
+    def _adjust_confidence(self, predicate: str, object_value: str, delta: float) -> Optional[Dict]:
+        now = datetime.now().isoformat()
+        with self._get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT belief_id, confidence FROM user_beliefs
+                 WHERE subject = ? AND predicate = ? AND object_value = ?
+                """,
+                (self.subject, predicate, object_value),
+            ).fetchone()
+            if row is None:
+                return None
+            new_conf = min(MAX_CONFIDENCE, max(0.0, row["confidence"] + delta))
+            conn.execute(
+                "UPDATE user_beliefs SET confidence = ?, last_updated = ? WHERE belief_id = ?",
+                (new_conf, now, row["belief_id"]),
+            )
+            belief_id = row["belief_id"]
+        return self.get_belief(belief_id)
+
+    def reinforce_belief(self, predicate: str, object_value: str,
+                         boost: float = 0.02) -> Optional[Dict]:
+        """Nudge a belief's confidence up (e.g. after a positive outcome)."""
+        return self._adjust_confidence(predicate, object_value, abs(boost))
+
+    def weaken_belief(self, predicate: str, object_value: str,
+                      penalty: float = 0.05) -> Optional[Dict]:
+        """Nudge a belief's confidence down (e.g. after a negative outcome)."""
+        return self._adjust_confidence(predicate, object_value, -abs(penalty))

@@ -187,3 +187,40 @@ class TestContextSnippet:
         preds_objs = [(b["predicate"], b["object_value"]) for b in python_relevant]
         # python-related belief should rank higher
         assert any("python" in obj for _, obj in preds_objs)
+
+
+# ---------------------------------------------------------------------------
+# Fix 1: beliefs wired into prompt (build_context_snippet is the injected unit)
+# ---------------------------------------------------------------------------
+
+class TestPromptInjectionFix1:
+    def test_confident_belief_appears_in_snippet(self, extractor):
+        for _ in range(4):  # raise confidence above threshold
+            extractor.extract_from_turn("I'm an expert in Python")
+        snippet = extractor.build_context_snippet(["python"], min_confidence=0.6)
+        assert snippet
+        assert "python" in snippet
+        assert "expert_in" in snippet
+
+    def test_low_confidence_belief_excluded(self, extractor):
+        extractor.extract_from_turn("I'm an expert in Python")  # single obs -> 0.5
+        snippet = extractor.build_context_snippet(["python"], min_confidence=0.65)
+        assert snippet == ""  # 0.5 < 0.65
+
+    def test_snippet_caps_belief_count(self, extractor):
+        for i in range(12):
+            for _ in range(4):
+                extractor.store.add_or_update_belief(Predicate.WORKS_WITH, f"tool_{i}")
+        snippet = extractor.build_context_snippet([], min_confidence=0.6)
+        assert snippet
+        assert snippet.count("→") <= 5  # never dump the whole store
+
+    def test_relevant_beliefs_ranked_first(self, extractor):
+        for _ in range(4):
+            extractor.extract_from_turn("I know Python well")
+        for _ in range(4):
+            extractor.extract_from_turn("I prefer brief answers")
+        relevant = extractor.get_relevant_beliefs(["python"], min_confidence=0.6, max_results=5)
+        assert relevant
+        first = relevant[0]
+        assert "python" in first["object_value"] or "python" in first["predicate"]

@@ -94,17 +94,26 @@ class ResearchFirstPipeline(PipelineLoop):
     def __init__(self):
         super().__init__()
 
-        # WEEK 7.5: Replace OpenAI with Nemotron-3 Nano (local LLM)
+        # LLM selection is config-driven (penny_config.json -> "llm"). Adding a
+        # model is a config change; standardized on OpenAI-compatible serving.
+        # See src/llm/registry.py. Nemotron/Ollama remains a graceful fallback.
+        self.llm = None
         try:
-            self.llm = create_nemotron_client(
-                reasoning_mode="auto",  # Intelligent: Fast for chat, reasoning for complex queries
-                temperature=0.7
+            from src.llm.registry import create_llm, load_llm_config
+            _llm_cfg = load_llm_config()
+            self.llm = create_llm(_llm_cfg)
+            _active = (_llm_cfg.get("llm") or {})
+            logger.info(
+                f"✅ LLM: {_active.get('model')} via {_active.get('provider')} "
+                f"(active_model={_active.get('active_model', 'n/a')})"
             )
-            logger.info("✅ Using Nemotron-3 Nano (100% local, zero cost)")
         except Exception as e:
-            logger.warning(f"⚠️ Nemotron not available: {e}")
-            # Fallback to parent's LLM (OpenAI via factory)
-            logger.info("Fallback to LLMFactory (from config)")
+            logger.warning(f"⚠️ Config-driven LLM unavailable: {e}; trying Nemotron")
+            try:
+                self.llm = create_nemotron_client(reasoning_mode="auto", temperature=0.7)
+                logger.info("✅ Fallback: Nemotron-3 Nano (local Ollama)")
+            except Exception as e2:
+                logger.warning(f"⚠️ Nemotron fallback also unavailable: {e2}")
 
         # Initialize core systems
         # WEEK 7: Removed base_memory and enhanced_memory (redundant with semantic memory)

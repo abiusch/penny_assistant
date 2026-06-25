@@ -343,8 +343,8 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Log judgment decision
             logger.info(f"🤔 Judgment: Clarifying due to {decision.reasoning}")
-            print(f"🤔 Judgment: Clarifying due to {decision.reasoning}")
-            print(f"💬 Question: {clarifying_question}")
+            logger.info(f"🤔 Judgment: Clarifying due to {decision.reasoning}")
+            logger.info(f"💬 Question: {clarifying_question}")
 
             return True, clarifying_question
 
@@ -528,7 +528,7 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 1.5: Week 6 - Detect emotion from user input
             emotion_result = self.emotion_detector.detect_emotion(actual_command)
-            print(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
+            logger.info(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
 
             # Step 1.6: Week 8 - Track significant emotions and check for emotional context
             turn_id = f"turn_{int(time.time() * 1000)}"
@@ -563,9 +563,9 @@ class ResearchFirstPipeline(PipelineLoop):
             research_required = self.research_manager.requires_research(actual_command)
             financial_topic = self.research_manager.is_financial_topic(actual_command)
 
-            print(f"🔍 Query: '{actual_command[:50]}...'", flush=True)
-            print(f"   Research required: {research_required}", flush=True)
-            print(f"   Financial topic: {financial_topic}", flush=True)
+            logger.debug(f"🔍 Query: '{actual_command[:50]}...'")
+            logger.info(f"   Research required: {research_required}")
+            logger.debug(f"   Financial topic: {financial_topic}")
 
             # Track research for web interface
             self.last_research_triggered = research_required
@@ -574,16 +574,16 @@ class ResearchFirstPipeline(PipelineLoop):
             # Step 3: Conduct research if needed
             research_context = ""
             if research_required:
-                print("📚 Conducting research...")
+                logger.info("📚 Conducting research...")
                 research_result = self.research_manager.run_research(actual_command, [])
 
                 # Debug research result details
-                print(f"🔍 DEBUG Research Result:")
-                print(f"  - Success: {research_result.success}")
-                print(f"  - Has summary: {bool(research_result.summary)}")
-                print(f"  - Summary length: {len(research_result.summary) if research_result.summary else 0}")
-                print(f"  - Key insights: {len(research_result.key_insights) if research_result.key_insights else 0}")
-                print(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
+                logger.debug(f"🔍 DEBUG Research Result:")
+                logger.debug(f"  - Success: {research_result.success}")
+                logger.debug(f"  - Has summary: {bool(research_result.summary)}")
+                logger.debug(f"  - Summary length: {len(research_result.summary) if research_result.summary else 0}")
+                logger.debug(f"  - Key insights: {len(research_result.key_insights) if research_result.key_insights else 0}")
+                logger.debug(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
 
                 if research_result.success and research_result.summary:
                     # Track successful research
@@ -603,7 +603,7 @@ class ResearchFirstPipeline(PipelineLoop):
                         f"- Maintain your personality while being factually accurate\n"
                         f"- Do NOT say you're not connected to the internet - you just successfully researched this!\n"
                     )
-                    print(f"✅ Research successful: {research_result.summary[:100]}...")
+                    logger.info(f"✅ Research successful: {research_result.summary[:100]}...")
                 else:
                     research_context = (
                         "\nRESEARCH FAILED - CRITICAL INSTRUCTION: You MUST explicitly tell the user that you don't have current/recent information about this topic. "
@@ -612,7 +612,7 @@ class ResearchFirstPipeline(PipelineLoop):
                         "ABSOLUTELY DO NOT fabricate specific statistics, dates, technical specs, or recent developments. "
                         "Instead, suggest they check the official Boston Dynamics website, recent tech news, or company announcements.\n"
                     )
-                    print(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
+                    logger.warning(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
 
             # Step 4: Build contextual prompt for shared persona responder
             # WEEK 7: Removed enhanced_memory context (now using semantic memory only)
@@ -622,13 +622,13 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 4.5: Week 6 - Get conversation context and semantic memories
             conversation_context = self.context_manager.get_context_for_prompt(max_turns=5, include_metadata=True)
-            print(f"💬 Conversation context: {len(conversation_context)} chars")
+            logger.debug(f"💬 Conversation context: {len(conversation_context)} chars")
 
             # Get semantic memories (similar past conversations)
             semantic_results = []
             try:
                 semantic_results = self.semantic_memory.semantic_search(query=actual_command, k=3)
-                print(f"🧠 Semantic memory: Found {len(semantic_results)} relevant memories")
+                logger.debug(f"🧠 Semantic memory: Found {len(semantic_results)} relevant memories")
             except Exception as e:
                 logger.warning(f"Semantic search failed: {e}")
 
@@ -666,11 +666,11 @@ class ResearchFirstPipeline(PipelineLoop):
                                 context={'topic': 'general', 'query': user_input}
                             )
                         )
-                        print("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
+                        logger.debug("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
                     except Exception as e:
                         logger.warning(f"Personality prompt building failed: {e}")
                 else:
-                    print("🧪 A/B Test: Skipping personality enhancement (control group)")
+                    logger.debug("🧪 A/B Test: Skipping personality enhancement (control group)")
 
                 prompt_sections = [system_prompt if system_prompt else "", _build_research_instructions()]
 
@@ -755,18 +755,18 @@ class ResearchFirstPipeline(PipelineLoop):
                 render_debug['prompt'] = final_prompt
 
                 # Week 6+7: Debug logging for prompt length
-                print(f"✨ Final prompt built: {len(final_prompt)} chars (Week 7 architecture)", flush=True)
-                print(f"   📊 Breakdown: base={len(system_prompt if system_prompt else '')}, "
+                logger.debug(f"✨ Final prompt built: {len(final_prompt)} chars (Week 7 architecture)")
+                logger.debug(f"   📊 Breakdown: base={len(system_prompt if system_prompt else '')}, "
                       f"conv_ctx={len(conversation_context)}, "
                       f"semantic={len(str(semantic_results))}, "
                       f"emotion={'yes' if emotion_result else 'no'}, "
-                      f"research={'yes' if research_context else 'no'}", flush=True)
+                      f"research={'yes' if research_context else 'no'}")
 
                 # Debug: Show actual prompt being sent to LLM
-                print(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n", flush=True)
+                logger.debug(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n")
 
                 # Phase 3B Week 3: Use tool orchestrator
-                print("🔧 Checking for tool calls...", flush=True)
+                logger.debug("🔧 Checking for tool calls...")
                 
                 # Create LLM generator wrapper for orchestrator
                 def orchestrator_llm_gen(context):
@@ -791,7 +791,7 @@ class ResearchFirstPipeline(PipelineLoop):
             final_response = chat_respond(actual_command, generator=llm_generator)
 
             if render_debug.get('raw'):
-                print(f"🤖 Base response: {render_debug['raw'][:100]}...")
+                logger.debug(f"🤖 Base response: {render_debug['raw'][:100]}...")
 
             # Phase 2: Post-process response with personality (only for treatment group)
             personality_adjustments = []
@@ -806,13 +806,13 @@ class ResearchFirstPipeline(PipelineLoop):
                     final_response = result["response"]
                     personality_adjustments = result.get("adjustments", [])
                     if personality_adjustments:
-                        print(f"🎨 Response post-processed: {', '.join(personality_adjustments)}")
+                        logger.debug(f"🎨 Response post-processed: {', '.join(personality_adjustments)}")
                     else:
-                        print("🎨 Response post-processed (no adjustments needed)")
+                        logger.debug("🎨 Response post-processed (no adjustments needed)")
                 except Exception as e:
                     logger.warning(f"Personality post-processing failed: {e}")
             else:
-                print("🧪 A/B Test: Skipping response post-processing (control group)")
+                logger.debug("🧪 A/B Test: Skipping response post-processing (control group)")
 
             # Step 6: Add financial disclaimer if needed (in Penny's style)
             if financial_topic:
@@ -826,7 +826,7 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 8: Store in memory (WEEK 7: Dual-save architecture)
             try:
-                print("💾 Attempting to save conversation to memory (Week 7 dual-save)...", flush=True)
+                logger.debug("💾 Attempting to save conversation to memory (Week 7 dual-save)...")
 
                 # Build enhanced metadata with ALL conversation data
                 # WEEK 7: All metadata now stored in semantic memory (single source of truth)
@@ -856,7 +856,7 @@ class ResearchFirstPipeline(PipelineLoop):
                     assistant_response=final_response,
                     metadata=enhanced_metadata
                 )
-                print(f"💬 Context Manager: Cached turn (in-memory only)", flush=True)
+                logger.debug(f"💬 Context Manager: Cached turn (in-memory only)")
 
                 # SAVE 2: Semantic Memory (ONLY persistent store)
                 self.semantic_memory.add_conversation_turn(
@@ -865,11 +865,11 @@ class ResearchFirstPipeline(PipelineLoop):
                     turn_id=turn_id,
                     context=enhanced_metadata  # Includes encrypted emotions/sentiment
                 )
-                print(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption", flush=True)
+                logger.debug(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption")
 
                 # Update personality tracking from this conversation
                 self._update_personality_from_conversation(actual_command, final_response, turn_id)
-                print("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)", flush=True)
+                logger.debug("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)")
 
                 # Week 10: Hebbian Learning (with safety checks)
                 if self.hebbian and self._is_safe_to_learn(actual_command, enhanced_metadata):
@@ -889,8 +889,8 @@ class ResearchFirstPipeline(PipelineLoop):
                         logger.debug(f"Hebbian learning: staging={hebbian_result['staging_count']}, "
                                    f"permanent={hebbian_result['permanent_count']}, "
                                    f"latency={hebbian_result['latency_ms']:.1f}ms")
-                        print(f"🧠 Hebbian Learning: {hebbian_result['staging_count']} staging, "
-                              f"{hebbian_result['permanent_count']} permanent patterns", flush=True)
+                        logger.debug(f"🧠 Hebbian Learning: {hebbian_result['staging_count']} staging, "
+                              f"{hebbian_result['permanent_count']} permanent patterns")
                     except Exception as heb_e:
                         # Don't break response if Hebbian learning fails
                         logger.error(f"Hebbian learning error (non-fatal): {heb_e}")
@@ -928,8 +928,8 @@ class ResearchFirstPipeline(PipelineLoop):
 
             except Exception as e:
                 import traceback
-                print(f"⚠️ Memory storage failed: {e}", flush=True)
-                print(f"⚠️ Traceback: {traceback.format_exc()}", flush=True)
+                logger.warning(f"⚠️ Memory storage failed: {e}")
+                logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
 
             # Step 9: Record A/B test metrics
             try:
@@ -995,8 +995,8 @@ class ResearchFirstPipeline(PipelineLoop):
             import traceback
             error_details = traceback.format_exc()
             logger.error(f"Research-first pipeline error: {e}", exc_info=True)
-            print(f"❌ Pipeline error: {e}")
-            print(f"Full traceback:\n{error_details}")
+            logger.error(f"❌ Pipeline error: {e}")
+            logger.error(f"Full traceback:\n{error_details}")
             self.state = State.SPEAKING
             return f"I encountered an issue processing that request. Please try rephrasing. Error: {str(e)}"
 
@@ -1006,7 +1006,7 @@ class ResearchFirstPipeline(PipelineLoop):
             # Analyze user's communication style
             context = {}  # TODO: Could add more context like is_follow_up, previous_humor_style, etc.
 
-            print("🧠 Analyzing conversation for personality signals...", flush=True)
+            logger.debug("🧠 Analyzing conversation for personality signals...")
             analysis = asyncio.run(self.personality_tracker.analyze_user_communication(user_input, context))
 
             updates_made = 0
@@ -1056,29 +1056,29 @@ class ResearchFirstPipeline(PipelineLoop):
                 updates_made += 1
 
             if updates_made > 0:
-                print(f"🎯 Personality tracking: {updates_made} dimensions analyzed and updated", flush=True)
+                logger.info(f"🎯 Personality tracking: {updates_made} dimensions analyzed and updated")
             else:
-                print("🎯 Personality tracking: No strong signals detected in this conversation", flush=True)
+                logger.debug("🎯 Personality tracking: No strong signals detected in this conversation")
 
             # Phase 3A Week 2: Check for newly achieved milestones
             try:
                 newly_achieved = self.milestone_tracker.check_milestones(user_id="default")
 
                 if newly_achieved:
-                    print("\n" + "="*60)
-                    print("🎉 NEW ACHIEVEMENT UNLOCKED!")
-                    print("="*60)
+                    logger.info("\n" + "="*60)
+                    logger.info("🎉 NEW ACHIEVEMENT UNLOCKED!")
+                    logger.info("="*60)
                     for milestone in newly_achieved:
-                        print(f"   {milestone.icon} {milestone.name}")
-                        print(f"      {milestone.description}")
-                    print("="*60 + "\n")
+                        logger.info(f"   {milestone.icon} {milestone.name}")
+                        logger.info(f"      {milestone.description}")
+                    logger.info("="*60 + "\n")
             except Exception as e:
                 logger.error(f"Error checking milestones: {e}")
 
         except Exception as e:
-            print(f"⚠️ Personality tracking update failed: {e}", flush=True)
+            logger.warning(f"⚠️ Personality tracking update failed: {e}")
             import traceback
-            print(f"⚠️ Traceback: {traceback.format_exc()}", flush=True)
+            logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
 
     async def _update_dimension_if_changed(self, dimension: str, new_value, confidence_change: float, context: str):
         """Helper to update a dimension only if the value changed significantly"""
@@ -1104,7 +1104,7 @@ class ResearchFirstPipeline(PipelineLoop):
                     await self.personality_tracker.update_personality_dimension(
                         dimension, blended_value, confidence_change, context
                     )
-                    print(f"  • {dimension}: {current_value:.2f} → {blended_value:.2f} (confidence +{confidence_change:.3f})", flush=True)
+                    logger.debug(f"  • {dimension}: {current_value:.2f} → {blended_value:.2f} (confidence +{confidence_change:.3f})")
                     return True
 
             # For categorical dimensions, update if different from current
@@ -1113,13 +1113,13 @@ class ResearchFirstPipeline(PipelineLoop):
                     await self.personality_tracker.update_personality_dimension(
                         dimension, new_value, confidence_change, context
                     )
-                    print(f"  • {dimension}: {current_dim.current_value} → {new_value} (confidence +{confidence_change:.3f})", flush=True)
+                    logger.debug(f"  • {dimension}: {current_dim.current_value} → {new_value} (confidence +{confidence_change:.3f})")
                     return True
 
             return False
 
         except Exception as e:
-            print(f"⚠️ Failed to update dimension {dimension}: {e}", flush=True)
+            logger.warning(f"⚠️ Failed to update dimension {dimension}: {e}")
             return False
 
     def _response_references_emotion(self, response: str, thread) -> bool:

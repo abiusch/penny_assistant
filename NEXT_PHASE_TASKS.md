@@ -9,577 +9,348 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** May 29, 2026
+**Last Updated:** Late June 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Week 13 COMPLETE! 🎉 (Phase 4 done)
-**Next:** Streaming TTS + Barge-In (🔴 HIGH PRIORITY voice UX — see AI Landscape Review)
-**Phase 3:** 100% complete (Weeks 8.5–11 done)
-**Phase 4:** 100% complete (Weeks 12–13 done)
-**Server:** 🟢 Port 5001
-**Tests:** 🟢 397/397 passing (100% pass rate!)
-**Diagnostics:** 🟢 18/18 (week6 suite) — restored 2 modules lost in cleanup, rebuilt corrupt tracking DB
+**Current:** Phase 4 COMPLETE — Refactoring in progress (R6 + DB-injectable done)  
+**Next:** Characterization tests for `think()` → R1 decomposition → Phase 5  
+**Phase 4:** ✅ 100% Complete  
+**Phase 5:** 0% (Weeks 14-18 — Polish & Productization)  
+**Server:** 🟢 Port 5001  
+**Tests:** 🟢 451 passing, canonical suite (~2s)  
+**Diagnostics:** 🟢 18/18 passing  
+**LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
+**Last Commit:** `9edd8de` (config-driven LLM registry)
 
 ---
 
-## 🎉 MAJOR MILESTONE: WEEK 8.5 COMPLETE!
+## 🔧 ACTIVE WORK: REFACTORING (In Progress)
 
-### **Judgment & Clarify System - PRODUCTION READY**
+### **Architecture Audit Completed** (Late June 2026)
 
-**Completed:** January 18, 2026
+Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committed).
 
-**Final Stats:**
-- ✅ **73/73 tests passing (100%)**
-- ✅ **2,400+ lines of production code**
-- ✅ **All 3 phases complete**
-- ✅ **Committed and pushed to GitHub**
+**Grade: C+** — Subsystems are A-grade, orchestration wiring is D-grade.
 
-**What We Built:**
+**Top 3 findings:**
+1. 🔴 **God Object:** `research_first_pipeline.py` is 1,167 lines. `think()` is 572 lines with 98 `print()` statements and ZERO test coverage.
+2. 🔴 **Root directory chaos:** ~150 Python files at root level. Already caused regressions.
+3. 🔴 **Mixed imports:** Code split between root, `src/`, `src/core/` with `sys.path` manipulation.
 
-**Phase 1: Detection Layer (43 tests)**
-- 5 detection methods: vague referents, stakes, missing params, contradictions, confidence
-- 893 lines of code in `judgment_engine.py`
-- ~4 hours implementation time
+### **Refactoring Progress:**
 
-**Phase 2: Personality Layer (18 tests)**
-- PennyStyleClarifier with 30+ templates
-- Frustration detection
-- All questions in Penny's authentic voice
-- 368 lines of code
-- ~2 hours implementation time
+| Phase | What | Status | Notes |
+|-------|------|--------|-------|
+| **R3** | Config unification | 🟡 Partial | LLM registry done (`src/llm/registry.py`). Feature flags still hardcoded in pipeline |
+| **R6** | Structured logging | ✅ Done | 50 `print()` → `logger` (info/debug/warning/error); banner + `__main__` kept |
+| — | DB path injectable | ✅ Done | `ResearchFirstPipeline(db_path=, data_dir=)` routes all storage; temp-dir verified |
+| — | `think()` characterization tests | ⏳ **NEXT** | Pipeline has ZERO coverage; enabler now in place (inject temp paths + stub LLM) |
+| **R1** | Pipeline decomposition | ⏸️ Week 16 | God Object → 7 composable processors |
+| **R4** | DB connection pooling | ⏸️ Week 16 | 6+ connections → 1 shared pool |
+| **R5** | Async cleanup | ⏸️ Week 16 | Remove unnecessary `asyncio.run()` calls |
+| **R2** | Source tree cleanup | ⏸️ Later | Move ~150 root files → `src/`. Highest regression risk, defer |
 
-**Phase 3: Pipeline Integration (12 tests)**
-- Integrated into `research_first_pipeline.py`
-- Judgment logging system
-- Configuration options
-- Demo script with 9 scenarios
-- ~4 hours implementation time
+**Quick wins already completed:**
+- ✅ Deleted throwaway artifacts (`24385f6`)
+- ✅ Moved 19 `commit_*.sh` to `experiments/legacy/`
+- ✅ Established canonical test suite (`conftest.py`, `pytest.ini`, `make test`)
+- ✅ Added `.gitignore` rules for runtime artifacts
+- ✅ Documented test exclusions in `QUARANTINE_NOTES.md`
 
-**Total Effort:** ~10 hours (under the 15-20 hour estimate!)
+### **⚠️ Critical Note for AI Assistants:**
 
-**Why This Matters:**
-> "Once judgment exists, not every subsystem has to be perfect. Week 8.5 fundamentally changes the risk profile." - ChatGPT External Review
-
-**All future learning is now PROTECTED:**
-- ✅ Hebbian Learning won't learn from vague inputs
-- ✅ Outcome Tracking gets clear, unambiguous data
-- ✅ Goal Continuity has well-defined tasks
-- ✅ User Model builds correct beliefs
+`research_first_pipeline.py` `think()` has ZERO test coverage. The 451 tests cover subsystems only. Do NOT refactor `think()` without characterization tests first — you will break things invisibly.
 
 ---
 
-## ✅ RECENTLY COMPLETED (January 16-28, 2026)
+## 🎉 PHASE 4 COMPLETE: ADVANCED LEARNING (Weeks 8.5-13)
 
-### **Week 9: Hebbian Learning - Core Components** (January 28, 2026)
-**Status:** ✅ COMPLETE (75/75 Hebbian tests + 63 Week 8.5 tests = 138 total)
+### **Full System Stack (Production-Ready):**
 
-**What Was Built:**
-
-**Component 1: Vocabulary Associator (24 tests)**
-- Learns word-context associations via Hebbian strengthening
-- Example: "ngl" → casual contexts (0.85), not formal (0.12)
-- Temporal decay for old patterns
-- 400 lines of code
-
-**Component 2: Dimension Associator (15 tests)**
-- Learns personality dimension co-activation patterns
-- Example: emotional_support → brief_responses (0.72)
-- Multi-dimensional pattern detection
-- 380 lines of code
-
-**Component 3: Sequence Learner (22 tests)**
-- Learns conversation flow patterns (12 states)
-- Example: problem → clarification → solution
-- Predicts next conversation states
-- 500 lines of code
-
-**Integration (14 tests)**
-- All 3 components working together
-- Data persistence validated
-- Performance: 5ms overhead (<10ms target)
-- Statistics and export functions
-
-**Total:** ~1,280 lines of production code, 75 tests, 138 total with Week 8.5
-
-**Final Commit:** 526d61e - "Week 9 Hebbian Learning - Core Components Complete"
-
-**Protected by:** Week 8.5 Judgment System (no learning from vague inputs)
-
-**What Penny Learned:**
-- Vocabulary patterns (word-context associations)
-- Personality patterns (dimension co-activations)
-- Conversation patterns (state transitions)
+| Week | System | Tests | Status |
+|------|--------|-------|--------|
+| 8.5 | Judgment & Clarify | 63 | ✅ Production |
+| 9 | Hebbian Learning Core (3 components) | 75 | ✅ Production |
+| 10 | Hebbian Integration + Safety Systems | 62 | ✅ Production |
+| 11 | Outcome Tracking + Proactivity Budget | — | ✅ Production |
+| 12 | Goal Continuity | — | ✅ Production |
+| 13 | User Model + 2026 Enhancements | 97 | ✅ Production |
+| — | Integration, diagnostics, refactor additions | 154 | ✅ Passing |
+| **Total** | | **451** | **100%** |
 
 ---
 
-### **Repository Cleanup** (January 16, 2026)
-- ✅ Organized 118 test files → `tests/`
-- ✅ Moved 35 experimental scripts → `experiments/`
-- ✅ Archived 41 completed docs → `docs/archive/phases/`
-- ✅ Consolidated 27 databases → `data/`
-- ✅ Split requirements into core/platform/optional
-- ✅ Created `.env.example` and `MINIMAL_SETUP.md`
-- ✅ Created `ENTRY_POINTS.md` for canonical entry points
-- ✅ Committed and pushed to GitHub (c8a0ea9)
+## ✅ COMPLETED WORK (January — June 2026)
 
-**Why this was critical:**
-> "Root directory sprawl will directly hurt velocity if not cleaned" - External reviews (unanimous)
+### **Refactoring & Infrastructure** (Late June 2026)
+**Status:** 🔄 In Progress
 
-### **Week 8.5: Judgment & Clarify System** (January 18, 2026)
-**Status:** ✅ COMPLETE (73/73 tests passing)
+**Config-Driven LLM Registry (`9edd8de`):**
+- New `src/llm/registry.py`: `create_llm`, `resolve_model_config`, `available_models`
+- Standardized on OpenAI-compatible serving
+- `penny_config.json` → `llm.active_model` + `llm.models` dict
+- Active model: gpt-oss-20b via LM Studio (localhost:1234)
+- Registered models: qwen3-8b, llama-3.1-8b (config-only switching)
+- Graceful Nemotron/Ollama fallback chain
+- Pipeline `self.llm` now built from config (was hardcoded)
 
-**Phase 1: Detection Layer**
-- Vague referent detection (10 tests)
-- Stakes assessment (HIGH/MEDIUM/LOW)
-- Missing parameter detection (20 tests)
-- Contradiction detection (13 tests)
-- Confidence assessment (0.0-1.0 scoring)
-- **Total: 43/43 tests, 893 lines**
+**Canonical Test Suite:**
+- `conftest.py`: puts `src/` on path, `--run-slow` gate for network/audio tests
+- `pytest.ini`: 30s signal-timeout, explicit `testpaths` list = canonical suite
+- `make test` = canonical (451 tests, ~2s)
+- `make test-all` = everything including quarantined legacy tests
+- Documented exclusions in `QUARANTINE_NOTES.md`
+- Resolved: "397 passing" was never bare `pytest` — it was curated feature tests only
 
-**Phase 2: Personality Layer**
-- PennyStyleClarifier (368 lines)
-- 30+ templates in Penny's voice
-- Frustration detection
-- Context hints
-- **Total: 18/18 tests, 735 lines**
-
-**Phase 3: Pipeline Integration**
-- research_first_pipeline.py integration (+110 lines)
-- Judgment logging system
-- Configuration options (penny_config.json)
-- Demo script with 9 scenarios
-- **Total: 12/12 tests**
-
-**Final Commit:** ddfd369 - "Week 8.5 Phase 3: Pipeline Integration - COMPLETE!"
-
-**Examples of Judgment in Action:**
-```
-User: "Fix that thing"
-Penny: "Quick check—which thing specifically?"
-
-User: "Delete all test data"
-Penny: "Wanna make sure I nail this—you mean ALL items?"
-
-User: "What's 2+2?"
-Penny: "4" (no clarification needed)
-```
+**Regression Fixes (`a85b92e`):**
+- Restored 16 modules to root broken by experiments/ cleanup
+- Fixed `EnhancedSecurityLogging` NameError in `security_performance_integrator.py`
+- Rebuilt corrupted `personality_tracking.db`
+- Fixed "frustrating" → anger emotion gap
+- Diagnostics: 8/11 → 18/18
 
 ---
 
-## ✅ COMPLETED: WEEKS 10 & 11
+### **Week 13 Enhancement: 2026 Memory Architecture Alignment** (May-June 2026)
+**Status:** ✅ COMPLETE (`1517d42`, +31 new tests)
 
-### **Week 10: Hebbian Integration** (January 31, 2026) - COMPLETE
-- ✅ HebbianLearningManager orchestration layer (36 tests)
-- ✅ Learning Quarantine system (staging → permanent promotion)
-- ✅ TurnBudget safety limits (5 writes, 20 lookups, 15s)
-- ✅ Mini-observability (drift detection, reports, export)
-- ✅ Pipeline integration with feature flag
-- ✅ **199/199 tests passing**
+**5 Critical Fixes Applied (based on 2026 AI best practices research):**
 
-### **Week 11: Outcome Tracking** (February 27, 2026) - COMPLETE
-- ✅ OutcomeTracker (auto-detect reactions, strategy success rates)
-- ✅ ProactivityBudget (Risk 2 safety: 2 nudges/day, 1 resurrection/week)
-- ✅ Pipeline integration (turn-start detection, turn-end tagging)
-- ✅ **272/272 tests passing** (+73 new tests)
+**Fix 1: Beliefs Wired Into LLM Responses (+4 tests)**
+- `build_context_snippet()` now injected into pipeline prompt
+- Relevance + confidence filtered, capped at 5 beliefs per turn
+- Penny now USES what she learns about you (previously dead code)
 
-### **Week 12: Goal Continuity** (February 27, 2026) - COMPLETE
-- ✅ GoalTracker (`src/personality/goal_tracker.py`) — 29 tests
-- ✅ FollowUpEngine (`src/personality/followup_engine.py`) — 17 tests
-- ✅ Integration (`test_goal_continuity_integration.py`) — 13 tests
-- ✅ **331/331 tests passing** (+59 new tests)
-- ✅ Commit: `04d2308` — pushed
+**Fix 2: Belief Staging / Quarantine (+7 tests)**
+- New `belief_staging` table — no single-observation permanent beliefs
+- Promotion requires: 3+ observations across 3+ days
+- `BeliefExtractor(use_staging=)` flag, default off for back-compat; pipeline opts in
+- Addresses Risk 3 (Belief Pollution)
 
-**How it works:**
-```
-Turn: "I want to set up monitoring"
-  → GoalTracker detects goal, stores as active
+**Fix 3: Temporal Decay (+4 tests)**
+- `apply_temporal_decay()` for idle-phase processing
+- Below 0.3 confidence → archived (restorable)
+- New `belief_archive` table
 
-[next session, 3 days later]
-FollowUpEngine: "Hey, still working on set up monitoring?"
-  → ProactivityBudget confirms: 1 nudge used (1 remaining today)
-```
+**Fix 4: Cross-System Integration (+12 tests)**
+- New `belief_integration.py` with tested helpers
+- 4a: Beliefs → Judgment context (**WIRED LIVE** in pipeline)
+- 4b: Outcomes → Belief reinforcement/weakening (tested, not yet hooked)
+- 4c: Hebbian → Belief creation on promotion (tested, not yet hooked)
+- 4d: Safety → Belief write gating (tested, pluggable `can_write` gate)
 
----
+**Fix 5: Contradiction Detection (+4 tests)**
+- `detect_contradictions()` + `check_before_write()`
+- Blocks conflicting beliefs before write
 
-## ✅ WEEK 13 USER MODEL — COMPLETE (May 2026)
-
-**Goal:** Penny maintains explicit, inspectable beliefs about CJ — confidence scores per belief, user-correctable. ✅ DONE.
-
-**What shipped (commit `4d82a94`, 397/397 tests):**
-- `src/personality/user_belief_store.py` — SQLite triple store (subject→predicate→object_value) with typed `Predicate` vocabulary, Bayesian confidence (BASE 0.5, +0.08/evidence, MAX 0.97), correction audit trail. Tables: `user_beliefs`, `belief_evidence`, `belief_corrections`.
-- `src/personality/belief_extractor.py` — high-precision regex extraction per predicate, `build_context_snippet()` for prompt injection, `detect_correction()`.
-- Pipeline integration at Step 1.2 (feature flag `user_model_enabled`, default false).
-- Tests: 28 + 24 + 14 = 66 new.
-
-**⚠️ Carry-over from the KG recommendation (see Idea #1 below):** The store is a *triple store* (graph-shaped: subject→predicate→object), which satisfies the typed-belief goal, but it does **not yet expose graph traversal** (multi-hop queries). Two-path RAG was deferred — it needs a query layer on top of these triples. Logged as a Phase 5 medium-priority item.
+**⚠️ 4b/4c/4d Scope Note:** Implemented as tested helpers in `belief_integration.py`.
+Not yet called from their subsystems — each is one function call from being live.
+CC noted the hooks referenced in the spec don't exist in those subsystems yet;
+wiring would require small edits to outcome_tracker, hebbian_learning_manager, and
+user_belief_store. Deferred for now — decide when to prioritize.
 
 ---
 
-## 🚀 NEXT UP: STREAMING TTS + BARGE-IN  (🔴 HIGH PRIORITY)
+### **Week 13: User Model**
+**Status:** ✅ COMPLETE (66 base + 31 enhancement = 97 tests)
 
-**Goal:** Cut perceived voice latency 50–70% by speaking the first sentence while the rest of the response is still generating, and let CJ interrupt mid-utterance.
-
-**Status:** 🎯 READY TO START
-
-**Why Now:**
-- ✅ Phase 4 learning systems complete (Weeks 12–13) — voice UX is now the highest-leverage gap.
-- ✅ Substantial scaffolding already exists (see audit below) — this is wiring + a sentence pump, not a rebuild.
-- 2026 gold standard: sub-300ms first-audio latency + real-time interruption.
-
-**📋 Audit of what already exists (May 2026):**
-- `src/adapters/tts/streaming_tts_adapter.py` — `StreamingTTS` with a playback queue, `stop_playback` Event, and `stop()`. NOTE: today it streams *playback of pre-generated phrase files*, not LLM-token-driven sentences.
-- `allow_barge_in` param is already threaded through every TTS adapter (Google, ElevenLabs, cached).
-- `src/core/pipeline.py` already has `handle_barge_in()` + `barge_in_enabled` + a SPEAKING state.
-- `voice_activity_detector.py` exists (silence-based VAD) — reusable for barge-in detection.
-- GAP: the real voice loop (`real_time_voice_loop.py`) calls `self.pipeline.speak(response)` with the **full** response — TTS only starts after the LLM finishes. No sentence-level streaming, and VAD is not monitored *during* playback for barge-in.
-
-**Component 1: Sentence-streaming bridge**
-- Split LLM output into sentences as they arrive (the pipeline already produces text; need a streaming/generator path or a sentence buffer that flushes on `.!?`).
-- Feed each completed sentence to TTS immediately so audio of sentence 1 plays while sentence 2 generates.
-
-**Component 2: Barge-in during playback**
-- Run VAD on the mic *while* TTS is playing; on detected speech above threshold, call `tts.stop()`, flush the queue, transition SPEAKING → LISTENING.
-- Debounce so Penny's own audio bleed doesn't trigger self-interruption (echo gate / brief cooldown).
-
-**Component 3: Pipeline integration**
-- Feature flag: `streaming_tts_enabled` (default false), `barge_in_enabled` (already present).
-- Wire into `real_time_voice_loop.py` replacing the single blocking `speak(full_response)`.
-
-**Component 4: Latency measurement**
-- Track time-to-first-audio (TTFA) vs current time-to-full-response. Target: TTFA < 1s, ideally < 300ms with cached lead-ins.
-
-**Target:** 30+ new tests (sentence splitter, barge-in state machine, queue flush) → 425+ total.
+- `UserBeliefStore` — Subject-predicate-object triple store with confidence
+- `BeliefExtractor` — Regex-based extraction from conversations
+- Correction/audit system, staging, decay, contradictions
+- Performance: 0.09ms/query
 
 ---
 
-## 🔬 AI LANDSCAPE REVIEW: RECOMMENDATIONS (February 27, 2026)
+### **Weeks 11-12: Outcome Tracking, Goal Continuity**
+**Status:** ✅ COMPLETE
 
-> Researched by Claude (Cowork) — full report: [PENNY_AI_LANDSCAPE_REVIEW_FEB2026.md](PENNY_AI_LANDSCAPE_REVIEW_FEB2026.md)
->
-> **Bottom line:** Penny is architecturally ahead of most personal AI projects. Gaps are refinements, not rebuilds. Two areas deserve near-term action; the rest are Phase 5+.
-
-### 🔴 HIGH PRIORITY (Act in Weeks 12–13)
-
-**Voice UX: Streaming TTS + Barge-In**
-- Add **streaming TTS** — begin audio playback as first sentence generates, not after full response. Cuts perceived latency 50–70%. ElevenLabs and Piper both support streaming.
-- Add **barge-in support** — detect voice activity during TTS playback, interrupt pipeline, re-listen. Eliminates the "walkie-talkie" feel.
-- Estimated effort: 1–2 days each. Transformative UX impact.
-- 2026 gold standard: sub-300ms latency + real-time interruption (NVIDIA PersonaPlex pattern)
-
-**Week 13 User Model: Build as Knowledge Graph, not flat store**
-- The field has converged on **dual memory**: implicit statistical patterns (Hebbian ✅) + explicit, human-readable facts in a knowledge graph
-- Implement User Model as a lightweight KG (NetworkX or SQLite + JSON relationships) so Penny holds queryable, typed beliefs: `CJ → prefers → short answers → context: quick questions`
-- Reference: **Mem0** open-source library and **Memoria framework** (arXiv Dec 2025)
-- Bonus: exposes **two-path RAG** for free — simple queries use vectors, complex multi-hop queries use KG
-- Penny should be able to surface her beliefs on demand: *"Here's what I think I know about you — want to correct anything?"* (no commercial assistant does this)
-
-### 🟡 MEDIUM PRIORITY (Phase 5, Weeks 14–15)
-
-**LLM Benchmark: Nemotron vs. Qwen3-8B / Llama 3.1 8B**
-- The 2026 trend has shifted toward smaller, well-quantized models for personal agents
-- A 4-bit quantized 8B model runs at 2–4x the tokens/second of a 30B model with surprisingly similar quality on focused tasks
-- **Action:** Run Qwen3-8B alongside Nemotron on 20–30 real Penny conversations. Measure response quality, judgment accuracy, and Hebbian signal quality. Only switch if quality holds — latency win would be 5–10s → 1–3s, which is massive for voice.
-- Do NOT switch without benchmarking. Penny's personality/judgment is tuned to Nemotron.
-
-**Two-Path RAG (Vector + Knowledge Graph)**
-- Once KG memory exists (Week 13), route complex multi-hop queries through graph retrieval
-- Simple queries keep the fast vector path; complex queries use KG path
-- Microsoft GraphRAG shows +6.4 points multi-hop recall and 18–30% hallucination reduction
-- No framework needed — a simple graph query layer on top of existing pipeline
-
-### 🟢 LONGER TERM (Phase 5+, Post-Week 18)
-
-**Full-Duplex Voice** — Simultaneous listen + speak. High impact, high complexity. Research NVIDIA PersonaPlex implementation post-Week 18.
-
-**Multi-Agent Research Tasks** — Penny as orchestrator, spawning specialist sub-agents for deep research or code review. LangGraph or CrewAI patterns. Phase 5+ only.
-
-### ❌ WHAT NOT TO DO
-
-- **Don't rewrite the pipeline in LangGraph** — Penny's custom pipeline already implements what these frameworks offer. Migration cost isn't worth it.
-- **Don't switch LLMs without benchmarking first** — personality + judgment are tuned to Nemotron.
-- **Don't build the continuous learning scraper** — external review consensus was correct. Defer post-Week 18.
+- OutcomeTracker, strategy success rates, reaction detection
+- ProactivityBudget (2 nudges/day, 1 resurrection/week, 0.8 confidence gate)
+- GoalTracker, FollowUpEngine (gated by ProactivityBudget)
 
 ---
 
-## ✅ PHASE 4: ADVANCED LEARNING (Weeks 11-13) — COMPLETE
+### **Weeks 9-10: Hebbian Learning + Safe Integration**
+**Status:** ✅ COMPLETE (75 + 62 = 137 tests)
 
-**Week 11: Outcome Tracking** ✅ COMPLETE
-- Tracks whether responses helped or hurt; strategy success rates
-- ProactivityBudget hard limits (anti-runaway-autonomy)
-- 272/272 tests passing
+- 3 Hebbian components (vocabulary, dimension, sequence)
+- HebbianLearningManager orchestration
+- Safety: quarantine, turn budgets, mini-observability
+- Performance: 3.12ms avg (<10ms target)
 
-**Week 12: Goal Continuity** ✅ COMPLETE
-- GoalTracker + FollowUpEngine built
-- 331/331 tests passing
+---
 
-**Week 13: User Model** ✅ COMPLETE
-- Explicit, confidence-scored, user-correctable beliefs (triple store)
-- BeliefExtractor + context-snippet injection
-- 397/397 tests passing
+### **Week 8.5: Judgment & Clarify System**
+**Status:** ✅ COMPLETE (63 tests)
+
+- Detection (vague referents, stakes, params, contradictions, confidence)
+- Personality layer (PennyStyleClarifier, 30+ templates)
+- Pipeline integration with judgment logging
+
+---
+
+### **Repository Maintenance** (January + May-June 2026)
+
+- **Jan 2026:** Organized 200+ files
+- **May-June 2026:** Fixed regressions from experiments/ cleanup (16 modules restored), rebuilt corrupted DB, established canonical test suite, added `.gitignore` for runtime artifacts
 
 ---
 
 ## 🚀 PHASE 5: POLISH & PRODUCTIZATION (Weeks 14-18)
 
-**After core learning systems complete:**
-
 ### **Week 14: Platform Abstraction Layer**
-**Goal:** Abstract OS-specific code with graceful degradation
-
-**Components:**
-- Platform capability registry
-- OS-specific plugin architecture
-- Graceful degradation patterns
+Abstract OS-specific code with graceful degradation.
 
 ### **Week 15: Capability Awareness System**
-**Goal:** Penny knows and communicates her own capabilities
+Penny knows and communicates her own capabilities. Hard enforcement at orchestrator level (2026 Risk 5).
 
-**Inspired by:** ChatGPT external review
-
-**Features:**
-- Self-inspection of available features
-- Transparent messaging about limitations
-- UI showing active/disabled capabilities
-
-### **Week 16: Repository Organization (Part 2)**
-**Goal:** Production-ready codebase structure
-
-**Tasks:**
-- Collapse documentation into canonical docs
-- Remove archived experimental code
-- Platform-specific test suites
-- Performance profiling
+### **Week 16: Repository Organization (Part 2) + Pipeline Decomposition**
+**This is where R1/R4/R5 happen:**
+- R1: Decompose God Object `research_first_pipeline.py` → 7 composable processors
+- R4: DB connection pooling (6+ connections → 1 shared pool)
+- R5: Remove unnecessary `asyncio.run()` calls
+- Clean source tree, collapse docs, performance profiling
 
 ### **Week 17: Penny Console (Observability Dashboard)**
-**Goal:** Observability dashboard for Penny's internals
-
-**Inspired by:** Perplexity external review
-
-**Features:**
-- Active plugins and disabled reasons
-- Recent judgment decisions (from Week 8.5!)
-- Memory/Hebbian training events
-- Performance metrics
+Full dashboard extending mini-observability from Week 10.
 
 ### **Week 18: Cross-Platform Support**
-**Goal:** Windows + Linux compatibility
-
-**Inspired by:** Manus external review
-
-**Tasks:**
-- Windows calendar alternative
-- Linux audio stack testing
-- Platform-specific documentation
-- Cross-platform CI/CD
+Windows + Linux compatibility.
 
 ---
 
 ## 💡 PHASE ∞: OPTIONAL ENHANCEMENTS (Post-Week 18)
 
-### **Continuous Learning System (DEFERRED)**
+### **Email-Based AI Insights System (APPROVED - Phase 0 Testing)**
+✅ ChatGPT approved. Process AI newsletters via Gmail API.
+**Phase 0:** Manual testing. **Phase 1 (Post-18):** Automated digest (3-4 hours).
+**Proposal:** `EMAIL_BASED_AI_INSIGHTS_PROPOSAL.md`
 
-**Status:** Reviewed by external experts, consensus reached
+### **Memory Service Orchestration Layer**
+Unify existing memory systems (working, episodic, semantic, procedural) into tiered architecture with entity linking and hierarchical retrieval.
+**Effort:** 8-12 hours | **Priority:** HIGH
 
-**External Review Consensus:**
-- ✅ Strategic direction is correct (2026 trends validated)
-- ⏸️ Defer full system to post-Week 18
-- 🔄 Start with minimal approach if needed
+### **Active/Inactive Phase Processing**
+Move expensive operations (decay, promotions, drift checks) to idle time. ~50% per-turn overhead reduction.
+**Effort:** 3-4 hours | **Priority:** MEDIUM-HIGH
 
-**Current Approach:**
-- **Phase 0 (NOW):** Use Penny as research assistant
-  - You find papers/repos manually
-  - Penny summarizes and compares
-  - 0 new code, works today
+### **Model Evaluation: Reasoning Model Upgrade**
+Evaluate Qwen3-30B-A3B, DeepSeek-R1-Distill for hybrid model routing.
+**Note:** LLM registry (`src/llm/registry.py`) now supports config-only model switching — evaluation is infrastructure-ready.
+**Effort:** 2-3 hours eval, 4-6 hours integration | **Priority:** MEDIUM
 
-**Future Options (post-Week 18):**
-- **If needed:** Build minimal AI digest tool (2-3 hours)
-  - Weekly script, manual trigger
-  - 2-3 curated sources
-  - Penny summarizes
-  - No scoring, no auto-roadmap
+### **Persistent Agent Capabilities**
+Background awareness loop with calendar/goal notifications, gated by proactivity budget.
+**Effort:** 4-6 hours | **Priority:** LOW
 
-**Decision Point:** After Week 13
-- Evaluate if manual scanning + Penny works
-- Build minimal version if gaps identified
-- Full system only if minimal proves valuable
+---
 
-**Reviews:**
-- Perplexity: "Defer to post-Week 18, start minimal"
-- ChatGPT: "Minimal PoC first, full pipeline later"
-- Both: "Strategic fit is good, timing is early"
+## 🛡️ 2026 AI FAILURE MODE MITIGATIONS
+
+| Risk | Mitigation | Status |
+|------|-----------|--------|
+| **1. Learning Drift** | Hebbian quarantine (5 obs, 7 days) | ✅ Week 10 |
+| **2. Runaway Autonomy** | Proactivity budgets (2/day, permission gates) | ✅ Week 11 |
+| **3. Belief Pollution** | Belief staging (3 obs, 3 days) + contradiction detection | ✅ Week 13 |
+| **4. Late Observability** | Mini-observability (drift detection, learning logs) | ✅ Week 10 |
+| **5. Capability Bypass** | Hard enforcement at orchestrator level | ⏳ Week 15 |
+| **6. Latency Balloon** | Turn budgets (5 writes, 20 lookups, 15s max) | ✅ Week 10 |
 
 ---
 
 ## 📊 SYSTEM STATUS SUMMARY
 
 ### **Active Systems:**
-- **LLM:** Nemotron-3 Nano (30B params, 1M context, $0/month, 100% local)
-- **Memory:** 539 conversation vectors (AES-128 encrypted)
-- **Personality:** 7 dimensions tracking, 0.74 confidence (technical depth)
-- **Emotional Intelligence:** Week 8 active (7-day memory, 0.8 intensity threshold)
-- **Judgment System:** Week 8.5 active (73/73 tests, production-ready)
-- **Hebbian Learning:** Week 9 active (75/75 tests, core components complete) ⭐ NEW!
-- **Security:** GDPR Article 17 compliant, encrypted, PII-protected
+- **LLM:** gpt-oss-20b via LM Studio (localhost:1234). Config-driven multi-model registry (`src/llm/registry.py`). Registered: qwen3-8b, llama-3.1-8b. Fallback: Nemotron/Ollama.
+- **Memory:** Conversation vectors (AES-128 encrypted)
+- **Personality:** 7 dimensions, active learning
+- **Emotional Intelligence:** Week 8 (7-day memory, 0.8 intensity threshold)
+- **Judgment:** Week 8.5 (63 tests, production-ready)
+- **Hebbian Learning:** Weeks 9-10 (137 tests, safe integration)
+- **Outcome Tracking:** Week 11 (strategy learning, reaction detection)
+- **Goal Continuity:** Week 12 (unfinished business tracking)
+- **User Model:** Week 13 (beliefs, staging, decay, contradictions, 97 tests)
+- **Proactivity Budget:** Active (2 nudges/day, permission gates)
+- **Safety:** Active (quarantine, turn budgets, observability)
+- **Security:** GDPR Article 17, encrypted, PII-protected
 - **Server:** Port 5001, stable
 
-### **Performance Metrics:**
-- Response Time: 5-10s (acceptable for local LLM)
-- Emotion Accuracy: 90%+ on 27 emotions
-- Judgment Tests: 73/73 passing (100%)
-- Hebbian Tests: 75/75 passing (100%)
-- Total Tests: 138 passing
-- Cost: $0/month forever
-
-**Complete details:** [CURRENT_STATUS.md](CURRENT_STATUS.md)
+### **Performance:**
+- Response Time: 5-10s (local LLM)
+- Hebbian Latency: 3.12ms (<10ms target)
+- Belief Query: 0.09ms
+- Canonical Test Suite: 451 tests (~2s)
+- Diagnostics: 18/18
+- Cost: $0/month (100% local)
 
 ---
 
-## 📚 DOCUMENTATION REFERENCE
+## 🏗️ DEVELOPMENT STRATEGY (CRITICAL)
 
-### **Primary Documents (Root Directory):**
+### **Single-Threaded Development (No Agent Swarms Until Post-Week 18)**
 
-**Status & Planning:**
-- **[NEXT_PHASE_TASKS.md](NEXT_PHASE_TASKS.md)** - This file (single source of truth)
-- **[CURRENT_STATUS.md](CURRENT_STATUS.md)** - Complete system status
-- **[ROADMAP.md](ROADMAP.md)** - Detailed roadmap
-- **[README.md](README.md)** - Project overview
-- **[MINIMAL_SETUP.md](MINIMAL_SETUP.md)** - New user setup guide
-- **[ENTRY_POINTS.md](ENTRY_POINTS.md)** - Canonical entry points
+Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (Layer 1). Velocity multipliers are dangerous before foundations are hardened.
 
-**Week 8.5 Specifications:**
-- `CLAUDE_CODE_PHASE1A_PROMPT.md` - Vague referent detection
-- `CLAUDE_CODE_PHASE1B_PROMPT.md` - Stakes + missing parameters
-- `CLAUDE_CODE_PHASE1C_PROMPT.md` - Contradictions + confidence
-- `CLAUDE_CODE_PHASE2_PROMPT.md` - Personality layer
-- `CLAUDE_CODE_PHASE3_PROMPT.md` - Pipeline integration
-- `WEEK8_5_PHASE3_COMPLETE.md` - Final completion report
-- `demo_week8_5.py` - Live demonstration script
+**Current approach:** User + Claude Code = coherent vision, quality over speed
 
-**Other Specifications:**
-- Hebbian: Check `/hebbian_specs/` or `/docs/specs/hebbian/`
-- Week 8: Check root or `/docs/specs/emotional_continuity/`
+> "Direction > Speed during foundation building"
 
-**Additional Documentation:**
-- Guides: `/docs/guides/`
-- History: `/docs/progress/2025/`
-- Archive: `/docs/archive/`
+**Future trigger:** Reconsider for parallelizable work post-Week 18. Never for core architecture.
 
 ---
 
 ## 🎯 FOR AI ASSISTANTS (CRITICAL INSTRUCTIONS)
 
-### **When helping with Penny development:**
+**1. ALWAYS READ FIRST:** This file → CURRENT_STATUS.md → ROADMAP.md
 
-**1. ALWAYS READ FIRST:**
-   - ✅ This file (NEXT_PHASE_TASKS.md) - Single source of truth
-   - ✅ [CURRENT_STATUS.md](CURRENT_STATUS.md) - Complete current state
-   - ✅ [ROADMAP.md](ROADMAP.md) - What's happening next
+**2. CURRENT STATUS:**
+- Phase 4 COMPLETE (451 tests). Refactoring R6 (logging) is next.
+- LLM is now config-driven multi-model via `src/llm/registry.py`
+- `research_first_pipeline.py` `think()` has ZERO test coverage — do NOT refactor without characterization tests
 
-**2. CURRENT PRIORITY:**
-   - ⭐ Week 10: Hebbian Integration (NEXT UP!)
-   - Week 9 core components complete
-   - Judgment system protects learning
+**3. ARCHITECTURE:**
+- Single-threaded development, direction > speed
+- Safety-first (judgment → learning → staging → permanent)
+- See `PENNY_ARCHITECTURE_AUDIT.md` for full audit and R1-R6 refactoring roadmap
 
-**3. WEEK 9 STATUS:**
-   - ✅ COMPLETE - 75/75 Hebbian tests passing
-   - ✅ Committed: 526d61e
-   - ✅ 3 core components working
-   - ✅ 138 total tests passing
+**4. TEST SUITE:**
+- `make test` = canonical suite (451 tests, ~2s)
+- `make test-all` = includes quarantined legacy tests
+- See `QUARANTINE_NOTES.md` for excluded tests and reasons
+- `conftest.py` handles path setup and `--run-slow` gating
 
-**4. FOR WEEK 10 INTEGRATION:**
-   - ✅ Create HebbianLearningManager
-   - ✅ Connect to research_first_pipeline.py
-   - ✅ Feature flag: HEBBIAN_LEARNING_ENABLED
-   - ✅ Documentation and polish
+**5. LLM CONFIGURATION:**
+- Active: gpt-oss-20b via LM Studio (localhost:1234)
+- Config: `penny_config.json` → `llm.active_model` + `llm.models`
+- Registry: `src/llm/registry.py` — `create_llm()`, `available_models()`
+- Do NOT add more models without user approval
 
-**5. NEVER REFERENCE:**
-   - ❌ Files in `/docs/archive/` - Outdated/superseded
-   - ❌ Files in `/experiments/` - Not production code
-   - ❌ Old roadmaps - Use this file only
+**6. 2026 ALIGNMENT (Verified June 2026):**
+- 🟢 AHEAD: Judgment, local-first, personality, anti-drift, safety, observability
+- 🟡 WATCH: Memory architecture (tiered/graph enhancement planned)
+- 🟡 ADD: Active/inactive phase processing
+- 🟡 EVALUATE: Reasoning models (post-Week 18)
 
-**6. EXTERNAL REVIEWS COMPLETED:**
-   - ✅ Manus (Windows compatibility analysis)
-   - ✅ ChatGPT (architecture & risk assessment)
-   - ✅ Perplexity (UX & observability insights)
-   - ✅ Continuous learning proposal reviewed & deferred
+**7. NEVER REFERENCE:** `/docs/archive/`, `/experiments/` (except 16 restored modules), old roadmaps
 
----
-
-## 🔄 MAINTENANCE POLICY
-
-### **This File is Updated:**
-- After each completed phase/week
-- When priorities change
-- When new phases are added
-- When external feedback received
-
-### **Recent Updates:**
-- **February 27, 2026:** Week 12 Goal Continuity COMPLETE — 331/331 tests, commit 04d2308
-- **February 27, 2026:** Added AI Landscape Review section with recommendations (voice UX, KG User Model, LLM benchmark, two-path RAG)
-- **January 28, 2026:** Week 9 Hebbian Learning marked COMPLETE! 138/138 tests passing 🎉
-- **January 18, 2026 (Evening):** Week 8.5 marked COMPLETE! 73/73 tests passing
-- **January 18, 2026 (Afternoon):** Updated with Phase 3 in progress
-- **January 18, 2026 (Morning):** Added Phase 1 & 2 completion
-- **January 16, 2026:** Added repository cleanup and Week 8.5 start
-- **January 16, 2026:** Added Phase 5 (Weeks 14-18) for productization
+**8. EXTERNAL REVIEWS:** Manus, ChatGPT (×3), Perplexity — all processed
 
 ---
 
-## 📝 QUICK REFERENCE
+## 🔄 RECENT UPDATES
 
-### **Most Important Files:**
-- 🎯 **This file** (NEXT_PHASE_TASKS.md) - Single source of truth
-- 📊 [CURRENT_STATUS.md](CURRENT_STATUS.md) - Complete system state
-- 📋 [ROADMAP.md](ROADMAP.md) - Detailed plans
-- 🚀 [MINIMAL_SETUP.md](MINIMAL_SETUP.md) - New user guide
-
-### **Try the Judgment System:**
-```bash
-# Run demo to see judgment in action
-python demo_week8_5.py
-
-# Test scenarios:
-# - Vague: "Fix that thing"
-# - High stakes: "Delete all data"
-# - Missing params: "Schedule meeting"
-# - Clear: "What is Python?"
-```
-
-### **Next Work:**
-- **START:** Week 10 Hebbian Integration
-- **Files:** `src/personality/hebbian/` (Week 9 complete)
-- **Duration:** 4-10 hours for Week 10
-- **Create:** HebbianLearningManager orchestration layer
+- **Late June 2026:** Config-driven LLM registry, canonical test suite, refactor quick-wins, 451 tests
+- **Late June 2026:** Architecture audit completed (`PENNY_ARCHITECTURE_AUDIT.md`)
+- **May-June 2026:** Week 13 2026 Enhancement (+31 tests), regression fixes (diagnostics 18/18)
+- **January 28, 2026:** Weeks 9-10 complete (safe integration, 199 tests)
+- **January 18, 2026:** Week 8.5 complete (judgment system, 73 tests)
+- **January 16, 2026:** Repository cleanup (200+ files)
 
 ---
 
-## ✨ SUMMARY
-
-**Where we are:** Week 12 COMPLETE! 🎉
-
-**What we accomplished (Phase 3 + 4 so far):**
-- ✅ Repository cleanup (200+ files organized)
-- ✅ Judgment & Clarify System (73/73 tests)
-- ✅ Hebbian Learning — all 3 core components (75 tests)
-- ✅ Hebbian Integration — manager + pipeline (Week 10)
-- ✅ Outcome Tracking + ProactivityBudget (Week 11)
-- ✅ Goal Continuity — GoalTracker + FollowUpEngine (Week 12, +59 tests)
-- ✅ **331 total tests passing!**
-
-**What's next:** Week 13 User Model (knowledge graph — NOT flat store)
-
-**Questions?**
-- Status: [CURRENT_STATUS.md](CURRENT_STATUS.md)
-- Setup: [MINIMAL_SETUP.md](MINIMAL_SETUP.md)
-- Demo: `python demo_week8_5.py`
-- Week 9 Report: [WEEK9_COMPLETE.md](WEEK9_COMPLETE.md)
-- Ask CJ if unclear
-
----
-
-**Last Updated:** February 27, 2026
-**Maintained By:** CJ
-**Status:** ✅ Week 12 COMPLETE (331 tests) - Ready for Week 13 User Model! 🚀
+**Last Updated:** Late June 2026  
+**Maintained By:** CJ  
+**Status:** ✅ Phase 4 COMPLETE — R6 Logging next, then characterization tests, then Phase 5 🚀

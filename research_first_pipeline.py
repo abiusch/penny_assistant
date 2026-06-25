@@ -91,8 +91,13 @@ logger = logging.getLogger(__name__)
 class ResearchFirstPipeline(PipelineLoop):
     """Research-first pipeline that always researches before answering factual questions."""
 
-    def __init__(self):
+    def __init__(self, db_path: str = "data/personality_tracking.db", data_dir: str = "data"):
         super().__init__()
+
+        # Injectable storage locations. Defaults point at the real data dir;
+        # tests pass temp paths so think() can run without polluting real data.
+        self.db_path = db_path
+        self.data_dir = data_dir
 
         # LLM selection is config-driven (penny_config.json -> "llm"). Adding a
         # model is a config change; standardized on OpenAI-compatible serving.
@@ -143,7 +148,9 @@ class ResearchFirstPipeline(PipelineLoop):
         # Week 6: Context Manager, Emotion Detector, Semantic Memory
         self.context_manager = ContextManager(max_window_size=10)
         self.emotion_detector = EmotionDetector()
-        self.semantic_memory = SemanticMemory()
+        self.semantic_memory = SemanticMemory(
+            storage_path=os.path.join(self.data_dir, "embeddings", "vector_store")
+        )
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
         # Week 8: Emotional Continuity System
@@ -157,7 +164,7 @@ class ResearchFirstPipeline(PipelineLoop):
             enabled=self.consent_manager.is_tracking_enabled()
         )
         self.personality_snapshots = PersonalitySnapshotManager(
-            storage_path="data/personality_snapshots",
+            storage_path=os.path.join(self.data_dir, "personality_snapshots"),
             snapshot_interval=50
         )
         self.forgetting_mechanism = ForgettingMechanism(decay_days=30)
@@ -189,8 +196,8 @@ class ResearchFirstPipeline(PipelineLoop):
 
         if OUTCOME_TRACKING_AVAILABLE and self.outcome_tracking_enabled:
             try:
-                self.outcome_tracker = OutcomeTracker(db_path='data/personality_tracking.db')
-                self.proactivity_budget = ProactivityBudget(db_path='data/personality_tracking.db')
+                self.outcome_tracker = OutcomeTracker(db_path=self.db_path)
+                self.proactivity_budget = ProactivityBudget(db_path=self.db_path)
                 logger.info("📊 Week 11 Outcome Tracking initialized")
                 print("   • Week 11: Outcome Tracking active")
                 print("     - Strategy success rate tracking")
@@ -210,7 +217,7 @@ class ResearchFirstPipeline(PipelineLoop):
 
         if GOAL_CONTINUITY_AVAILABLE and self.goal_continuity_enabled:
             try:
-                db = 'data/personality_tracking.db'
+                db = self.db_path
                 self.goal_tracker = GoalTracker(db_path=db)
                 # Reuse proactivity_budget if available, else create new instance
                 _budget = self.proactivity_budget or ProactivityBudget(db_path=db)
@@ -234,7 +241,7 @@ class ResearchFirstPipeline(PipelineLoop):
 
         if USER_MODEL_AVAILABLE and self.user_model_enabled:
             try:
-                db = 'data/personality_tracking.db'
+                db = self.db_path
                 self.belief_store    = UserBeliefStore(db_path=db, subject="user")
                 self.belief_extractor = BeliefExtractor(self.belief_store, use_staging=True)
                 logger.info("🧠 Week 13 User Model initialized")
@@ -253,7 +260,7 @@ class ResearchFirstPipeline(PipelineLoop):
         if HEBBIAN_AVAILABLE and self.hebbian_enabled:
             try:
                 self.hebbian = HebbianLearningManager(
-                    db_path='data/personality_tracking.db',
+                    db_path=self.db_path,
                     enable_caching=True,
                     # Safety configuration
                     promotion_min_observations=5,
@@ -377,8 +384,8 @@ class ResearchFirstPipeline(PipelineLoop):
         self.last_judgment_result = log_entry
 
         # Log to file for analysis
-        log_file = 'data/judgment_logs.jsonl'
-        os.makedirs('data', exist_ok=True)
+        log_file = os.path.join(self.data_dir, 'judgment_logs.jsonl')
+        os.makedirs(self.data_dir, exist_ok=True)
 
         with open(log_file, 'a') as f:
             f.write(json.dumps(log_entry) + '\n')

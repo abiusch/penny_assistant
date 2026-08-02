@@ -1,0 +1,61 @@
+name: Characterization Tests — think()
+
+# Manual trigger only — this is a one-time task to unblock R1, not a
+# recurring job. Run it from the Actions tab when you're ready.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  write-characterization-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Uses your Pro/Max subscription quota, not per-token API billing.
+          # Generate this once with `claude setup-token` and add it as a
+          # repo secret named CLAUDE_CODE_OAUTH_TOKEN.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            Write characterization tests for the `think()` method in
+            `research_first_pipeline.py`.
+
+            Rules — read before doing anything:
+
+            1. Do NOT modify `think()`, or any other production code. This
+               task is additive only: new test file(s), nothing else.
+
+            2. `think()` currently has ZERO test coverage. Your job is to
+               capture its CURRENT behavior exactly as it is today — not
+               what you think it should be. If something looks like a bug,
+               write a test that documents the existing behavior as-is and
+               leave a comment flagging it. Do not "fix" anything.
+
+            3. Use the DB path injection pattern already in the codebase
+               (`ResearchFirstPipeline(db_path=..., data_dir=...)`) so tests
+               run against a temp directory. Never touch real data.
+
+            4. Follow existing conventions in `conftest.py` and `pytest.ini`.
+               New tests must pass under `make test`.
+
+            5. Open a pull request with the new test file(s) and a short
+               description of what behavior each test locks in. Do NOT
+               merge — this needs human review before it goes in, since
+               it's the gate for R1.
+
+          claude_args: |
+            --max-turns 40
+
+          # No model pinned — uses your account's current default.
+          # Since this only runs once, consider pinning a stronger model
+          # (check available names with `/model` in Claude Code locally,
+          # then add e.g. `--model <name>` above) if you want extra rigor
+          # on the test-writing itself.

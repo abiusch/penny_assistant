@@ -53,7 +53,7 @@ jobs:
                it's the gate for R1.
 
           claude_args: |
-            --max-turns 40
+            --max-turns 100
 
           # No model pinned — uses your account's current default.
           # Since this only runs once, consider pinning a stronger model

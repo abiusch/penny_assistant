@@ -15,15 +15,15 @@
 
 ## 🎯 QUICK STATUS
 
-**Current:** Phase 4 COMPLETE — Refactoring in progress (R6 + DB-injectable done)  
-**Next:** Characterization tests for `think()` → R1 decomposition → Phase 5  
+**Current:** Phase 4 COMPLETE — Refactoring in progress (R6, DB-injectable, `think()` characterization all done)  
+**Next:** R1 — decompose `think()` into composable processors (safety net now in place)  
 **Phase 4:** ✅ 100% Complete  
 **Phase 5:** 0% (Weeks 14-18 — Polish & Productization)  
 **Server:** 🟢 Port 5001  
-**Tests:** 🟢 451 passing, canonical suite (~2s)  
+**Tests:** 🟢 451 canonical (~2s) + 5 `think()` characterization (`--run-slow`, ~9s)  
 **Diagnostics:** 🟢 18/18 passing  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
-**Last Commit:** `9edd8de` (config-driven LLM registry)
+**Last Commit:** `fb25410` (`think()` characterization tests + more DB routing)
 
 ---
 
@@ -36,7 +36,7 @@ Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committ
 **Grade: C+** — Subsystems are A-grade, orchestration wiring is D-grade.
 
 **Top 3 findings:**
-1. 🔴 **God Object:** `research_first_pipeline.py` is 1,167 lines. `think()` is 572 lines with 98 `print()` statements and ZERO test coverage.
+1. 🟡 **God Object:** `research_first_pipeline.py` is 1,167 lines; `think()` is 572 lines. Now has a safety net (5 characterization tests) + structured logging (R6). Ready for R1 decomposition.
 2. 🔴 **Root directory chaos:** ~150 Python files at root level. Already caused regressions.
 3. 🔴 **Mixed imports:** Code split between root, `src/`, `src/core/` with `sys.path` manipulation.
 
@@ -46,14 +46,18 @@ Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committ
 |-------|------|--------|-------|
 | **R3** | Config unification | 🟡 Partial | LLM registry done (`src/llm/registry.py`). Feature flags still hardcoded in pipeline |
 | **R6** | Structured logging | ✅ Done | 50 `print()` → `logger` (info/debug/warning/error); banner + `__main__` kept |
-| — | DB path injectable | ✅ Done | `ResearchFirstPipeline(db_path=, data_dir=)` routes all storage; temp-dir verified |
-| — | `think()` characterization tests | ⏳ **NEXT** | Pipeline has ZERO coverage; enabler now in place (inject temp paths + stub LLM) |
-| **R1** | Pipeline decomposition | ⏸️ Week 16 | God Object → 7 composable processors |
+| — | DB path injectable | ✅ Done | `ResearchFirstPipeline(db_path=, data_dir=)` routes storage (semantic store, snapshots, judgment logs, PersonalityTracker, MilestoneTracker); temp-dir verified |
+| — | `think()` characterization tests | ✅ Done | 5 tests (`tests/test_pipeline_characterization.py`, `--run-slow`): state guard, happy path, prompt assembly, never-raises, temp isolation |
+| **R1** | Pipeline decomposition | ⏳ **NEXT** | God Object → composable processors (InputProcessor, JudgmentGate, PromptBuilder, ResponseGenerator, PostTurnProcessor). Run characterization tests after each extraction |
 | **R4** | DB connection pooling | ⏸️ Week 16 | 6+ connections → 1 shared pool |
 | **R5** | Async cleanup | ⏸️ Week 16 | Remove unnecessary `asyncio.run()` calls |
 | **R2** | Source tree cleanup | ⏸️ Later | Move ~150 root files → `src/`. Highest regression risk, defer |
 
 **Quick wins already completed:**
+- ✅ `think()` characterization tests — 5 tests, pipeline no longer untested (`fb25410`)
+- ✅ R6 structured logging — 50 `print()` → `logger` (`0fa94d1`)
+- ✅ DB path injectable — enables characterization tests (`34abc75`)
+- ✅ Config-driven LLM registry — multi-model support (`9edd8de`)
 - ✅ Deleted throwaway artifacts (`24385f6`)
 - ✅ Moved 19 `commit_*.sh` to `experiments/legacy/`
 - ✅ Established canonical test suite (`conftest.py`, `pytest.ini`, `make test`)
@@ -62,7 +66,7 @@ Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committ
 
 ### **⚠️ Critical Note for AI Assistants:**
 
-`research_first_pipeline.py` `think()` has ZERO test coverage. The 451 tests cover subsystems only. Do NOT refactor `think()` without characterization tests first — you will break things invisibly.
+`research_first_pipeline.py` `think()` now has a **characterization safety net** — 5 tests in `tests/test_pipeline_characterization.py` (run with `pytest tests/test_pipeline_characterization.py --run-slow`). These lock CURRENT behavior, not desired behavior. When doing R1 decomposition, **run them after every extraction step** and keep them green — a diff there means you changed pipeline behavior. The canonical 451-suite still covers subsystems only, so it will NOT catch pipeline regressions on its own.
 
 ---
 
@@ -87,6 +91,19 @@ Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committ
 
 ### **Refactoring & Infrastructure** (Late June 2026)
 **Status:** 🔄 In Progress
+
+**R6 Structured Logging (`0fa94d1`):**
+- Converted 50 diagnostic `print()` → `logger` in `research_first_pipeline.py`
+- 13 info, 29 debug, 6 warning, 2 error
+- Preserved user-facing startup banner and `__main__` demo as `print()`
+- Stripped `flush=True` from converted calls (logger rejects it)
+- No logic change
+
+**DB Path Injectability (`34abc75`):**
+- `ResearchFirstPipeline(db_path=..., data_dir=...)` — defaults to real `data/`
+- Routes all hardcoded paths: personality_tracking.db, vector store, snapshots, judgment logs
+- Proven: temp `data_dir` creates isolated storage — `think()` can run without polluting real data
+- Enables characterization tests (next step)
 
 **Config-Driven LLM Registry (`9edd8de`):**
 - New `src/llm/registry.py`: `create_llm`, `resolve_model_config`, `available_models`
@@ -307,7 +324,7 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 **1. ALWAYS READ FIRST:** This file → CURRENT_STATUS.md → ROADMAP.md
 
 **2. CURRENT STATUS:**
-- Phase 4 COMPLETE (451 tests). Refactoring R6 (logging) is next.
+- Phase 4 COMPLETE (451 tests). R6 logging + DB injectability done. Characterization tests next.
 - LLM is now config-driven multi-model via `src/llm/registry.py`
 - `research_first_pipeline.py` `think()` has ZERO test coverage — do NOT refactor without characterization tests
 
@@ -342,7 +359,8 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 ## 🔄 RECENT UPDATES
 
-- **Late June 2026:** Config-driven LLM registry, canonical test suite, refactor quick-wins, 451 tests
+- **Late June 2026:** R6 structured logging (`0fa94d1`) + DB injectability (`34abc75`). Characterization tests next
+- **Late June 2026:** Config-driven LLM registry (`9edd8de`), canonical test suite, refactor quick-wins, 451 tests
 - **Late June 2026:** Architecture audit completed (`PENNY_ARCHITECTURE_AUDIT.md`)
 - **May-June 2026:** Week 13 2026 Enhancement (+31 tests), regression fixes (diagnostics 18/18)
 - **January 28, 2026:** Weeks 9-10 complete (safe integration, 199 tests)
@@ -353,4 +371,4 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 **Last Updated:** Late June 2026  
 **Maintained By:** CJ  
-**Status:** ✅ Phase 4 COMPLETE — R6 Logging next, then characterization tests, then Phase 5 🚀
+**Status:** ✅ Phase 4 COMPLETE — Characterization tests next, then R1 decomposition, then Phase 5 🚀

@@ -32,6 +32,7 @@ SLOW_FILES = {
     "test_week8_live.py",                 # live integration
     "test_audio_devices.py",              # enumerates real audio hardware
     "test_audio_quality.py",              # real audio processing
+    "test_pipeline_characterization.py",  # constructs full pipeline (~4.5s each)
 }
 
 # Pre-existing broken / stale / env-dependent test files (NOT regressions from

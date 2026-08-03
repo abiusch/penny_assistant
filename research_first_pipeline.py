@@ -130,10 +130,13 @@ class ResearchFirstPipeline(PipelineLoop):
         # Phase 2: Dynamic Personality Adaptation
         self.personality_prompt_builder = DynamicPersonalityPromptBuilder()
         self.personality_post_processor = PersonalityResponsePostProcessor()
-        self.personality_tracker = PersonalityTracker()
+        self.personality_tracker = PersonalityTracker(db_path=self.db_path)
 
         # Phase 3A Week 2: Milestone & Achievement System
-        self.milestone_tracker = PersonalityMilestoneTracker()
+        self.milestone_tracker = PersonalityMilestoneTracker(
+            db_path=self.db_path,
+            memory_db_path=os.path.join(self.data_dir, "memory.db"),
+        )
         logger.info("🏆 Milestone tracker initialized")
 
         self.ab_test = get_ab_test()

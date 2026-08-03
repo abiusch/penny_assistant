@@ -11,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.11, 3.13]
+        # Project requires Python >=3.11 (see pyproject.toml). The pinned
+        # scientific stack (numba 0.61.x / llvmlite 0.44.x, via openai-whisper)
+        # provides no wheels for 3.9, so 3.9 could never install here.
+        python-version: [3.11, 3.13]
 
     steps:
     - uses: actions/checkout@v4

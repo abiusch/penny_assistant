@@ -25,6 +25,8 @@ jobs:
           # repo secret named CLAUDE_CODE_OAUTH_TOKEN.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
+          show_full_output: true
+
           prompt: |
             Write characterization tests for the `think()` method in
             `research_first_pipeline.py`.

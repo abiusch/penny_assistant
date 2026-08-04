@@ -26,10 +26,20 @@ jobs:
           show_full_output: true
 
           prompt: |
-            Review this pull request as a second set of eyes — not a
-            replacement for human review, just an extra check.
+            This is a fully autonomous, non-interactive run. Nobody is
+            available to answer questions or confirm anything — if you
+            find yourself about to ask which PR to review, or wait for
+            confirmation, stop and proceed with your best judgment instead.
+            Do NOT invoke any built-in review skill or slash command (like
+            `/review`) that assumes an interactive user — just follow the
+            plain instructions below directly.
 
-            Focus especially on:
+            You are reviewing PR #${{ github.event.pull_request.number }}
+            in this repository. Run `gh pr diff ${{ github.event.pull_request.number }}`
+            to see the actual changes.
+
+            Review it as a second set of eyes — not a replacement for human
+            review, just an extra check. Focus especially on:
 
             1. Behavioral regressions. Compare the diff against what the
                characterization tests in tests/test_pipeline_characterization*.py
@@ -51,11 +61,12 @@ jobs:
                whether extracted logic preserves the original behavior
                exactly, not an "improved" version of it.
 
-            Leave your findings as a normal PR comment (not a formal
-            Approve/Request Changes review — just commentary). Be direct
-            about real risks; don't pad the comment with minor style
-            nitpicks. If everything looks solid, say so briefly rather than
-            inventing things to comment on.
+            When you're done, post your findings directly with:
+                gh pr comment ${{ github.event.pull_request.number }} --body "<your review>"
+            Be direct about real risks; don't pad the comment with minor
+            style nitpicks. If everything looks solid, say so briefly
+            rather than inventing things to comment on. This step is
+            mandatory — always leave a comment, even a short one.
 
           claude_args: |
             --max-turns 60

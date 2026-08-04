@@ -1,0 +1,65 @@
+name: Background Code Reviewer
+
+# Runs automatically on every PR — opened, or updated with new commits.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Uses your Pro/Max subscription quota, not per-token API billing.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          show_full_output: true
+
+          prompt: |
+            Review this pull request as a second set of eyes — not a
+            replacement for human review, just an extra check.
+
+            Focus especially on:
+
+            1. Behavioral regressions. Compare the diff against what the
+               characterization tests in tests/test_pipeline_characterization*.py
+               lock in. If a change would alter behavior those tests document
+               (not just refactor its shape), flag it clearly and explain
+               which locked-in behavior is at risk.
+
+            2. If characterization or canonical tests exist for the code
+               being touched, run them (`make test`, and `--run-slow` variants
+               if relevant to the changed files) and report whether they
+               pass. Don't just read the diff — verify it.
+
+            3. Scope creep — is this PR doing one coherent thing, or mixing
+               unrelated changes together?
+
+            4. Anything that looks like it's touching `think()` in
+               `research_first_pipeline.py` or its extracted pieces: this is
+               mid-decomposition (the R1 refactor), so be extra attentive to
+               whether extracted logic preserves the original behavior
+               exactly, not an "improved" version of it.
+
+            Leave your findings as a normal PR comment (not a formal
+            Approve/Request Changes review — just commentary). Be direct
+            about real risks; don't pad the comment with minor style
+            nitpicks. If everything looks solid, say so briefly rather than
+            inventing things to comment on.
+
+          claude_args: |
+            --max-turns 60
+            --permission-mode dontAsk
+            --allowedTools "Read,Grep,Glob,Bash"
+
+          # No model pinned — uses your account's current default.

@@ -1,3 +1,5 @@
+
+Test
 # PennyGPT - AI Companion with Personality & Learning
 
 A privacy-focused AI companion that learns, remembers relationships, and develops a unique personality through conversations. Goes far beyond basic voice assistant functionality to create genuine companionship.

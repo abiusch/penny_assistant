@@ -126,22 +126,22 @@ pygments==2.19.2
     # via pytest
 pynput==1.8.1
     # via -r requirements.in
-pyobjc-core==11.1
+pyobjc-core==11.1; platform_system == "Darwin"
     # via
     #   pyobjc-framework-applicationservices
     #   pyobjc-framework-cocoa
     #   pyobjc-framework-coretext
     #   pyobjc-framework-quartz
-pyobjc-framework-applicationservices==11.1
+pyobjc-framework-applicationservices==11.1; platform_system == "Darwin"
     # via pynput
-pyobjc-framework-cocoa==11.1
+pyobjc-framework-cocoa==11.1; platform_system == "Darwin"
     # via
     #   pyobjc-framework-applicationservices
     #   pyobjc-framework-coretext
     #   pyobjc-framework-quartz
-pyobjc-framework-coretext==11.1
+pyobjc-framework-coretext==11.1; platform_system == "Darwin"
     # via pyobjc-framework-applicationservices
-pyobjc-framework-quartz==11.1
+pyobjc-framework-quartz==11.1; platform_system == "Darwin"
     # via
     #   pynput
     #   pyobjc-framework-applicationservices

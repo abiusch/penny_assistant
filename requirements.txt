@@ -111,6 +111,8 @@ propcache==0.3.2
     # via
     #   aiohttp
     #   yarl
+psutil==7.1.0
+    # via -r requirements.in
 pycparser==2.22
     # via cffi
 pydantic==2.11.7

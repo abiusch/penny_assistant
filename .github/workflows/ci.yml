@@ -53,7 +53,7 @@ jobs:
       env:
         PYTHONPATH: src
       run: |
-        python test_tts_cache.py
+        python tests/test_tts_cache.py
 
   integration:
     runs-on: ubuntu-latest

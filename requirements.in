@@ -17,3 +17,7 @@ pydantic>=2.0.0
 httpx
 docker>=7.0.0
 psutil  # used by operational-security modules (multi_channel_emergency_stop, rate_limiting_resource_control)
+cryptography  # used by src/security/encryption.py (Fernet)
+faiss-cpu  # `import faiss` in src/memory/vector_store.py
+sentence-transformers  # used by src/memory/embedding_generator.py
+setuptools<81  # webrtcvad imports pkg_resources, removed in setuptools 81+

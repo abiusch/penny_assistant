@@ -35,7 +35,13 @@ jobs:
         PENNY_DISABLE_HEALTH_LOOP: 1
         PYTHONPATH: src
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+        # NOTE: no positional path argument on purpose.
+        # pytest only honors `testpaths` in pytest.ini when NO path/file is
+        # passed on the command line. `testpaths` defines the curated canonical
+        # suite (22 files) — the same set `make test` runs. Passing `tests/`
+        # here would OVERRIDE testpaths and collect all ~136 files, including
+        # quarantined/legacy ones that never pass in CI. Do not add `tests/`.
+        pytest -v --cov=src --cov-report=xml --cov-report=term-missing
     
     - name: Run Penny Doctor health check
       env:

@@ -1,0 +1,92 @@
+name: Dependency Watchdog
+
+# Weekly check for vulnerable dependencies. Also runnable manually via
+# workflow_dispatch for testing.
+on:
+  schedule:
+    - cron: '0 14 * * 1'   # Every Monday, 14:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Uses your Pro/Max subscription quota, not per-token API billing.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          show_full_output: true
+
+          prompt: |
+            This is a fully autonomous, non-interactive run. Nobody is
+            available to answer questions or confirm anything.
+
+            Check for security vulnerabilities in the project's Python
+            dependencies:
+
+            1. Run `pip install pip-audit` then `pip-audit -r
+               requirements.txt` to check currently pinned versions for
+               known vulnerabilities.
+
+            2. If nothing is vulnerable: stop here. Do NOT open a PR or
+               change anything. Just report "no vulnerabilities found"
+               and end.
+
+            3. If something IS vulnerable: propose the minimal version
+               bump needed to resolve it specifically — not a blanket
+               "update everything" pass.
+
+            4. If the minimal fix would require a major version bump
+               with breaking API changes (i.e. it would need production
+               code changes, not just a version number): STOP and just
+               report the finding instead of attempting the code
+               changes yourself. This agent only touches dependency
+               files, never production code.
+
+            5. Before proposing anything, verify it in a genuinely
+               clean environment. This project spent an entire day
+               discovering that "verified locally" and "actually works
+               from a clean install" can diverge — don't skip this step:
+                   python -m venv /tmp/watchdog-test-env
+                   /tmp/watchdog-test-env/bin/pip install --no-cache-dir -r requirements.txt
+               Confirm 0 dependency conflicts before proceeding.
+
+            6. CRITICAL — confirm these survived unchanged after your
+               fix. This project has manual markers that pip-compile
+               has silently dropped before:
+               - The 5 PyObjC lines in requirements.txt must still have
+                 `; platform_system == "Darwin"`
+               - `setuptools<81` must still be present in both
+                 requirements.in and requirements.txt
+               If either is missing, restore it manually — do not let a
+               recompile silently remove it.
+
+            7. Run `make test` (canonical suite) to confirm no
+               regressions from the version change.
+
+            8. Only requirements.in/requirements.txt should change — no
+               production code, no unrelated files.
+
+            9. If everything checks out: create a new branch, commit,
+               push, and open a PR. Description must cover: which
+               vulnerability this fixes, the exact version change, and
+               confirmation of steps 5-7 (clean install, markers
+               intact, tests passing). Do NOT merge — leave for human
+               review.
+
+          claude_args: |
+            --max-turns 80
+            --permission-mode dontAsk
+            --allowedTools "Read,Grep,Glob,Bash,Edit,Write"
+
+          # No model pinned — uses your account's current default.

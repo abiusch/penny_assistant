@@ -9,7 +9,7 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** Late June 2026
+**Last Updated:** August 5, 2026
 
 ---
 
@@ -20,10 +20,92 @@
 **Phase 4:** ✅ 100% Complete  
 **Phase 5:** 0% (Weeks 14-18 — Polish & Productization)  
 **Server:** 🟢 Port 5001  
-**Tests:** 🟢 451 canonical (~2s) + 5 `think()` characterization (`--run-slow`, ~9s)  
+**Tests:** 🟢 451 canonical (~2s) + 17 `think()` characterization (`--run-slow`)  
 **Diagnostics:** 🟢 18/18 passing  
+**CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
 **Last Commit:** `fb25410` (`think()` characterization tests + more DB routing)
+
+---
+
+## 📅 SESSION RECAP — August 5, 2026 (CI Stabilization + Characterization Expansion)
+
+None of the bugs below were caused by recent work — they were latent failures
+exposed once CI was actually examined. As of today, **"verified locally" and
+"green in CI" mean the same thing for the first time.**
+
+### 🟢 CI fully stabilized — 6 pre-existing bugs found and fixed
+
+1. **PyObjC breaks Linux CI** (PR #8, merged) — `pyobjc-core` + 4 framework
+   packages were listed unconditionally in `requirements.txt`; they have no
+   Linux wheels ("PyObjC requires macOS to build"). Added
+   `; platform_system == "Darwin"` markers to all five.
+2. **psutil undeclared** (PR #9, merged) — imported unguarded in 4
+   operational-security modules (`multi_channel_emergency_stop`,
+   `rate_limiting_resource_control`, `lm_studio_performance_monitor`,
+   `runaway_process_detector`) but never declared. "Worked" locally only because
+   it happened to be installed. Added to `requirements.in`/`.txt`.
+3. **sentence-transformers / faiss-cpu / cryptography undeclared** (PR #10, open)
+   — same pattern (imported by `embedding_generator`, `vector_store`,
+   `encryption`). Adding them forced two transitive-consistency fixes:
+   **`cffi` → 2.0.0** (cryptography 46.0.3 requires cffi>=2.0.0) and
+   **`setuptools<81`** (see follow-ups). Verified with a from-scratch
+   `--no-cache-dir` clean install: **0 conflicts, 17/17 characterization,
+   451 canonical.**
+4. **ci.yml overrode the canonical suite** (PR #11, merged) — the test job ran
+   `pytest tests/`, and a positional path **overrides `pytest.ini`'s
+   `testpaths`**, so CI silently collected **136 files** (incl.
+   quarantined/legacy) instead of the intended **22-file canonical suite**.
+   Fixed to bare `pytest`. **Root-cause fix** — this is exactly why "verified
+   locally" (`make test`) and "green in CI" had diverged.
+5. **test_tts_cache.py wrong path** (PR #13, merged) — ci.yml ran
+   `python test_tts_cache.py` at repo root, but commit `c8a0ea9` (pre-Week-8.5
+   cleanup) moved it to `tests/`. Fixed the path; verified it still passes 3/3.
+6. **SoT PRD recovered** (PR #12, merged) —
+   `docs/specs/SOURCE_OF_TRUTH_SYSTEM_PRD.md` (278 lines) existed only in an
+   uncommitted git stash, never on any branch — one `stash drop` from permanent
+   loss. Committed it properly, and fixed a now-stale "`think()` has ZERO test
+   coverage" claim inside the doc.
+
+**Merged today:** #8, #9, #11, #12, #13. **Open:** #10 (clean-install deps).
+
+### 🧪 Characterization tests: 5 → 17
+
+An autonomous agent added **12 extended tests** on top of the 5 base tests —
+research success/failure paths, financial disclaimer, judgment clarify-gate,
+A/B personality gating, resilience, and documented quirks.
+(`tests/test_pipeline_characterization.py` +
+`tests/test_pipeline_characterization_extended.py`, run with `--run-slow`.)
+
+### 🤖 Autonomous agents (CI workflows)
+
+- **Characterization test writer** (`.github/workflows/characterization-tests.yml`)
+  — manual trigger, **additive-only** (writes tests, never touches production code).
+- **Background code reviewer** (`.github/workflows/code-reviewer.yml`) —
+  auto-runs on every PR, **read-only** (comments only, never edits code).
+- **Dependency watchdog** (`.github/workflows/dependency-watchdog.yml`) —
+  just built; weekly schedule + manual trigger; checks for vulnerabilities with
+  clean-install + marker-preservation verification before proposing any fix.
+
+### 📌 New known follow-ups (not urgent — don't lose track)
+
+- **`mcp_protocol_foundation.py` broken import guard** — the
+  `try/except ImportError` catches the error, then crashes anyway on
+  unconditional use of the now-undefined names a few lines later. It doesn't
+  actually degrade gracefully. (Same non-functional-guard pattern as
+  `MultiChannelEmergencyStop` / `PredictiveSecurityAnalytics`.)
+- **`GoogleTTS.speak()` silently accepts an `output_file` kwarg it doesn't
+  handle** — surfaced as warnings during the TTS cache test (test still passes).
+  Worth a look.
+- **`setuptools<81` is a temporary pin** — the real fix is updating/replacing
+  `webrtcvad` (unmaintained; depends on deprecated `pkg_resources`, which
+  setuptools 81+ removed).
+
+### ✅ Status: R1 is now genuinely unblocked
+
+Not just "tests exist" — verified end-to-end: clean install works, the canonical
+suite runs correctly in CI, and characterization tests gate real `think()`
+behavior. **Next session's priority: start the actual `think()` decomposition (R1).**
 
 ---
 

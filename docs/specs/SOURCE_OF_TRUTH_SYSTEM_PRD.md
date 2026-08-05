@@ -204,7 +204,7 @@ Create `CLAUDE.md` at project root with this section:
 ## Architecture rules
 - Single-threaded development (no agent swarms). Direction > Speed.
 - Safety-first: judgment before learning, staging before permanent.
-- `research_first_pipeline.py` `think()` has ZERO test coverage — do NOT refactor without characterization tests.
+- `research_first_pipeline.py` `think()` has characterization tests (`tests/test_pipeline_characterization*.py`) — extend them before changing `think()`'s behavior, don't remove coverage.
 - `make test` = canonical suite (451+ tests). `make test-all` = includes quarantined legacy tests.
 - See `QUARANTINE_NOTES.md` for excluded tests and reasons.
 ```

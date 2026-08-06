@@ -88,6 +88,28 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _apply_financial_disclaimer(response: str, financial_topic: bool) -> str:
+    """Append Penny's financial disclaimer when responding on a financial topic.
+
+    Pure function: depends only on its two arguments (plus the module-level,
+    pure ``sanitize_output`` helper). No side effects, no ``self``/instance
+    state. Behavior is identical to the inline logic it replaces:
+      - non-financial topics are returned unchanged
+      - responses that already mention "disclaimer" / "financial advice" are
+        left as-is (no double disclaimer)
+      - otherwise the disclaimer is appended and the result is sanitized
+    """
+    if not financial_topic:
+        return response
+    if "disclaimer" in response.lower() or "financial advice" in response.lower():
+        return response
+    penny_disclaimer = (
+        "\n\nQuick note: I'm sharing general information here, not financial advice. "
+        "Talk to a licensed professional before making money moves."
+    )
+    return sanitize_output(response + penny_disclaimer)
+
+
 class ResearchFirstPipeline(PipelineLoop):
     """Research-first pipeline that always researches before answering factual questions."""
 
@@ -825,14 +847,7 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.debug("🧪 A/B Test: Skipping response post-processing (control group)")
 
             # Step 6: Add financial disclaimer if needed (in Penny's style)
-            if financial_topic:
-                # Check if we already have a disclaimer
-                if "disclaimer" not in final_response.lower() and "financial advice" not in final_response.lower():
-                    penny_disclaimer = (
-                        "\n\nQuick note: I'm sharing general information here, not financial advice. "
-                        "Talk to a licensed professional before making money moves."
-                    )
-                    final_response = sanitize_output(final_response + penny_disclaimer)
+            final_response = _apply_financial_disclaimer(final_response, financial_topic)
 
             # Step 8: Store in memory (WEEK 7: Dual-save architecture)
             try:

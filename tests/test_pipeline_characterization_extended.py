@@ -335,3 +335,52 @@ class TestThinkKnownQuirks:
 
         assert p._last_response_id is None
         assert p._last_response_type is None
+
+
+class TestThinkPromptCaptureCoverage:
+    """
+    Closes coverage gaps found in the PromptBuilder pre-flight (R1 step 2 prep).
+    Several variables the `llm_generator` closure captures had no assertion on
+    their effect on the assembled prompt / LLM call, so a faithful extraction
+    could drop them without any test noticing. These lock the CURRENT behavior.
+    Nothing is extracted yet -- they exercise the closure exactly as it stands.
+    """
+
+    def test_tone_is_threaded_through_to_llm_call(self, pipeline):
+        # tone comes from _route_tone() (on the parent PipelineLoop) and must
+        # reach self.llm.complete(final_prompt, tone=tone). The existing tests
+        # record (prompt, tone) but never assert the tone slot.
+        p, _ = pipeline
+        p._route_tone = lambda text: "sentinel_tone"
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        assert p.llm.calls, "LLM was never called"
+        assert p.llm.calls[0][1] == "sentinel_tone"
+
+    def test_conversation_and_semantic_sections_injected_when_present(self, pipeline):
+        # The existing 17 tests run on a fresh pipeline where conversation
+        # context and semantic results are both empty, so those two prompt
+        # sections are never exercised. Seed both and assert they land.
+        p, _ = pipeline
+        p.context_manager.get_context_for_prompt = lambda **kw: "PRIOR_CONTEXT_SENTINEL"
+        p.semantic_memory.semantic_search = lambda query, k=3: [
+            {"user_input": "we talked about widgets before", "similarity": 0.88},
+        ]
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        prompt = p.llm.calls[0][0]
+        assert "PRIOR_CONTEXT_SENTINEL" in prompt                 # conversation-context section
+        assert "Relevant past conversations:" in prompt           # semantic-memory section header
+        assert "we talked about widgets before" in prompt         # semantic hit content
+
+    def test_current_emotion_line_injected(self, pipeline):
+        # emotion_result is always produced; its "User's current emotion:" line
+        # is injected into the prompt, but no existing test asserts it.
+        p, _ = pipeline
+        p.state = State.THINKING
+        p.think("Hello Penny, how are you today?")
+
+        prompt = p.llm.calls[0][0]
+        assert "User's current emotion:" in prompt

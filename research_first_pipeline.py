@@ -605,6 +605,8 @@ class ResearchFirstPipeline(PipelineLoop):
 
             # Step 3: Conduct research if needed
             research_context = ""
+            research_result = None  # ensure defined even when research isn't run
+                                    # (R1 PromptBuilder prep: becomes an explicit arg)
             if research_required:
                 logger.info("📚 Conducting research...")
                 research_result = self.research_manager.run_research(actual_command, [])

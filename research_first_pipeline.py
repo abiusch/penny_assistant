@@ -11,6 +11,7 @@ import logging
 import json
 from typing import Optional, Dict, Any
 from datetime import datetime
+from dataclasses import dataclass
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -108,6 +109,21 @@ def _apply_financial_disclaimer(response: str, financial_topic: bool) -> str:
         "Talk to a licensed professional before making money moves."
     )
     return sanitize_output(response + penny_disclaimer)
+
+
+@dataclass(frozen=True)
+class PromptContext:
+    """Turn-local inputs the prompt builder needs (formerly captured by the
+    llm_generator closure). Frozen: the builder only reads these."""
+    is_control: bool
+    emotion_result: Any            # EmotionResult
+    emotional_context: str
+    research_required: bool
+    research_result: Any           # ResearchResult | None
+    research_context: str
+    tone: str
+    conversation_context: str
+    semantic_results: list
 
 
 class ResearchFirstPipeline(PipelineLoop):
@@ -460,6 +476,179 @@ class ResearchFirstPipeline(PipelineLoop):
             logger.warning(f"Could not get personality state: {e}")
             return {}
 
+    def _build_and_generate(self, system_prompt: str, user_input: str, ctx: "PromptContext") -> str:
+        """Assemble the LLM prompt and generate the response (extracted from
+        think()'s former llm_generator/_build_research_instructions closures).
+
+        ctx bundles the 10 turn-local values the old closure captured; they are
+        unpacked to same-named locals below so the moved body is byte-for-byte
+        identical. render_debug is NOT touched here anymore -- the caller sets
+        render_debug['raw'] from this method's return value.
+        """
+        is_control = ctx.is_control
+        emotion_result = ctx.emotion_result
+        emotional_context = ctx.emotional_context
+        research_required = ctx.research_required
+        research_result = ctx.research_result
+        research_context = ctx.research_context
+        tone = ctx.tone
+        conversation_context = ctx.conversation_context
+        semantic_results = ctx.semantic_results
+
+        def _build_research_instructions() -> str:
+            if not research_required:
+                return (
+                    "KNOWLEDGE STRATEGY:\n"
+                    "- Lead with the most important finding or fix.\n"
+                    "- If details might be outdated, say so and suggest checking current sources."
+                )
+
+            if research_result and research_result.success and research_result.summary:
+                return (
+                    "RESEARCH MODE:\n"
+                    "- You just completed fresh research; cite the findings explicitly.\n"
+                    "- State that you researched this rather than claiming prior knowledge.\n"
+                    "- Prioritise factual accuracy and cite the key insights provided."
+                )
+
+            return (
+                "RESEARCH MODE (NO DATA):\n"
+                "- Research was attempted but failed; be transparent about the gap.\n"
+                "- Never fabricate numbers or recent events.\n"
+                "- Recommend official sources or recent publications for up-to-date information."
+            )
+
+        # Phase 2: Build personality-enhanced prompt (only for treatment group)
+        personality_enhancement = ""
+        if not is_control:
+            try:
+                personality_enhancement = asyncio.run(
+                    self.personality_prompt_builder.build_personality_prompt(
+                        user_id="default",
+                        context={'topic': 'general', 'query': user_input}
+                    )
+                )
+                logger.debug("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
+            except Exception as e:
+                logger.warning(f"Personality prompt building failed: {e}")
+        else:
+            logger.debug("🧪 A/B Test: Skipping personality enhancement (control group)")
+
+        prompt_sections = [system_prompt if system_prompt else "", _build_research_instructions()]
+
+        # Add personality enhancement early (before research context) - only for treatment
+        if personality_enhancement and not is_control:
+            prompt_sections.append(personality_enhancement)
+
+        # Week 6: Add conversation context from context manager
+        if conversation_context:
+            prompt_sections.append(f"\n{conversation_context}")
+
+        # Week 13: Inject user-model beliefs (what Penny knows about the user).
+        # build_context_snippet() already filters to relevant, confident beliefs
+        # and caps the count, so we never dump the whole store into the prompt.
+        if getattr(self, "belief_extractor", None) and self.user_model_enabled:
+            try:
+                keywords = [
+                    w.strip(".,!?;:'\"").lower()
+                    for w in user_input.split()
+                    if len(w) > 3
+                ]
+                belief_snippet = self.belief_extractor.build_context_snippet(
+                    context_keywords=keywords, min_confidence=0.6
+                )
+                if belief_snippet:
+                    prompt_sections.append(
+                        "What I know about you (use naturally, don't recite):\n"
+                        f"{belief_snippet}"
+                    )
+            except Exception as um_e:
+                logger.warning(f"Belief context injection failed (non-fatal): {um_e}")
+
+        # Week 6: Add semantic memory context
+        if semantic_results:
+            semantic_context = "\n\nRelevant past conversations:"
+            for result in semantic_results:
+                semantic_context += f"\n- User: {result.get('user_input', '')[:100]}... (similarity: {result.get('similarity', 0):.2f})"
+            prompt_sections.append(semantic_context)
+
+        # Week 8: Add emotional context if check-in suggested
+        if emotional_context:
+            prompt_sections.append(emotional_context)
+
+        # Week 6: Add current topic and emotional state
+        stats = self.context_manager.get_stats()
+        context_info = []
+        if stats.get('current_topic'):
+            context_info.append(f"Current topic: {stats['current_topic']}")
+        if stats.get('emotional_state'):
+            context_info.append(f"User's emotional state: {stats['emotional_state']}")
+        if emotion_result:
+            context_info.append(f"User's current emotion: {emotion_result.primary_emotion} ({emotion_result.sentiment})")
+        if context_info:
+            prompt_sections.append("\n\n" + "\n".join(context_info))
+
+        # WEEK 7: Removed legacy memory_context (using semantic memory instead)
+        # if memory_context:
+        #     prompt_sections.append(f"Legacy conversation context: {memory_context}")
+
+        if research_context:
+            prompt_sections.append(research_context)
+
+        # Phase 3B Week 3: Add tool manifest
+        tool_manifest = self.tool_registry.get_tool_manifest()
+        prompt_sections.append(tool_manifest)
+
+        prompt_sections.append(
+            "RESPONSE REQUIREMENTS:\n"
+            "- You may use tools if needed by outputting: <|channel|>commentary<|message|>{\"tool\": \"tool_name\", \"args\": {...}}\n"
+            "- OR respond directly with natural conversational text\n"
+            "- Do NOT mix tool calls with natural text\n"
+            "- If using a tool, output ONLY the tool call syntax\n"
+            "- If answering directly, use ONLY natural English\n"
+            "- Stay dry, concise, and direct.\n"
+            "- Lead with the actionable answer before elaborating.\n"
+            "- If recommending verification or research, make it explicit."
+        )
+
+        prompt_sections.append(f"User query: {user_input}")
+
+        final_prompt = "\n\n".join(filter(None, prompt_sections))
+
+        # Week 6+7: Debug logging for prompt length
+        logger.debug(f"✨ Final prompt built: {len(final_prompt)} chars (Week 7 architecture)")
+        logger.debug(f"   📊 Breakdown: base={len(system_prompt if system_prompt else '')}, "
+              f"conv_ctx={len(conversation_context)}, "
+              f"semantic={len(str(semantic_results))}, "
+              f"emotion={'yes' if emotion_result else 'no'}, "
+              f"research={'yes' if research_context else 'no'}")
+
+        # Debug: Show actual prompt being sent to LLM
+        logger.debug(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n")
+
+        # Phase 3B Week 3: Use tool orchestrator
+        logger.debug("🔧 Checking for tool calls...")
+
+        # Create LLM generator wrapper for orchestrator
+        def orchestrator_llm_gen(context):
+            # Simple: just call LLM with the final prompt
+            if hasattr(self.llm, 'complete'):
+                return self.llm.complete(final_prompt, tone=tone)
+            else:
+                return self.llm.generate(final_prompt)
+
+        # Run orchestrator (sync wrapper for async)
+        orchestrated_response = asyncio.run(
+            self.tool_orchestrator.orchestrate(
+                initial_prompt=user_input,
+                llm_generator=orchestrator_llm_gen,
+                conversation_context=[]
+            )
+        )
+
+        return orchestrated_response
+
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -666,163 +855,31 @@ class ResearchFirstPipeline(PipelineLoop):
             except Exception as e:
                 logger.warning(f"Semantic search failed: {e}")
 
-            def _build_research_instructions() -> str:
-                if not research_required:
-                    return (
-                        "KNOWLEDGE STRATEGY:\n"
-                        "- Lead with the most important finding or fix.\n"
-                        "- If details might be outdated, say so and suggest checking current sources."
-                    )
+            prompt_ctx = PromptContext(
+                is_control=is_control,
+                emotion_result=emotion_result,
+                emotional_context=emotional_context,
+                research_required=research_required,
+                research_result=research_result,
+                research_context=research_context,
+                tone=tone,
+                conversation_context=conversation_context,
+                semantic_results=semantic_results,
+            )
 
-                if research_result and research_result.success and research_result.summary:
-                    return (
-                        "RESEARCH MODE:\n"
-                        "- You just completed fresh research; cite the findings explicitly.\n"
-                        "- State that you researched this rather than claiming prior knowledge.\n"
-                        "- Prioritise factual accuracy and cite the key insights provided."
-                    )
+            # chat_respond() runs sanitize_output() on the generator's return, so
+            # capture the pre-sanitize value to keep render_debug['raw'] identical
+            # to what the old inline closure recorded.
+            _generated: Dict[str, str] = {}
 
-                return (
-                    "RESEARCH MODE (NO DATA):\n"
-                    "- Research was attempted but failed; be transparent about the gap.\n"
-                    "- Never fabricate numbers or recent events.\n"
-                    "- Recommend official sources or recent publications for up-to-date information."
+            def _generate(system_prompt: str, user_input: str) -> str:
+                _generated["raw"] = self._build_and_generate(
+                    system_prompt, user_input, prompt_ctx
                 )
+                return _generated["raw"]
 
-            def llm_generator(system_prompt: str, user_input: str) -> str:
-                # Phase 2: Build personality-enhanced prompt (only for treatment group)
-                personality_enhancement = ""
-                if not is_control:
-                    try:
-                        personality_enhancement = asyncio.run(
-                            self.personality_prompt_builder.build_personality_prompt(
-                                user_id="default",
-                                context={'topic': 'general', 'query': user_input}
-                            )
-                        )
-                        logger.debug("🎭 Personality-enhanced prompt applied (length: {} chars)".format(len(personality_enhancement)))
-                    except Exception as e:
-                        logger.warning(f"Personality prompt building failed: {e}")
-                else:
-                    logger.debug("🧪 A/B Test: Skipping personality enhancement (control group)")
-
-                prompt_sections = [system_prompt if system_prompt else "", _build_research_instructions()]
-
-                # Add personality enhancement early (before research context) - only for treatment
-                if personality_enhancement and not is_control:
-                    prompt_sections.append(personality_enhancement)
-
-                # Week 6: Add conversation context from context manager
-                if conversation_context:
-                    prompt_sections.append(f"\n{conversation_context}")
-
-                # Week 13: Inject user-model beliefs (what Penny knows about the user).
-                # build_context_snippet() already filters to relevant, confident beliefs
-                # and caps the count, so we never dump the whole store into the prompt.
-                if getattr(self, "belief_extractor", None) and self.user_model_enabled:
-                    try:
-                        keywords = [
-                            w.strip(".,!?;:'\"").lower()
-                            for w in user_input.split()
-                            if len(w) > 3
-                        ]
-                        belief_snippet = self.belief_extractor.build_context_snippet(
-                            context_keywords=keywords, min_confidence=0.6
-                        )
-                        if belief_snippet:
-                            prompt_sections.append(
-                                "What I know about you (use naturally, don't recite):\n"
-                                f"{belief_snippet}"
-                            )
-                    except Exception as um_e:
-                        logger.warning(f"Belief context injection failed (non-fatal): {um_e}")
-
-                # Week 6: Add semantic memory context
-                if semantic_results:
-                    semantic_context = "\n\nRelevant past conversations:"
-                    for result in semantic_results:
-                        semantic_context += f"\n- User: {result.get('user_input', '')[:100]}... (similarity: {result.get('similarity', 0):.2f})"
-                    prompt_sections.append(semantic_context)
-
-                # Week 8: Add emotional context if check-in suggested
-                if emotional_context:
-                    prompt_sections.append(emotional_context)
-
-                # Week 6: Add current topic and emotional state
-                stats = self.context_manager.get_stats()
-                context_info = []
-                if stats.get('current_topic'):
-                    context_info.append(f"Current topic: {stats['current_topic']}")
-                if stats.get('emotional_state'):
-                    context_info.append(f"User's emotional state: {stats['emotional_state']}")
-                if emotion_result:
-                    context_info.append(f"User's current emotion: {emotion_result.primary_emotion} ({emotion_result.sentiment})")
-                if context_info:
-                    prompt_sections.append("\n\n" + "\n".join(context_info))
-
-                # WEEK 7: Removed legacy memory_context (using semantic memory instead)
-                # if memory_context:
-                #     prompt_sections.append(f"Legacy conversation context: {memory_context}")
-
-                if research_context:
-                    prompt_sections.append(research_context)
-
-                # Phase 3B Week 3: Add tool manifest
-                tool_manifest = self.tool_registry.get_tool_manifest()
-                prompt_sections.append(tool_manifest)
-
-                prompt_sections.append(
-                    "RESPONSE REQUIREMENTS:\n"
-                    "- You may use tools if needed by outputting: <|channel|>commentary<|message|>{\"tool\": \"tool_name\", \"args\": {...}}\n"
-                    "- OR respond directly with natural conversational text\n"
-                    "- Do NOT mix tool calls with natural text\n"
-                    "- If using a tool, output ONLY the tool call syntax\n"
-                    "- If answering directly, use ONLY natural English\n"
-                    "- Stay dry, concise, and direct.\n"
-                    "- Lead with the actionable answer before elaborating.\n"
-                    "- If recommending verification or research, make it explicit."
-                )
-
-                prompt_sections.append(f"User query: {user_input}")
-
-                final_prompt = "\n\n".join(filter(None, prompt_sections))
-                render_debug['prompt'] = final_prompt
-
-                # Week 6+7: Debug logging for prompt length
-                logger.debug(f"✨ Final prompt built: {len(final_prompt)} chars (Week 7 architecture)")
-                logger.debug(f"   📊 Breakdown: base={len(system_prompt if system_prompt else '')}, "
-                      f"conv_ctx={len(conversation_context)}, "
-                      f"semantic={len(str(semantic_results))}, "
-                      f"emotion={'yes' if emotion_result else 'no'}, "
-                      f"research={'yes' if research_context else 'no'}")
-
-                # Debug: Show actual prompt being sent to LLM
-                logger.debug(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n")
-
-                # Phase 3B Week 3: Use tool orchestrator
-                logger.debug("🔧 Checking for tool calls...")
-                
-                # Create LLM generator wrapper for orchestrator
-                def orchestrator_llm_gen(context):
-                    # Simple: just call LLM with the final prompt
-                    if hasattr(self.llm, 'complete'):
-                        return self.llm.complete(final_prompt, tone=tone)
-                    else:
-                        return self.llm.generate(final_prompt)
-                
-                # Run orchestrator (sync wrapper for async)
-                orchestrated_response = asyncio.run(
-                    self.tool_orchestrator.orchestrate(
-                        initial_prompt=user_input,
-                        llm_generator=orchestrator_llm_gen,
-                        conversation_context=[]
-                    )
-                )
-
-                render_debug['raw'] = orchestrated_response
-                return orchestrated_response
-
-            final_response = chat_respond(actual_command, generator=llm_generator)
+            final_response = chat_respond(actual_command, generator=_generate)
+            render_debug["raw"] = _generated.get("raw")
 
             if render_debug.get('raw'):
                 logger.debug(f"🤖 Base response: {render_debug['raw'][:100]}...")

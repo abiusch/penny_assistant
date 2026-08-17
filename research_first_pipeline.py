@@ -762,6 +762,107 @@ class ResearchFirstPipeline(PipelineLoop):
         should_clarify, clarifying_question = self._should_clarify(actual_command, initial_judgment_context)
         return clarifying_question if should_clarify else None
 
+    def _input_prehooks(self, user_text: str, conversation_id: str) -> str:
+        """Input normalization + Week 11/12/13 learning pre-hooks.
+
+        Runs before the judgment gate. Each hook is a non-fatal try/except and
+        fires only when its subsystem is wired (outcome_tracker/goal_tracker/
+        belief_extractor); returns the normalized command.
+        """
+        # Step 1: Process input
+        actual_command = user_text.strip()
+
+        # Step 1.1: Week 11 - Detect reaction to previous response
+        if self.outcome_tracker and self._last_response_id:
+            try:
+                reaction, conf = self.outcome_tracker.detect_user_reaction(
+                    actual_command,
+                    prior_response_id=self._last_response_id,
+                    session_id=conversation_id,
+                )
+                if reaction != "neutral":
+                    context_type = "general"
+                    self.outcome_tracker.observe_outcome(
+                        response_id=self._last_response_id,
+                        response_type=self._last_response_type or "conversational",
+                        reaction=reaction,
+                        context_type=context_type,
+                        strategy=self._last_response_type or "default",
+                        confidence=conf,
+                        session_id=conversation_id,
+                    )
+                    logger.info(f"📊 Outcome recorded: {reaction} (conf={conf:.2f})")
+            except Exception as oc_e:
+                logger.warning(f"Outcome detection error (non-fatal): {oc_e}")
+
+        # Step 1.15: Week 12 - Goal Continuity
+        if self.goal_tracker:
+            try:
+                goal_result = self.goal_tracker.process_turn(
+                    actual_command, session_id=conversation_id
+                )
+                if goal_result["new_goal"]:
+                    logger.info(f"🎯 New goal tracked: {goal_result['new_goal']['description'][:60]}")
+                if goal_result["updated_goals"]:
+                    logger.info(f"🎯 {len(goal_result['updated_goals'])} goal(s) updated")
+            except Exception as gc_e:
+                logger.warning(f"Goal tracking error (non-fatal): {gc_e}")
+
+        # Step 1.2: Week 13 - Extract beliefs from user message
+        if self.belief_extractor:
+            try:
+                new_beliefs = self.belief_extractor.extract_from_turn(
+                    actual_command, session_id=conversation_id
+                )
+                if new_beliefs:
+                    logger.info(f"🧠 UserModel: {len(new_beliefs)} belief(s) extracted")
+            except Exception as um_e:
+                logger.warning(f"Belief extraction error (non-fatal): {um_e}")
+
+        return actual_command
+
+    def _process_emotion(self, actual_command: str):
+        """Emotion detection + Week 8 emotional-continuity check-in.
+
+        Runs after the judgment gate. Returns (emotion_result, emotional_context,
+        check_in_thread); check_in_thread is threaded back so think()'s post-turn
+        block can mark the follow-up.
+        """
+        # Step 1.5: Week 6 - Detect emotion from user input
+        emotion_result = self.emotion_detector.detect_emotion(actual_command)
+        logger.info(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
+
+        # Step 1.6: Week 8 - Track significant emotions and check for emotional context
+        turn_id = f"turn_{int(time.time() * 1000)}"
+        emotional_thread = None
+        check_in_thread = None
+        emotional_context = ""
+
+        if self.consent_manager.is_tracking_enabled():
+            # Track emotion if significant
+            emotional_thread = self.emotional_continuity.track_emotion(
+                user_input=actual_command,
+                turn_id=turn_id
+            )
+
+            if emotional_thread:
+                logger.info(
+                    f"📌 Tracked emotion: {emotional_thread.emotion} "
+                    f"(intensity={emotional_thread.intensity:.2f})"
+                )
+
+            # Check if we should reference previous emotional context
+            if self.consent_manager.is_checkins_enabled():
+                check_in_thread = self.emotional_continuity.should_check_in()
+
+                if check_in_thread:
+                    emotional_context = self.emotional_continuity.generate_check_in_prompt(
+                        check_in_thread
+                    )
+                    logger.info(f"💭 Suggesting emotional check-in: {check_in_thread.emotion}")
+
+        return emotion_result, emotional_context, check_in_thread
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -780,55 +881,8 @@ class ResearchFirstPipeline(PipelineLoop):
             else:
                 logger.info(f"🧪 A/B Test: Treatment group (adapted)")
 
-            # Step 1: Process input
-            actual_command = user_text.strip()
-
-            # Step 1.1: Week 11 - Detect reaction to previous response
-            if self.outcome_tracker and self._last_response_id:
-                try:
-                    reaction, conf = self.outcome_tracker.detect_user_reaction(
-                        actual_command,
-                        prior_response_id=self._last_response_id,
-                        session_id=conversation_id,
-                    )
-                    if reaction != "neutral":
-                        context_type = "general"
-                        self.outcome_tracker.observe_outcome(
-                            response_id=self._last_response_id,
-                            response_type=self._last_response_type or "conversational",
-                            reaction=reaction,
-                            context_type=context_type,
-                            strategy=self._last_response_type or "default",
-                            confidence=conf,
-                            session_id=conversation_id,
-                        )
-                        logger.info(f"📊 Outcome recorded: {reaction} (conf={conf:.2f})")
-                except Exception as oc_e:
-                    logger.warning(f"Outcome detection error (non-fatal): {oc_e}")
-
-            # Step 1.15: Week 12 - Goal Continuity
-            if self.goal_tracker:
-                try:
-                    goal_result = self.goal_tracker.process_turn(
-                        actual_command, session_id=conversation_id
-                    )
-                    if goal_result["new_goal"]:
-                        logger.info(f"🎯 New goal tracked: {goal_result['new_goal']['description'][:60]}")
-                    if goal_result["updated_goals"]:
-                        logger.info(f"🎯 {len(goal_result['updated_goals'])} goal(s) updated")
-                except Exception as gc_e:
-                    logger.warning(f"Goal tracking error (non-fatal): {gc_e}")
-
-            # Step 1.2: Week 13 - Extract beliefs from user message
-            if self.belief_extractor:
-                try:
-                    new_beliefs = self.belief_extractor.extract_from_turn(
-                        actual_command, session_id=conversation_id
-                    )
-                    if new_beliefs:
-                        logger.info(f"🧠 UserModel: {len(new_beliefs)} belief(s) extracted")
-                except Exception as um_e:
-                    logger.warning(f"Belief extraction error (non-fatal): {um_e}")
+            # Step 1: normalize input + Week 11/12/13 learning pre-hooks
+            actual_command = self._input_prehooks(user_text, conversation_id)
 
             # Step 1.3: Week 8.5 - Judgment check (should we clarify first?)
             clarification = self._judgment_gate(actual_command)
@@ -838,38 +892,8 @@ class ResearchFirstPipeline(PipelineLoop):
                 self.state = State.SPEAKING
                 return clarification
 
-            # Step 1.5: Week 6 - Detect emotion from user input
-            emotion_result = self.emotion_detector.detect_emotion(actual_command)
-            logger.info(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
-
-            # Step 1.6: Week 8 - Track significant emotions and check for emotional context
-            turn_id = f"turn_{int(time.time() * 1000)}"
-            emotional_thread = None
-            check_in_thread = None
-            emotional_context = ""
-
-            if self.consent_manager.is_tracking_enabled():
-                # Track emotion if significant
-                emotional_thread = self.emotional_continuity.track_emotion(
-                    user_input=actual_command,
-                    turn_id=turn_id
-                )
-
-                if emotional_thread:
-                    logger.info(
-                        f"📌 Tracked emotion: {emotional_thread.emotion} "
-                        f"(intensity={emotional_thread.intensity:.2f})"
-                    )
-
-                # Check if we should reference previous emotional context
-                if self.consent_manager.is_checkins_enabled():
-                    check_in_thread = self.emotional_continuity.should_check_in()
-
-                    if check_in_thread:
-                        emotional_context = self.emotional_continuity.generate_check_in_prompt(
-                            check_in_thread
-                        )
-                        logger.info(f"💭 Suggesting emotional check-in: {check_in_thread.emotion}")
+            # Step 1.5/1.6: emotion detection + emotional-continuity check-in
+            emotion_result, emotional_context, check_in_thread = self._process_emotion(actual_command)
 
             # Step 2: classification. financial_topic feeds the disclaimer (Step 6),
             # not research, so it stays here; research classification+execution moves

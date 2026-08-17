@@ -22,11 +22,13 @@ conftest SLOW_FILES, same as test_pipeline_characterization.py.
 import os
 import shutil
 import tempfile
+from datetime import datetime
 
 import pytest
 
 from src.core.pipeline import State
-from research_first_pipeline import ResearchFirstPipeline
+from research_first_pipeline import ResearchFirstPipeline, OUTCOME_TRACKING_AVAILABLE
+from src.memory.emotional_continuity import EmotionalThread
 from factual_research_manager import ResearchResult
 
 
@@ -384,3 +386,104 @@ class TestThinkPromptCaptureCoverage:
 
         prompt = p.llm.calls[0][0]
         assert "User's current emotion:" in prompt
+
+
+class TestInputProcessorPrereqCoverage:
+    """Coverage gaps closed before the R1 step-5 InputProcessor extraction.
+
+    Two think() input-processing branches were never exercised because every
+    existing test starts from a fresh pipeline:
+      - the emotional-continuity check-in path (Step 1.6), gated behind three
+        opt-in/enabled flags plus a pre-seeded emotional thread; and
+      - the enabled learning pre-hooks (Steps 1.1/1.15/1.2), which default to
+        None and were only ever tested in the disabled state.
+    These lock CURRENT behavior so the upcoming extraction can be proven
+    byte-faithful. No production code has moved yet.
+    """
+
+    def test_emotional_checkin_injects_context(self, pipeline):
+        # GAP 1: emotional-continuity check-in path (Step 1.6).
+        # should_check_in() only fires when tracking + check-ins consent are on
+        # AND EmotionalContinuity.enabled is True. That `enabled` flag is
+        # captured once at __init__ from is_tracking_enabled() (default False),
+        # so flipping the consent prefs alone is not enough -- we must also flip
+        # emotional_continuity.enabled directly. Set everything in-memory;
+        # grant_consent() would write to data/user_consent.json.
+        p, _ = pipeline
+        p.consent_manager.preferences['emotional_tracking_enabled'] = True
+        p.consent_manager.preferences['proactive_checkins_enabled'] = True
+        p.emotional_continuity.enabled = True
+        # Seed a prior high-intensity, un-followed-up thread inside the window.
+        p.emotional_continuity.threads.append(EmotionalThread(
+            emotion='stress',
+            intensity=0.9,
+            context='worried about layoffs',
+            timestamp=datetime.now(),
+            turn_id='prev',
+        ))
+        p.state = State.THINKING
+        # Neutral input on purpose: track_emotion() runs first (Step 1.6) and a
+        # high-intensity input would append a newer thread that should_check_in()
+        # would return instead of our seeded one.
+        p.think("what time is it")
+
+        assert p.llm.calls, "LLM was never called"
+        assert "[EMOTIONAL CONTEXT]" in p.llm.calls[0][0]
+
+    @pytest.mark.skipif(
+        not OUTCOME_TRACKING_AVAILABLE,
+        reason="outcome tracking symbols unavailable; post-turn tagging block "
+               "would NameError on a stubbed outcome_tracker",
+    )
+    def test_learning_prehooks_wired_when_enabled(self, pipeline):
+        # GAP 2: the learning pre-hooks (Steps 1.1/1.15/1.2) guard on attribute
+        # truthiness, not on the *_enabled flags, so assigning a stub to each
+        # attribute exercises the enabled branch without constructing the real
+        # subsystems. We assert only that think() routes the normalized command
+        # to each hook -- not the subsystems' internal logic.
+        p, _ = pipeline
+
+        class GoalStub:
+            def __init__(self):
+                self.calls = []
+
+            def process_turn(self, cmd, session_id=None):
+                self.calls.append((cmd, session_id))
+                return {"new_goal": None, "updated_goals": []}
+
+        class BeliefStub:
+            def __init__(self):
+                self.calls = []
+
+            def extract_from_turn(self, cmd, session_id=None):
+                self.calls.append((cmd, session_id))
+                return []
+
+        class OutcomeStub:
+            def __init__(self):
+                self.calls = []
+
+            def detect_user_reaction(self, cmd, prior_response_id=None,
+                                     session_id=None):
+                self.calls.append((cmd, prior_response_id, session_id))
+                return ("neutral", 0.0)
+
+        goal_stub = GoalStub()
+        belief_stub = BeliefStub()
+        outcome_stub = OutcomeStub()
+        p.goal_tracker = goal_stub
+        p.belief_extractor = belief_stub
+        p.outcome_tracker = outcome_stub
+        # Prerequisite: the Step 1.1 branch also requires a prior response id.
+        p._last_response_id = "resp_prev"
+        # user_model_enabled stays False so the only belief call is the pre-hook,
+        # not the separate belief use inside _judgment_gate.
+        p.state = State.THINKING
+        p.think("hello penny")
+
+        assert goal_stub.calls, "goal_tracker.process_turn was not called"
+        assert goal_stub.calls[0][0] == "hello penny"
+        assert belief_stub.calls, "belief_extractor.extract_from_turn was not called"
+        assert belief_stub.calls[0][0] == "hello penny"
+        assert outcome_stub.calls, "outcome_tracker.detect_user_reaction was not called"
+        assert outcome_stub.calls[0][0] == "hello penny"

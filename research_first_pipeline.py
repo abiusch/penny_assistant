@@ -728,6 +728,40 @@ class ResearchFirstPipeline(PipelineLoop):
             research_result=research_result,
         )
 
+    def _judgment_gate(self, actual_command: str) -> Optional[str]:
+        """Judgment/clarify gate. Builds the judgment context (incl. the Fix-4a
+        belief injection) and asks _should_clarify whether to interrupt the turn.
+
+        Returns the clarifying-question string if clarification is needed,
+        else None. The caller (think()) sets state and returns early on a non-None
+        result, so the short-circuit stays visible in think()'s own body.
+        (_should_clarify / _log_judgment_decision are unchanged; the latter still
+        writes self.last_judgment_result + judgment_logs.jsonl as before.)
+        """
+        # Build initial context for judgment
+        initial_judgment_context = {
+            'conversation_history': [],  # Will populate from context manager
+            'semantic_memory': [],
+            'emotional_state': None,
+            'personality_state': None
+        }
+
+        # Fix 4a: give Judgment the user's relevant beliefs so it can reason
+        # about (and later flag contradictions against) what we already know.
+        if getattr(self, "belief_extractor", None) and self.user_model_enabled:
+            try:
+                kw = [w.strip(".,!?;:'\"").lower()
+                      for w in actual_command.split() if len(w) > 3]
+                initial_judgment_context['user_beliefs'] = (
+                    belief_integration.beliefs_for_judgment(self.belief_extractor, kw)
+                )
+            except Exception as jb_e:
+                logger.warning(f"Belief→judgment context failed (non-fatal): {jb_e}")
+
+        # Check if we should clarify before proceeding
+        should_clarify, clarifying_question = self._should_clarify(actual_command, initial_judgment_context)
+        return clarifying_question if should_clarify else None
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -797,34 +831,12 @@ class ResearchFirstPipeline(PipelineLoop):
                     logger.warning(f"Belief extraction error (non-fatal): {um_e}")
 
             # Step 1.3: Week 8.5 - Judgment check (should we clarify first?)
-            # Build initial context for judgment
-            initial_judgment_context = {
-                'conversation_history': [],  # Will populate from context manager
-                'semantic_memory': [],
-                'emotional_state': None,
-                'personality_state': None
-            }
-
-            # Fix 4a: give Judgment the user's relevant beliefs so it can reason
-            # about (and later flag contradictions against) what we already know.
-            if getattr(self, "belief_extractor", None) and self.user_model_enabled:
-                try:
-                    kw = [w.strip(".,!?;:'\"").lower()
-                          for w in actual_command.split() if len(w) > 3]
-                    initial_judgment_context['user_beliefs'] = (
-                        belief_integration.beliefs_for_judgment(self.belief_extractor, kw)
-                    )
-                except Exception as jb_e:
-                    logger.warning(f"Belief→judgment context failed (non-fatal): {jb_e}")
-
-            # Check if we should clarify before proceeding
-            should_clarify, clarifying_question = self._should_clarify(actual_command, initial_judgment_context)
-
-            if should_clarify:
+            clarification = self._judgment_gate(actual_command)
+            if clarification is not None:
                 # Return clarifying question instead of processing
                 logger.info(f"✋ Judgment system returned clarification - not proceeding with tools")
                 self.state = State.SPEAKING
-                return clarifying_question
+                return clarification
 
             # Step 1.5: Week 6 - Detect emotion from user input
             emotion_result = self.emotion_detector.detect_emotion(actual_command)

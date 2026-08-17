@@ -126,6 +126,15 @@ class PromptContext:
     semantic_results: list
 
 
+@dataclass(frozen=True)
+class ResearchOutcome:
+    """Result of research classification + execution (extracted from think()).
+    financial_topic is intentionally NOT here -- it is a separate concern."""
+    research_required: bool
+    research_context: str
+    research_result: object | None
+
+
 class ResearchFirstPipeline(PipelineLoop):
     """Research-first pipeline that always researches before answering factual questions."""
 
@@ -649,6 +658,76 @@ class ResearchFirstPipeline(PipelineLoop):
         return orchestrated_response
 
 
+    def _classify_and_research(self, actual_command: str) -> "ResearchOutcome":
+        """Classify whether research is needed, run it if so, and build the
+        research_context prompt text. Extracted verbatim from think() Step 2/3.
+
+        Stays a method and still writes self.last_research_triggered /
+        self.last_research_success DIRECTLY on the pipeline instance -- these are
+        read by web_interface/server.py and asserted on the pipeline by tests.
+        (financial_topic is classified separately in think(); it feeds the
+        disclaimer, not research.)
+        """
+        research_required = self.research_manager.requires_research(actual_command)
+
+        logger.debug(f"🔍 Query: '{actual_command[:50]}...'")
+        logger.info(f"   Research required: {research_required}")
+
+        # Track research for web interface
+        self.last_research_triggered = research_required
+        self.last_research_success = False
+
+        # Step 3: Conduct research if needed
+        research_context = ""
+        research_result = None  # ensure defined even when research isn't run
+                                # (R1 PromptBuilder prep: becomes an explicit arg)
+        if research_required:
+            logger.info("📚 Conducting research...")
+            research_result = self.research_manager.run_research(actual_command, [])
+
+            # Debug research result details
+            logger.debug(f"🔍 DEBUG Research Result:")
+            logger.debug(f"  - Success: {research_result.success}")
+            logger.debug(f"  - Has summary: {bool(research_result.summary)}")
+            logger.debug(f"  - Summary length: {len(research_result.summary) if research_result.summary else 0}")
+            logger.debug(f"  - Key insights: {len(research_result.key_insights) if research_result.key_insights else 0}")
+            logger.debug(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
+
+            if research_result.success and research_result.summary:
+                # Track successful research
+                self.last_research_success = True
+
+                # Format research for personality integration, not replacement
+                key_facts = research_result.key_insights[:3] if research_result.key_insights else []
+                research_context = (
+                    f"\n🎯 RESEARCH SUCCESS - You just conducted successful research and found current information!\n"
+                    f"RESEARCH FINDINGS: {research_result.summary}\n"
+                    f"KEY INSIGHTS: {'; '.join(key_facts) if key_facts else 'Multiple current sources found'}\n"
+                    f"SOURCES FOUND: {len(research_result.findings)} sources with current information\n"
+                    f"\nINSTRUCTIONS:\n"
+                    f"- Share the current information you found in your characteristic sassy Penny style\n"
+                    f"- Reference that you just researched this (don't pretend you already knew it)\n"
+                    f"- Be engaging and informative using the research findings\n"
+                    f"- Maintain your personality while being factually accurate\n"
+                    f"- Do NOT say you're not connected to the internet - you just successfully researched this!\n"
+                )
+                logger.info(f"✅ Research successful: {research_result.summary[:100]}...")
+            else:
+                research_context = (
+                    "\nRESEARCH FAILED - CRITICAL INSTRUCTION: You MUST explicitly tell the user that you don't have current/recent information about this topic. "
+                    "Use phrases like 'I don't have current information', 'my data isn't up to date', or 'I can't access recent updates'. "
+                    "Do this with Penny's characteristic humor but be completely honest about the limitation. "
+                    "ABSOLUTELY DO NOT fabricate specific statistics, dates, technical specs, or recent developments. "
+                    "Instead, suggest they check the official Boston Dynamics website, recent tech news, or company announcements.\n"
+                )
+                logger.warning(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
+
+        return ResearchOutcome(
+            research_required=research_required,
+            research_context=research_context,
+            research_result=research_result,
+        )
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -780,63 +859,16 @@ class ResearchFirstPipeline(PipelineLoop):
                         )
                         logger.info(f"💭 Suggesting emotional check-in: {check_in_thread.emotion}")
 
-            # Step 2: Research classification
-            research_required = self.research_manager.requires_research(actual_command)
+            # Step 2: classification. financial_topic feeds the disclaimer (Step 6),
+            # not research, so it stays here; research classification+execution moves
+            # to _classify_and_research() (which still sets self.last_research_*).
             financial_topic = self.research_manager.is_financial_topic(actual_command)
-
-            logger.debug(f"🔍 Query: '{actual_command[:50]}...'")
-            logger.info(f"   Research required: {research_required}")
             logger.debug(f"   Financial topic: {financial_topic}")
 
-            # Track research for web interface
-            self.last_research_triggered = research_required
-            self.last_research_success = False
-
-            # Step 3: Conduct research if needed
-            research_context = ""
-            research_result = None  # ensure defined even when research isn't run
-                                    # (R1 PromptBuilder prep: becomes an explicit arg)
-            if research_required:
-                logger.info("📚 Conducting research...")
-                research_result = self.research_manager.run_research(actual_command, [])
-
-                # Debug research result details
-                logger.debug(f"🔍 DEBUG Research Result:")
-                logger.debug(f"  - Success: {research_result.success}")
-                logger.debug(f"  - Has summary: {bool(research_result.summary)}")
-                logger.debug(f"  - Summary length: {len(research_result.summary) if research_result.summary else 0}")
-                logger.debug(f"  - Key insights: {len(research_result.key_insights) if research_result.key_insights else 0}")
-                logger.debug(f"  - Findings count: {len(research_result.findings) if research_result.findings else 0}")
-
-                if research_result.success and research_result.summary:
-                    # Track successful research
-                    self.last_research_success = True
-
-                    # Format research for personality integration, not replacement
-                    key_facts = research_result.key_insights[:3] if research_result.key_insights else []
-                    research_context = (
-                        f"\n🎯 RESEARCH SUCCESS - You just conducted successful research and found current information!\n"
-                        f"RESEARCH FINDINGS: {research_result.summary}\n"
-                        f"KEY INSIGHTS: {'; '.join(key_facts) if key_facts else 'Multiple current sources found'}\n"
-                        f"SOURCES FOUND: {len(research_result.findings)} sources with current information\n"
-                        f"\nINSTRUCTIONS:\n"
-                        f"- Share the current information you found in your characteristic sassy Penny style\n"
-                        f"- Reference that you just researched this (don't pretend you already knew it)\n"
-                        f"- Be engaging and informative using the research findings\n"
-                        f"- Maintain your personality while being factually accurate\n"
-                        f"- Do NOT say you're not connected to the internet - you just successfully researched this!\n"
-                    )
-                    logger.info(f"✅ Research successful: {research_result.summary[:100]}...")
-                else:
-                    research_context = (
-                        "\nRESEARCH FAILED - CRITICAL INSTRUCTION: You MUST explicitly tell the user that you don't have current/recent information about this topic. "
-                        "Use phrases like 'I don't have current information', 'my data isn't up to date', or 'I can't access recent updates'. "
-                        "Do this with Penny's characteristic humor but be completely honest about the limitation. "
-                        "ABSOLUTELY DO NOT fabricate specific statistics, dates, technical specs, or recent developments. "
-                        "Instead, suggest they check the official Boston Dynamics website, recent tech news, or company announcements.\n"
-                    )
-                    logger.warning(f"⚠️ Research failed: {research_result.error if research_result else 'No research result'}")
-
+            research_outcome = self._classify_and_research(actual_command)
+            research_required = research_outcome.research_required
+            research_context = research_outcome.research_context
+            research_result = research_outcome.research_result
             # Step 4: Build contextual prompt for shared persona responder
             # WEEK 7: Removed enhanced_memory context (now using semantic memory only)
             # memory_context = self.enhanced_memory.get_enhanced_context_for_llm()  # REMOVED

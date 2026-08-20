@@ -863,6 +863,191 @@ class ResearchFirstPipeline(PipelineLoop):
 
         return emotion_result, emotional_context, check_in_thread
 
+    def _persist_turn(self, actual_command, final_response, emotion_result,
+                      research_required, financial_topic, group, start_time,
+                      check_in_thread) -> None:
+        """Step 8 dual-save: persist the turn + run all post-save subsystems.
+
+        Touches context_manager, semantic_memory, personality_tracker (via
+        _update_personality_from_conversation, which also drives milestone_tracker),
+        hebbian, emotional_continuity, personality_snapshots, and
+        forgetting_mechanism. Returns nothing; every effect lands on self.*
+        subsystems. Keeps its own non-fatal try/except intact.
+        """
+        # Step 8: Store in memory (WEEK 7: Dual-save architecture)
+        try:
+            logger.debug("💾 Attempting to save conversation to memory (Week 7 dual-save)...")
+
+            # Build enhanced metadata with ALL conversation data
+            # WEEK 7: All metadata now stored in semantic memory (single source of truth)
+            enhanced_metadata = {
+                "research_used": research_required,
+                "financial_topic": financial_topic,
+                "emotion": emotion_result.primary_emotion,
+                "emotion_confidence": emotion_result.confidence,
+                "sentiment": emotion_result.sentiment,
+                "sentiment_score": emotion_result.sentiment_score,
+                "ab_test_group": group,
+                "tools_used": [],  # TODO: Track tool usage from orchestrator
+                "response_time_ms": int((time.time() - start_time) * 1000)
+            }
+
+            # WEEK 7: Removed base_memory and enhanced_memory saves (redundant)
+            # OLD: self.base_memory.add_conversation_turn(...) - REMOVED
+            # OLD: self.enhanced_memory.process_conversation_turn(...) - REMOVED
+
+            # WEEK 7: Generate turn_id for tracking
+            import uuid
+            turn_id = str(uuid.uuid4())
+
+            # SAVE 1: Context Manager (in-memory cache only, NO persistence)
+            self.context_manager.add_turn(
+                user_input=actual_command,
+                assistant_response=final_response,
+                metadata=enhanced_metadata
+            )
+            logger.debug(f"💬 Context Manager: Cached turn (in-memory only)")
+
+            # SAVE 2: Semantic Memory (ONLY persistent store)
+            self.semantic_memory.add_conversation_turn(
+                user_input=actual_command,
+                assistant_response=final_response,
+                turn_id=turn_id,
+                context=enhanced_metadata  # Includes encrypted emotions/sentiment
+            )
+            logger.debug(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption")
+
+            # Update personality tracking from this conversation
+            self._update_personality_from_conversation(actual_command, final_response, turn_id)
+            logger.debug("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)")
+
+            # Week 10: Hebbian Learning (with safety checks)
+            if self.hebbian and self._is_safe_to_learn(actual_command, enhanced_metadata):
+                try:
+                    hebbian_result = self.hebbian.process_conversation_turn(
+                        user_message=actual_command,
+                        assistant_response=final_response,
+                        context={
+                            'formality': enhanced_metadata.get('formality', 0.5),
+                            'technical_depth': enhanced_metadata.get('technical_depth', 0.5),
+                            'emotion': enhanced_metadata.get('emotion'),
+                            'sentiment': enhanced_metadata.get('sentiment')
+                        },
+                        active_dimensions=self._get_personality_state_for_learning(),
+                        session_id=turn_id
+                    )
+                    logger.debug(f"Hebbian learning: staging={hebbian_result['staging_count']}, "
+                               f"permanent={hebbian_result['permanent_count']}, "
+                               f"latency={hebbian_result['latency_ms']:.1f}ms")
+                    logger.debug(f"🧠 Hebbian Learning: {hebbian_result['staging_count']} staging, "
+                          f"{hebbian_result['permanent_count']} permanent patterns")
+                except Exception as heb_e:
+                    # Don't break response if Hebbian learning fails
+                    logger.error(f"Hebbian learning error (non-fatal): {heb_e}")
+            elif self.hebbian:
+                logger.debug("Hebbian learning skipped: safety check failed")
+
+            # Week 8: Mark emotional follow-up if we referenced past emotion
+            if check_in_thread and self._response_references_emotion(final_response, check_in_thread):
+                self.emotional_continuity.mark_followed_up(check_in_thread, turn_id)
+                logger.info(f"✅ Marked emotional follow-up for {check_in_thread.turn_id}")
+
+            # Week 8: Check if snapshot needed
+            stats = self.semantic_memory.get_stats()
+            conversation_count = stats.get('total_conversations', 0)
+            if self.personality_snapshots.should_snapshot(conversation_count):
+                try:
+                    personality_state = self.personality_tracker.get_personality_state()
+                    emotional_threads = [t.to_dict() for t in self.emotional_continuity.threads]
+
+                    snapshot = self.personality_snapshots.create_snapshot(
+                        personality_state=personality_state,
+                        emotional_threads=emotional_threads,
+                        conversation_count=conversation_count
+                    )
+                    logger.info(f"📸 Created personality snapshot v{snapshot.version}")
+                except Exception as snap_e:
+                    logger.warning(f"Snapshot creation failed: {snap_e}")
+
+            # Week 8: Apply forgetting mechanism (every 10 conversations)
+            if conversation_count % 10 == 0:
+                self.emotional_continuity.threads = self.forgetting_mechanism.apply_decay(
+                    self.emotional_continuity.threads
+                )
+                logger.info(f"🧹 Applied forgetting mechanism ({conversation_count} conversations)")
+
+        except Exception as e:
+            import traceback
+            logger.warning(f"⚠️ Memory storage failed: {e}")
+            logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
+
+    def _record_ab_metrics(self, conversation_id, user_id, is_control,
+                           actual_command, start_time, group) -> None:
+        """Step 9: compute quality signals from the user message and record
+        A/B metrics. Keeps its own non-fatal try/except intact.
+        """
+        # Step 9: Record A/B test metrics
+        try:
+            conversation_length = time.time() - start_time
+            message_count = 2  # user + assistant
+            user_message_length = len(actual_command)
+
+            # Detect quality indicators in user message
+            user_lower = actual_command.lower()
+            positive_indicators = sum([
+                'thank' in user_lower,
+                'great' in user_lower,
+                'helpful' in user_lower,
+                'perfect' in user_lower,
+                'exactly' in user_lower,
+                'awesome' in user_lower,
+                'excellent' in user_lower
+            ])
+
+            negative_indicators = sum([
+                'confus' in user_lower,
+                'wrong' in user_lower,
+                'not help' in user_lower,
+                'unclear' in user_lower,
+                'incorrect' in user_lower,
+                'bad' in user_lower
+            ])
+
+            # Record metrics
+            metrics = ABTestMetrics(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                group="control" if is_control else "treatment",
+                timestamp=datetime.now().isoformat(),
+                conversation_length_seconds=conversation_length,
+                message_count=message_count,
+                user_message_length_avg=user_message_length,
+                user_corrections=0,  # Could be detected from follow-up messages
+                follow_up_questions=1 if '?' in actual_command else 0,
+                positive_indicators=positive_indicators,
+                negative_indicators=negative_indicators
+            )
+
+            self.ab_test.record_metrics(metrics)
+            logger.info(f"📊 A/B metrics recorded: {group} group")
+        except Exception as e:
+            logger.error(f"Failed to record A/B test metrics: {e}")
+
+    def _tag_response_for_next_turn(self, final_response) -> None:
+        """Week 11: stamp self._last_response_id / _last_response_type so the
+        next turn's Step 1.1 reaction detection has a prior response to key
+        off. No-op unless outcome_tracker is wired. Keeps its own try/except.
+        """
+        # Week 11: Store response metadata for next-turn reaction detection
+        if self.outcome_tracker:
+            try:
+                resp_type = classify_response_type(final_response)
+                self._last_response_id = OutcomeTracker.generate_response_id()
+                self._last_response_type = resp_type
+                logger.debug(f"📊 Response tagged: id={self._last_response_id}, type={resp_type}")
+            except Exception as tag_e:
+                logger.warning(f"Response tagging error (non-fatal): {tag_e}")
+
     def think(self, user_text: str) -> str:
         """Research-first think method with comprehensive error handling."""
         if self.state.name != "THINKING":
@@ -976,169 +1161,14 @@ class ResearchFirstPipeline(PipelineLoop):
             # Step 6: Add financial disclaimer if needed (in Penny's style)
             final_response = _apply_financial_disclaimer(final_response, financial_topic)
 
-            # Step 8: Store in memory (WEEK 7: Dual-save architecture)
-            try:
-                logger.debug("💾 Attempting to save conversation to memory (Week 7 dual-save)...")
+            self._persist_turn(actual_command, final_response, emotion_result,
+                               research_required, financial_topic, group,
+                               start_time, check_in_thread)
 
-                # Build enhanced metadata with ALL conversation data
-                # WEEK 7: All metadata now stored in semantic memory (single source of truth)
-                enhanced_metadata = {
-                    "research_used": research_required,
-                    "financial_topic": financial_topic,
-                    "emotion": emotion_result.primary_emotion,
-                    "emotion_confidence": emotion_result.confidence,
-                    "sentiment": emotion_result.sentiment,
-                    "sentiment_score": emotion_result.sentiment_score,
-                    "ab_test_group": group,
-                    "tools_used": [],  # TODO: Track tool usage from orchestrator
-                    "response_time_ms": int((time.time() - start_time) * 1000)
-                }
+            self._record_ab_metrics(conversation_id, user_id, is_control,
+                                    actual_command, start_time, group)
 
-                # WEEK 7: Removed base_memory and enhanced_memory saves (redundant)
-                # OLD: self.base_memory.add_conversation_turn(...) - REMOVED
-                # OLD: self.enhanced_memory.process_conversation_turn(...) - REMOVED
-
-                # WEEK 7: Generate turn_id for tracking
-                import uuid
-                turn_id = str(uuid.uuid4())
-
-                # SAVE 1: Context Manager (in-memory cache only, NO persistence)
-                self.context_manager.add_turn(
-                    user_input=actual_command,
-                    assistant_response=final_response,
-                    metadata=enhanced_metadata
-                )
-                logger.debug(f"💬 Context Manager: Cached turn (in-memory only)")
-
-                # SAVE 2: Semantic Memory (ONLY persistent store)
-                self.semantic_memory.add_conversation_turn(
-                    user_input=actual_command,
-                    assistant_response=final_response,
-                    turn_id=turn_id,
-                    context=enhanced_metadata  # Includes encrypted emotions/sentiment
-                )
-                logger.debug(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption")
-
-                # Update personality tracking from this conversation
-                self._update_personality_from_conversation(actual_command, final_response, turn_id)
-                logger.debug("✅ Conversation saved (Week 7 dual-save: Context cache + Semantic persistent)")
-
-                # Week 10: Hebbian Learning (with safety checks)
-                if self.hebbian and self._is_safe_to_learn(actual_command, enhanced_metadata):
-                    try:
-                        hebbian_result = self.hebbian.process_conversation_turn(
-                            user_message=actual_command,
-                            assistant_response=final_response,
-                            context={
-                                'formality': enhanced_metadata.get('formality', 0.5),
-                                'technical_depth': enhanced_metadata.get('technical_depth', 0.5),
-                                'emotion': enhanced_metadata.get('emotion'),
-                                'sentiment': enhanced_metadata.get('sentiment')
-                            },
-                            active_dimensions=self._get_personality_state_for_learning(),
-                            session_id=turn_id
-                        )
-                        logger.debug(f"Hebbian learning: staging={hebbian_result['staging_count']}, "
-                                   f"permanent={hebbian_result['permanent_count']}, "
-                                   f"latency={hebbian_result['latency_ms']:.1f}ms")
-                        logger.debug(f"🧠 Hebbian Learning: {hebbian_result['staging_count']} staging, "
-                              f"{hebbian_result['permanent_count']} permanent patterns")
-                    except Exception as heb_e:
-                        # Don't break response if Hebbian learning fails
-                        logger.error(f"Hebbian learning error (non-fatal): {heb_e}")
-                elif self.hebbian:
-                    logger.debug("Hebbian learning skipped: safety check failed")
-
-                # Week 8: Mark emotional follow-up if we referenced past emotion
-                if check_in_thread and self._response_references_emotion(final_response, check_in_thread):
-                    self.emotional_continuity.mark_followed_up(check_in_thread, turn_id)
-                    logger.info(f"✅ Marked emotional follow-up for {check_in_thread.turn_id}")
-
-                # Week 8: Check if snapshot needed
-                stats = self.semantic_memory.get_stats()
-                conversation_count = stats.get('total_conversations', 0)
-                if self.personality_snapshots.should_snapshot(conversation_count):
-                    try:
-                        personality_state = self.personality_tracker.get_personality_state()
-                        emotional_threads = [t.to_dict() for t in self.emotional_continuity.threads]
-
-                        snapshot = self.personality_snapshots.create_snapshot(
-                            personality_state=personality_state,
-                            emotional_threads=emotional_threads,
-                            conversation_count=conversation_count
-                        )
-                        logger.info(f"📸 Created personality snapshot v{snapshot.version}")
-                    except Exception as snap_e:
-                        logger.warning(f"Snapshot creation failed: {snap_e}")
-
-                # Week 8: Apply forgetting mechanism (every 10 conversations)
-                if conversation_count % 10 == 0:
-                    self.emotional_continuity.threads = self.forgetting_mechanism.apply_decay(
-                        self.emotional_continuity.threads
-                    )
-                    logger.info(f"🧹 Applied forgetting mechanism ({conversation_count} conversations)")
-
-            except Exception as e:
-                import traceback
-                logger.warning(f"⚠️ Memory storage failed: {e}")
-                logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
-
-            # Step 9: Record A/B test metrics
-            try:
-                conversation_length = time.time() - start_time
-                message_count = 2  # user + assistant
-                user_message_length = len(actual_command)
-
-                # Detect quality indicators in user message
-                user_lower = actual_command.lower()
-                positive_indicators = sum([
-                    'thank' in user_lower,
-                    'great' in user_lower,
-                    'helpful' in user_lower,
-                    'perfect' in user_lower,
-                    'exactly' in user_lower,
-                    'awesome' in user_lower,
-                    'excellent' in user_lower
-                ])
-
-                negative_indicators = sum([
-                    'confus' in user_lower,
-                    'wrong' in user_lower,
-                    'not help' in user_lower,
-                    'unclear' in user_lower,
-                    'incorrect' in user_lower,
-                    'bad' in user_lower
-                ])
-
-                # Record metrics
-                metrics = ABTestMetrics(
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    group="control" if is_control else "treatment",
-                    timestamp=datetime.now().isoformat(),
-                    conversation_length_seconds=conversation_length,
-                    message_count=message_count,
-                    user_message_length_avg=user_message_length,
-                    user_corrections=0,  # Could be detected from follow-up messages
-                    follow_up_questions=1 if '?' in actual_command else 0,
-                    positive_indicators=positive_indicators,
-                    negative_indicators=negative_indicators
-                )
-
-                self.ab_test.record_metrics(metrics)
-                logger.info(f"📊 A/B metrics recorded: {group} group")
-            except Exception as e:
-                logger.error(f"Failed to record A/B test metrics: {e}")
-
-            # Week 11: Store response metadata for next-turn reaction detection
-            if self.outcome_tracker:
-                try:
-                    resp_type = classify_response_type(final_response)
-                    self._last_response_id = OutcomeTracker.generate_response_id()
-                    self._last_response_type = resp_type
-                    logger.debug(f"📊 Response tagged: id={self._last_response_id}, type={resp_type}")
-                except Exception as tag_e:
-                    logger.warning(f"Response tagging error (non-fatal): {tag_e}")
+            self._tag_response_for_next_turn(final_response)
 
             self.state = State.SPEAKING
             return final_response

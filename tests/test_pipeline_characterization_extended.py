@@ -607,9 +607,17 @@ class TestPostTurnProcessorPrereqCoverage:
             STUB = "I remember you mentioned stress about the layoffs. How are you doing?"
 
         p.llm = EmotionEchoLLM()
-        # Force control group so the personality post-processor doesn't rewrite
-        # the response (which could strip the emotion word before the follow-up
-        # check). sanitize_output preserves plain words.
+        # Force control group for determinism: the treatment post-processor
+        # (_apply_length_adjustments / _apply_vocabulary_preferences) can
+        # truncate or substitute based on LEARNED personality state and could
+        # strip the emotion word before the follow-up check. On a fresh pipeline
+        # those transforms currently no-op (low confidence), so both groups
+        # yield the same string today -- but control guarantees it regardless of
+        # learned state. This is NOT a coverage gap for mark_followed_up: that
+        # branch lives in the group-agnostic Step 8 block and keys only off
+        # check_in_thread + final_response content, never the A/B group, so the
+        # control path exercises the identical code. sanitize_output preserves
+        # plain words.
         p.ab_test.is_control_group = lambda *a, **k: True
         p.consent_manager.preferences["emotional_tracking_enabled"] = True
         p.consent_manager.preferences["proactive_checkins_enabled"] = True

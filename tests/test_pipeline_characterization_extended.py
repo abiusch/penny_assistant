@@ -22,7 +22,7 @@ conftest SLOW_FILES, same as test_pipeline_characterization.py.
 import os
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -487,3 +487,180 @@ class TestInputProcessorPrereqCoverage:
         assert belief_stub.calls[0][0] == "hello penny"
         assert outcome_stub.calls, "outcome_tracker.detect_user_reaction was not called"
         assert outcome_stub.calls[0][0] == "hello penny"
+
+
+class TestPostTurnProcessorPrereqCoverage:
+    """Coverage gaps closed before the R1 step-6 PostTurnProcessor extraction.
+
+    PostTurnProcessor is the final, most entangled piece of think(): the Step 8
+    dual-save block (7-8 subsystems under one try/except), Step 9 A/B metrics,
+    and the Week 11 outcome-tagging step. The original mapping tested only
+    isolation ("does it write to a temp dir without erroring"), not the content
+    of what gets saved or most of the sub-branches. These lock CURRENT behavior
+    so the upcoming extraction can be proven byte-faithful. No code has moved.
+    """
+
+    def test_dual_save_content(self, pipeline):
+        # Step 8: capture the args handed to both save targets and assert the
+        # enhanced_metadata payload is correct (not merely "no exception").
+        p, _ = pipeline
+        ctx_calls = []
+        sem_calls = []
+        p.context_manager.add_turn = lambda **kw: ctx_calls.append(kw)
+        p.semantic_memory.add_conversation_turn = lambda **kw: sem_calls.append(kw)
+
+        craft = "Tell me about the history of computers"
+        expected_emotion = p.emotion_detector.detect_emotion(craft)
+        p.state = State.THINKING
+        final = p.think(craft)
+
+        assert ctx_calls, "context_manager.add_turn was not called"
+        assert sem_calls, "semantic_memory.add_conversation_turn was not called"
+        # Both saves see the same user input + assistant response.
+        assert ctx_calls[0]["user_input"] == craft
+        assert ctx_calls[0]["assistant_response"] == final
+        assert sem_calls[0]["user_input"] == craft
+        assert sem_calls[0]["assistant_response"] == final
+        # semantic_memory persists the metadata under `context`; context_manager
+        # under `metadata`. Both carry the same enhanced_metadata dict.
+        meta = sem_calls[0]["context"]
+        assert meta is ctx_calls[0]["metadata"]
+        assert meta["research_used"] is False           # fixture: requires_research=False
+        assert meta["financial_topic"] is False         # non-financial input
+        assert meta["ab_test_group"] == "treatment"     # fixture assign_group stub
+        assert meta["emotion"] == expected_emotion.primary_emotion
+        assert meta["sentiment"] == expected_emotion.sentiment
+        assert isinstance(meta["response_time_ms"], int) and meta["response_time_ms"] >= 0
+
+    def test_personality_snapshot_fires_on_first_turn(self, pipeline):
+        # should_snapshot() returns True whenever no snapshots exist yet, so the
+        # very first turn on a fresh pipeline creates one (interval is 50, but
+        # the empty-list short-circuit fires first).
+        p, _ = pipeline
+        assert p.personality_snapshots.snapshots == []
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        assert len(p.personality_snapshots.snapshots) == 1
+
+    def test_forgetting_mechanism_applies_decay(self, pipeline):
+        # apply_decay fires when conversation_count % 10 == 0. The count comes
+        # from semantic_memory.get_stats(), which is >=1 after the save and so
+        # never naturally lands on a multiple of 10 -- stub it to 10.
+        p, _ = pipeline
+        p.semantic_memory.get_stats = lambda: {"total_conversations": 10}
+        # Two seeded threads: one inside the 30-day window (should decay), one
+        # older than the window (should be pruned). Tracking consent stays off,
+        # so _process_emotion leaves these untouched before the save.
+        recent = EmotionalThread(
+            emotion="joy", intensity=0.9, context="great news",
+            timestamp=datetime.now() - timedelta(days=15), turn_id="recent",
+        )
+        stale = EmotionalThread(
+            emotion="sadness", intensity=0.8, context="old worry",
+            timestamp=datetime.now() - timedelta(days=40), turn_id="stale",
+        )
+        p.emotional_continuity.threads = [recent, stale]
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        remaining = p.emotional_continuity.threads
+        turn_ids = {t.turn_id for t in remaining}
+        assert "stale" not in turn_ids                  # pruned (age 40 > 30)
+        assert "recent" in turn_ids                     # kept but decayed
+        kept = next(t for t in remaining if t.turn_id == "recent")
+        assert kept.intensity < 0.9                      # 0.9 * (1 - 15/30) = 0.45
+
+    def test_hebbian_integration_wired(self, pipeline):
+        # Hebbian is None by default; assign a stub and use a benign, substantive
+        # message so _is_safe_to_learn() passes. Assert think() routes the turn
+        # into process_conversation_turn with the expected keys.
+        p, _ = pipeline
+
+        class HebbianStub:
+            def __init__(self):
+                self.calls = []
+
+            def process_conversation_turn(self, **kw):
+                self.calls.append(kw)
+                return {"staging_count": 1, "permanent_count": 0, "latency_ms": 1.0}
+
+        heb = HebbianStub()
+        p.hebbian = heb
+        craft = "Please tell me about the history of computers"
+        p.state = State.THINKING
+        final = p.think(craft)
+
+        assert heb.calls, "hebbian.process_conversation_turn was not called"
+        call = heb.calls[0]
+        assert call["user_message"] == craft
+        assert call["assistant_response"] == final
+        assert isinstance(call["session_id"], str) and call["session_id"]  # turn_id (uuid)
+
+    def test_mark_followed_up(self, pipeline):
+        # Reuse the GAP-1 check-in seeding so _process_emotion returns a non-None
+        # check_in_thread, then make the LLM echo the emotion word so
+        # _response_references_emotion matches and mark_followed_up fires.
+        p, _ = pipeline
+
+        class EmotionEchoLLM(FakeLLM):
+            STUB = "I remember you mentioned stress about the layoffs. How are you doing?"
+
+        p.llm = EmotionEchoLLM()
+        # Force control group so the personality post-processor doesn't rewrite
+        # the response (which could strip the emotion word before the follow-up
+        # check). sanitize_output preserves plain words.
+        p.ab_test.is_control_group = lambda *a, **k: True
+        p.consent_manager.preferences["emotional_tracking_enabled"] = True
+        p.consent_manager.preferences["proactive_checkins_enabled"] = True
+        p.emotional_continuity.enabled = True
+        seeded = EmotionalThread(
+            emotion="stress", intensity=0.9, context="worried about layoffs",
+            timestamp=datetime.now(), turn_id="prev",
+        )
+        p.emotional_continuity.threads.append(seeded)
+        assert seeded.follow_ups == []
+        p.state = State.THINKING
+        # Neutral input: track_emotion() won't create a higher-priority thread.
+        p.think("what time is it")
+
+        assert seeded.follow_ups, "mark_followed_up did not append a follow-up turn"
+
+    def test_ab_metrics_computation(self, pipeline):
+        # Step 9: capture the ABTestMetrics object and assert the quality-signal
+        # counts computed from the user message (not just "record_metrics ran").
+        p, _ = pipeline
+        captured = []
+        p.ab_test.record_metrics = lambda metrics: captured.append(metrics)
+
+        p.state = State.THINKING
+        p.think("thanks, that was perfect and helpful?")
+
+        assert captured, "record_metrics was not called"
+        m = captured[0]
+        assert m.positive_indicators == 3      # thank, perfect, helpful
+        assert m.negative_indicators == 0
+        assert m.follow_up_questions == 1       # contains '?'
+
+    @pytest.mark.skipif(
+        not OUTCOME_TRACKING_AVAILABLE,
+        reason="outcome tracking symbols unavailable; the tagging block would "
+               "NameError on classify_response_type/generate_response_id",
+    )
+    def test_outcome_tagging_enabled(self, pipeline):
+        # Week 11: a truthy outcome_tracker activates the post-turn tagging step,
+        # which stamps _last_response_id/_last_response_type for next-turn
+        # reaction detection. The Step 1.1 pre-hook stays inert because
+        # _last_response_id starts as None.
+        p, _ = pipeline
+
+        class OutcomeStub:
+            pass
+
+        p.outcome_tracker = OutcomeStub()
+        assert p._last_response_id is None
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        assert p._last_response_id is not None
+        assert p._last_response_type is not None

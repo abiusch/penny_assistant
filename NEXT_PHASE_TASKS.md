@@ -9,22 +9,22 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** August 5, 2026
+**Last Updated:** August 25, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Current:** Phase 4 COMPLETE — Refactoring in progress (R6, DB-injectable, `think()` characterization all done)  
-**Next:** R1 — decompose `think()` into composable processors (safety net now in place)  
+**Current:** Phase 4 COMPLETE — R1 `think()` decomposition COMPLETE (6 phases, PRs #15–#23)  
+**Next:** Phase 5 begins — Week 14 (Platform Abstraction Layer), then Week 15 (Capability Awareness). R4/R5/R2 remain in Week 16  
 **Phase 4:** ✅ 100% Complete  
 **Phase 5:** 0% (Weeks 14-18 — Polish & Productization)  
 **Server:** 🟢 Port 5001  
-**Tests:** 🟢 451 canonical (~2s) + 17 `think()` characterization (`--run-slow`)  
+**Tests:** 🟢 451 canonical (~2s) + 29 `think()` characterization (`--run-slow`)  
 **Diagnostics:** 🟢 18/18 passing  
 **CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
-**Last Commit:** `fb25410` (`think()` characterization tests + more DB routing)
+**Last Commit:** `0e8c784` (R1 step 6: PostTurnProcessor extraction, #23)
 
 ---
 
@@ -109,6 +109,81 @@ behavior. **Next session's priority: start the actual `think()` decomposition (R
 
 ---
 
+## 📅 SESSION RECAP — August 25, 2026 (R1 COMPLETE — `think()` Decomposed)
+
+**R1 is done.** The 572-line `think()` God Object is now an orchestrator of six
+named, independently-verified phases. Each piece was extracted as its own
+reviewed PR — never a big-bang rewrite.
+
+### ✅ R1 complete — `think()` decomposed into 6 pieces
+
+| Piece | Extraction | PR |
+|-------|-----------|-----|
+| Financial disclaimer | `_apply_financial_disclaimer` (module-level pure fn) | **#15** |
+| Prompt assembly | `_build_and_generate` + `PromptContext` dataclass | **#17** |
+| Research classification | `_classify_and_research` + `ResearchOutcome` dataclass | **#18** |
+| Judgment/clarify gate | `_judgment_gate` (short-circuit stays visible in `think()`) | **#19** |
+| Input processing | `_input_prehooks` + `_process_emotion` (bracket the gate) | **#21** |
+| Post-turn processing | `_persist_turn` + `_record_ab_metrics` + `_tag_response_for_next_turn` | **#23** |
+
+### 🔬 How each extraction was done (the discipline that made it safe)
+
+Every step followed the same loop — **no exceptions**:
+1. **Map before cutting** — a read-only investigation of exact boundaries,
+   data-flow (what escapes to `self.*` / downstream), and entanglement.
+2. **Close coverage gaps first** — where a branch was untested, new
+   characterization tests were landed *before* the extraction, in their own
+   prep PRs: **#16** (PromptBuilder), **#20** (InputProcessor: emotional
+   check-in + enabled learning hooks), **#22** (PostTurnProcessor: dual-save
+   content, snapshot, forgetting, Hebbian wiring, `mark_followed_up`, A/B
+   computation, outcome tagging).
+3. **Faithful move only** — bodies relocated **byte-for-byte** (verified via
+   `difflib` after dedent), no behavior change, `self.*` side effects and
+   try/except seams preserved.
+4. **Reviewed + real CI** — automated code reviewer on every PR, verified green
+   against actual CI (3.11 + 3.13), not just "verified locally."
+
+**Characterization suite grew 17 → 29** along the way (5 base + 24 extended,
+`--run-slow`). The canonical 451-suite was unaffected by any extraction (the
+characterization files live outside `testpaths`, gated behind `--run-slow`).
+
+**Net result:** `think()` reads as a sequence of phase calls — input pre-hooks →
+judgment gate → emotion/continuity → research → prompt/generate → financial
+disclaimer → persist → A/B metrics → response tagging — each testable in
+isolation, each a named method instead of an inline block.
+
+### 📌 Consolidated follow-up list (everything flagged "not now" across R1)
+
+None of these block anything; captured here so they aren't lost:
+
+1. **Leaked exception text** in `think()`'s outer fallback response (returns
+   `...Error: {str(e)}` to the user — should not surface raw exception text).
+2. **`conversation_history` hardcoded to `[]`** — the judgment/research paths
+   receive an always-empty history instead of real conversation context.
+3. **Duplicated log line in `_should_clarify()`** — the same clarify decision is
+   logged twice.
+4. **`mcp_protocol_foundation.py` non-functional import guard** — `try/except
+   ImportError` catches, then crashes anyway on unconditional use of the
+   now-undefined names. Same pattern as `MultiChannelEmergencyStop` /
+   `PredictiveSecurityAnalytics`.
+5. **PyObjC markers only in `requirements.txt`, not `requirements.in`** — the
+   `; platform_system == "Darwin"` markers will be lost on the next
+   `pip-compile` (drift risk).
+6. **`setuptools<81` pin is temporary** — the real fix is replacing/updating
+   `webrtcvad` (unmaintained; depends on deprecated `pkg_resources`, removed in
+   setuptools 81+).
+7. **Hebbian timing test flakiness** (`test_latency_under_10ms` /
+   `test_vocab_observation_latency`) — has now tripped CI enough times
+   (latest: 52.38ms vs a hard-coded 50ms threshold on a 3.11 runner) to warrant
+   a **real fix** (loosen the threshold or quarantine it), not another
+   re-diagnosis. It is machine-speed noise, unrelated to the code under test.
+8. **Boston Dynamics hardcoded example** in the research-failure response
+   template — a stale, domain-specific example baked into a generic template.
+9. **`GoogleTTS.speak()` silently accepts an unhandled `output_file` kwarg** —
+   surfaced as warnings during the TTS cache test (test still passes).
+
+---
+
 ## 🔧 ACTIVE WORK: REFACTORING (In Progress)
 
 ### **Architecture Audit Completed** (Late June 2026)
@@ -130,7 +205,7 @@ Full senior-engineer audit performed. See `PENNY_ARCHITECTURE_AUDIT.md` (committ
 | **R6** | Structured logging | ✅ Done | 50 `print()` → `logger` (info/debug/warning/error); banner + `__main__` kept |
 | — | DB path injectable | ✅ Done | `ResearchFirstPipeline(db_path=, data_dir=)` routes storage (semantic store, snapshots, judgment logs, PersonalityTracker, MilestoneTracker); temp-dir verified |
 | — | `think()` characterization tests | ✅ Done | 5 tests (`tests/test_pipeline_characterization.py`, `--run-slow`): state guard, happy path, prompt assembly, never-raises, temp isolation |
-| **R1** | Pipeline decomposition | ⏳ **NEXT** | God Object → composable processors (InputProcessor, JudgmentGate, PromptBuilder, ResponseGenerator, PostTurnProcessor). Run characterization tests after each extraction |
+| **R1** | Pipeline decomposition | ✅ **Done (Aug 25, 2026)** | `think()` → 6 phases across PRs #15/#17/#18/#19/#21/#23 (prep tests #16/#20/#22). Byte-faithful moves, characterization 17→29. See Aug 25 recap |
 | **R4** | DB connection pooling | ⏸️ Week 16 | 6+ connections → 1 shared pool |
 | **R5** | Async cleanup | ⏸️ Week 16 | Remove unnecessary `asyncio.run()` calls |
 | **R2** | Source tree cleanup | ⏸️ Later | Move ~150 root files → `src/`. Highest regression risk, defer |
@@ -441,6 +516,8 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 ## 🔄 RECENT UPDATES
 
+- **August 25, 2026:** R1 COMPLETE — `think()` decomposed into 6 phases (PRs #15/#17/#18/#19/#21/#23, prep tests #16/#20/#22). Byte-faithful moves, characterization 17→29. See Aug 25 recap
+- **August 5, 2026:** CI fully stabilized (6 pre-existing bugs fixed), characterization 5→17. See Aug 5 recap
 - **Late June 2026:** R6 structured logging (`0fa94d1`) + DB injectability (`34abc75`). Characterization tests next
 - **Late June 2026:** Config-driven LLM registry (`9edd8de`), canonical test suite, refactor quick-wins, 451 tests
 - **Late June 2026:** Architecture audit completed (`PENNY_ARCHITECTURE_AUDIT.md`)
@@ -451,6 +528,6 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 ---
 
-**Last Updated:** Late June 2026  
+**Last Updated:** August 25, 2026  
 **Maintained By:** CJ  
-**Status:** ✅ Phase 4 COMPLETE — Characterization tests next, then R1 decomposition, then Phase 5 🚀
+**Status:** ✅ Phase 4 COMPLETE — R1 `think()` decomposition COMPLETE. Next: Phase 5 (Week 14: Platform Abstraction Layer) 🚀

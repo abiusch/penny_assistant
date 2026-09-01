@@ -1,6 +1,7 @@
 import os, tempfile, subprocess, threading, time
 import hashlib
 from pathlib import Path
+from adapters.audio.playback import build_playback_command
 from typing import Optional, Dict
 
 try:
@@ -107,9 +108,9 @@ class GoogleTTS:
     def _play_audio_file(self, file_path: str) -> bool:
         """Play audio file using system player."""
         try:
-            # Use afplay on macOS
+            # Cross-platform playback command (afplay/mpg123/ffplay by OS)
             process = subprocess.Popen(
-                ["afplay", file_path],
+                build_playback_command(file_path),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )

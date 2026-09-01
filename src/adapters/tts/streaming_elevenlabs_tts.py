@@ -15,6 +15,7 @@ import queue
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from adapters.audio.playback import build_playback_command
 
 class StreamingElevenLabsTTS:
     """Streaming ElevenLabs TTS adapter - generates chunks in parallel"""
@@ -152,7 +153,7 @@ class StreamingElevenLabsTTS:
             
         try:
             result = subprocess.run(
-                ["afplay", file_path],
+                build_playback_command(file_path),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=15,

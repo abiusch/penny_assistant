@@ -1,5 +1,14 @@
 import sys
-import webrtcvad
+import logging
+
+try:
+    import webrtcvad
+    VAD_AVAILABLE = True
+except ImportError:
+    webrtcvad = None
+    VAD_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 # Python version compatibility check
 if sys.version_info >= (3, 13):
@@ -14,6 +23,15 @@ if sys.version_info >= (3, 13):
 class WebRTCVAD:
     def __init__(self, cfg: dict = None):
         self.cfg = cfg or {}
+        self.available = VAD_AVAILABLE
+        if not VAD_AVAILABLE:
+            # Degrade gracefully instead of crashing on import/instantiation.
+            logger.warning(
+                "webrtcvad unavailable; WebRTCVAD disabled "
+                "(callers can check .available / VAD_AVAILABLE)."
+            )
+            self.vad = None
+            return
         level = {"low": 0, "medium": 2, "high": 3}.get(self.cfg.get("sensitivity", "medium"), 2)
         self.vad = webrtcvad.Vad(level)
 

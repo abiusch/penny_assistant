@@ -9,20 +9,20 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** August 25, 2026
+**Last Updated:** September 1, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**⏭️ Session ended August 25, 2026 — Phase 5 Week 14 (Platform Abstraction Layer) starts next session.**  
+**⏭️ Week 14 (Platform Abstraction Layer) substantively complete (Sep 1, 2026) — audio-output abstraction (#27) + VAD import guard (#28). Next: Week 15 (Capability Awareness).**  
 
-**Current:** Phase 4 COMPLETE — R1 `think()` decomposition COMPLETE (6 phases, PRs #15–#23)  
-**Next:** Phase 5 begins — Week 14 (Platform Abstraction Layer), then Week 15 (Capability Awareness). R4/R5/R2 remain in Week 16  
+**Current:** Phase 5 in progress — Week 14 substantively complete (audio-output #27, VAD guard #28). R1 `think()` decomposition COMPLETE (PRs #15–#23)  
+**Next:** Week 15 (Capability Awareness System, 2026 Risk 5). R4/R5/R2 remain in Week 16; calendar cross-platform in Week 18  
 **Phase 4:** ✅ 100% Complete  
-**Phase 5:** 0% (Weeks 14-18 — Polish & Productization)  
+**Phase 5:** 🔄 In progress (Weeks 14-18 — Polish & Productization); Week 14 substantively complete  
 **Server:** 🟢 Port 5001  
-**Tests:** 🟢 451 canonical (~2s) + 29 `think()` characterization (`--run-slow`)  
+**Tests:** 🟢 463 canonical (~2s) + 29 `think()` characterization (`--run-slow`)  
 **Diagnostics:** 🟢 18/18 passing  
 **CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
@@ -154,7 +154,7 @@ judgment gate → emotion/continuity → research → prompt/generate → financ
 disclaimer → persist → A/B metrics → response tagging — each testable in
 isolation, each a named method instead of an inline block.
 
-### 📌 Consolidated follow-up list (everything flagged "not now" across R1)
+### 📌 Consolidated follow-up list (everything flagged "not now" across R1 + Week 14)
 
 None of these block anything; captured here so they aren't lost:
 
@@ -183,6 +183,58 @@ None of these block anything; captured here so they aren't lost:
    template — a stale, domain-specific example baked into a generic template.
 9. **`GoogleTTS.speak()` silently accepts an unhandled `output_file` kwarg** —
    surfaced as warnings during the TTS cache test (test still passes).
+10. **`src/audio/listener.py` has an unguarded `import webrtcvad`** — the same
+    crash-on-import issue the adapter had (fixed in #28), in a different module.
+    Same fix pattern, not yet applied. *(Week 14)*
+11. **`is_speech()` in `webrtc_vad_adapter.py` is a stub** — returns
+    `len(audio_bytes) > 160` and never uses the real `webrtcvad.Vad` object, so
+    it isn't actually doing voice-activity detection. Needs a proper
+    implementation (correct frame sizing + `vad.is_speech`). *(Week 14)*
+12. **Calendar cross-platform support deferred to Week 18** — `osascript`/
+    AppleScript calendar access is real macOS *functionality*, not a primitive
+    swap, so it belongs with the Windows/Linux porting work, not the abstraction
+    layer. *(Week 14, by design)*
+13. **~15 experimental root `penny_*.py` entry scripts not ported** — deemed
+    low-value (they use already-cross-platform `sounddevice`); not worth the
+    ripple. *(Week 14, by design)*
+
+---
+
+## 📅 SESSION RECAP — September 1, 2026 (Week 14 — Platform Abstraction Layer)
+
+**Week 14's two high-value slices are done.** Per the read-only investigation,
+the OS-specific surface that actually mattered was audio playback and the
+unguarded VAD import; both are now abstracted/guarded with graceful degradation.
+Everything else was already cross-platform or explicitly deferred (below), so
+Week 14 is **substantively complete**.
+
+### ✅ Completed slices
+
+| Slice | What | PR |
+|-------|------|-----|
+| Audio-output abstraction | `build_playback_command()` + `play_audio_file()` (`src/adapters/audio/playback.py`) — afplay/mpg123/ffplay by OS (all MP3-capable, unlike aplay/paplay/winsound); 4 TTS adapters wired **argv-only** (barge-in/timeout/killall untouched); loud `UnsupportedPlatformError` on unknown OS | **#27** |
+| WebRTC VAD import guard | `try/except ImportError` + `VAD_AVAILABLE`; `WebRTCVAD` degrades (no crash) when webrtcvad is missing/broken; callers can check `.available`; `is_speech()` left byte-identical | **#28** |
+
+Same discipline as R1: **tests first** (mocked, no hardware), faithful/minimal
+changes, reviewed + real CI, `research_first_pipeline.py` untouched. Canonical
+suite grew **451 → 463** (+8 audio, +4 VAD guard); characterization still 29.
+
+### ✅ Scope check — nothing missed
+
+The original Week 14 definition is one line ("Abstract OS-specific code with
+graceful degradation"). The investigation enumerated the full OS-specific
+surface; each item is now done or explicitly deferred:
+- **Audio playback** → done (#27).
+- **VAD import guard** → done (#28).
+- **Audio input** (`sounddevice`/PortAudio) → already cross-platform.
+- **Platform detection** (`system_info.py`) → already branches correctly.
+- **Calendar** (`osascript`) → deferred to **Week 18** (macOS functionality, not
+  a primitive swap). See follow-up #12.
+- **~15 root `penny_*.py` entry scripts** → low-value, not ported. Follow-up #13.
+- **Stop/`killall` playback interruption** + **`is_speech()` stub** +
+  **`listener.py` unguarded import** → follow-ups #10/#11 (and the #27 stop-abstraction note).
+
+Follow-ups #10–#13 captured in the consolidated list above.
 
 ---
 
@@ -377,8 +429,11 @@ user_belief_store. Deferred for now — decide when to prioritize.
 
 ## 🚀 PHASE 5: POLISH & PRODUCTIZATION (Weeks 14-18)
 
-### **Week 14: Platform Abstraction Layer**
-Abstract OS-specific code with graceful degradation.
+### **Week 14: Platform Abstraction Layer** — ✅ Substantively complete (Sep 1, 2026)
+Abstract OS-specific code with graceful degradation. **Done:** audio-output
+abstraction (#27), WebRTC VAD import guard (#28). **Deferred:** calendar → Week 18;
+root entry scripts (low-value); stop/killall + `is_speech()` stub + `listener.py`
+guard → follow-ups #10–#13. See the Sep 1 recap.
 
 ### **Week 15: Capability Awareness System**
 Penny knows and communicates her own capabilities. Hard enforcement at orchestrator level (2026 Risk 5).
@@ -518,6 +573,7 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 ## 🔄 RECENT UPDATES
 
+- **September 1, 2026:** Week 14 (Platform Abstraction Layer) substantively complete — audio-output abstraction (#27) + WebRTC VAD import guard (#28). Canonical 451→463. See Sep 1 recap
 - **August 25, 2026:** R1 COMPLETE — `think()` decomposed into 6 phases (PRs #15/#17/#18/#19/#21/#23, prep tests #16/#20/#22). Byte-faithful moves, characterization 17→29. See Aug 25 recap
 - **August 5, 2026:** CI fully stabilized (6 pre-existing bugs fixed), characterization 5→17. See Aug 5 recap
 - **Late June 2026:** R6 structured logging (`0fa94d1`) + DB injectability (`34abc75`). Characterization tests next
@@ -530,6 +586,6 @@ Swarm orchestration improves dev tooling (Layer 2), NOT cognitive architecture (
 
 ---
 
-**Last Updated:** August 25, 2026  
+**Last Updated:** September 1, 2026  
 **Maintained By:** CJ  
-**Status:** ✅ Phase 4 COMPLETE — R1 `think()` decomposition COMPLETE. Next: Phase 5 (Week 14: Platform Abstraction Layer) 🚀
+**Status:** ✅ Phase 4 COMPLETE · R1 COMPLETE · Phase 5 Week 14 substantively complete. Next: Week 15 (Capability Awareness) 🚀

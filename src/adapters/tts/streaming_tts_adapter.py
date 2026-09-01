@@ -13,6 +13,7 @@ from pathlib import Path
 from queue import Queue, Empty
 from typing import Optional, Dict, Any, Callable
 import asyncio
+from adapters.audio.playback import build_playback_command
 
 try:
     from gtts import gTTS
@@ -223,7 +224,7 @@ class StreamingTTS:
                     # Play audio file
                     try:
                         process = subprocess.Popen(
-                            ['afplay', audio_file],
+                            build_playback_command(audio_file),
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL
                         )

@@ -14,6 +14,7 @@ import requests
 import re
 from pathlib import Path
 from typing import Optional, Dict, Any
+from adapters.audio.playback import build_playback_command
 
 class ElevenLabsTTS:
     """ElevenLabs TTS adapter with Penny personality integration"""
@@ -275,7 +276,7 @@ class ElevenLabsTTS:
                 # Start playing first chunk
                 try:
                     first_process = subprocess.Popen(
-                        ["afplay", first_audio],
+                        build_playback_command(first_audio),
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
@@ -305,7 +306,7 @@ class ElevenLabsTTS:
                 # Start next chunk
                 try:
                     process = subprocess.Popen(
-                        ["afplay", audio_file],
+                        build_playback_command(audio_file),
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
@@ -346,7 +347,7 @@ class ElevenLabsTTS:
         # Start playback (non-blocking for smooth transitions)
         try:
             process = subprocess.Popen(
-                ["afplay", audio_file],
+                build_playback_command(audio_file),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )

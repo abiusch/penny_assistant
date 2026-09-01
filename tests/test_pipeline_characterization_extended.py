@@ -672,3 +672,23 @@ class TestPostTurnProcessorPrereqCoverage:
 
         assert p._last_response_id is not None
         assert p._last_response_type is not None
+
+
+class TestToolManifestInPrompt:
+    """Week 15 baseline: the capability manifest actually reaches the LLM prompt.
+
+    This is the authoritative form of "Penny communicates her capabilities" —
+    it requires full pipeline construction (FakeLLM prompt capture), so it lives
+    in the --run-slow characterization suite rather than the fast canonical
+    capability-gate file. Should PASS today.
+    """
+
+    def test_tool_manifest_present_in_prompt(self, pipeline):
+        p, _ = pipeline
+        p.state = State.THINKING
+        p.think("Hello Penny")
+
+        prompt = p.llm.calls[0][0]
+        assert "AVAILABLE TOOLS" in prompt          # the manifest header
+        assert "web.search" in prompt               # a declared capability
+        assert "math.calc" in prompt

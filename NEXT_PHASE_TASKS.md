@@ -9,11 +9,16 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 1, 2026
+**Last Updated:** September 6, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
+
+**Reliability pass (September 6):** Tool request parsing and tool-result replay
+are repaired on `codex/repair-tool-roundtrip`, pending PR review. The fast suite
+now includes real tool-roundtrip coverage; the 30 full-pipeline characterization
+checks use offline, isolated fixtures and run explicitly in CI. See recap below.
 
 **⏭️ Week 14 (Platform Abstraction Layer) substantively complete (Sep 1, 2026) — audio-output abstraction (#27) + VAD import guard (#28). Next: Week 15 (Capability Awareness).**  
 
@@ -29,6 +34,28 @@
 **Last Commit:** `0e8c784` (R1 step 6: PostTurnProcessor extraction, #23)
 
 ---
+
+## SESSION RECAP — September 6, 2026 (Tool reliability)
+
+On `codex/repair-tool-roundtrip`, pending review:
+
+- Parse the advertised nested `tool`/`args` JSON envelope correctly, retaining
+  documented legacy calculator/browser formats. Malformed calls fail explicitly;
+  unknown tool names are no longer silently rerouted to web search.
+- Replay tool calls and results into subsequent LLM prompts. External results
+  are labeled as tool data. Direct replies retain paragraph/code formatting.
+- Add 21 offline regression cases, including a real registered calculator through
+  `think()`. The canonical suite is **489 passed, 2 expected failures** locally.
+- Make the 30 characterization tests offline and isolate construction/storage;
+  all 30 pass. Add them as an explicit CI step on Python 3.11 and 3.13.
+- Declare pytest-timeout and make `make test` use the project virtualenv.
+
+The two existing Week 15 expected failures remain unfinished. The request-thread
+calculator timeout defect is also a separate follow-up; these changes repair
+parsing/replay, not the synchronous timeout implementation. Next priorities:
+request-safe tool execution, model-error handling, consistent config/data roots,
+and consent-aware durable storage. Do not enable disabled learning features as
+a side effect of these reliability fixes.
 
 ## 📅 SESSION RECAP — August 5, 2026 (CI Stabilization + Characterization Expansion)
 

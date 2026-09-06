@@ -19,7 +19,7 @@ precommit:
 # Canonical suite: curated Weeks 8.5-13 feature tests (~408, 100% green, ~2s).
 # File list is in pytest.ini (testpaths). PYTHONPATH=src is also set by conftest.py.
 test:
-	PYTHONPATH=$(PYTHONPATH) pytest --tb=short
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m pytest --tb=short
 
 # Everything, including legacy/live/audio/LLM tests (many fail offline). See QUARANTINE_NOTES.md.
 test-all:

@@ -15,13 +15,11 @@ to branches that file's fixture deliberately stubs out or doesn't exercise:
 
 Same isolation strategy as the base file: db_path + data_dir -> temp dir,
 self.llm -> FakeLLM, tool_orchestrator -> single-pass stub, ab_test -> no-op.
-Slow (full pipeline construction, ~seconds) -- gated behind --run-slow via
-conftest SLOW_FILES, same as test_pipeline_characterization.py.
+Uses isolated_pipeline to patch model/audio dependencies before construction and
+keep all storage in a temporary directory. Selected explicitly with --run-slow.
 """
 
 import os
-import shutil
-import tempfile
 from datetime import datetime, timedelta
 
 import pytest
@@ -56,9 +54,8 @@ async def _fake_orchestrate(initial_prompt=None, llm_generator=None,
 
 
 @pytest.fixture
-def pipeline():
-    d = tempfile.mkdtemp()
-    p = ResearchFirstPipeline(db_path=os.path.join(d, "tracking.db"), data_dir=d)
+def pipeline(isolated_pipeline):
+    p, d = isolated_pipeline
     p.llm = FakeLLM()
     p.tool_orchestrator.orchestrate = _fake_orchestrate
     p.ab_test.assign_group = lambda *a, **k: "treatment"
@@ -66,7 +63,6 @@ def pipeline():
     p.ab_test.record_metrics = lambda *a, **k: None
     p.research_manager.requires_research = lambda x: False  # keep tests offline
     yield p, d
-    shutil.rmtree(d, ignore_errors=True)
 
 
 class TestThinkResearchPaths:

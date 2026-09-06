@@ -27,6 +27,26 @@ def test_nested_envelope_preserves_name_and_arguments(args):
     assert parsed.arguments == args
 
 
+def test_live_model_bare_json_request_is_a_tool_call():
+    # LM Studio's gpt-oss response omits the raw channel token wrapper.
+    output = '{"tool": "math.calc", "args": {"expression": "347 * 29"}}'
+    parsed = ToolCallParser().parse(output)
+    assert isinstance(parsed, ToolCall)
+    assert parsed.tool_name == 'math.calc'
+    assert parsed.arguments == {'expression': '347 * 29'}
+
+
+@pytest.mark.parametrize('output', [
+    '{"answer": 4}',
+    '{"example": {"tool": "math.calc", "args": {"expression": "2+2"}}}',
+    'Example: {"tool": "math.calc", "args": {"expression": "2+2"}}',
+])
+def test_json_answers_and_embedded_examples_are_not_executed(output):
+    parsed = ToolCallParser().parse(output)
+    assert isinstance(parsed, FinalAnswer)
+    assert parsed.content == output
+
+
 @pytest.mark.parametrize(('descriptor', 'args', 'name'), [
     ('browser.run', {'query': 'weather'}, 'web.search'),
     ('commentary to=browser.run code', {'query': 'weather'}, 'web.search'),
@@ -47,6 +67,10 @@ def test_documented_legacy_format_still_works(descriptor, args, name):
     tool_output('math.calc', {'expression': '2+2'}) + ' trailing prose',
     tool_output('math.calc', {}) + tool_output('web.search', {'query': 'test'}),
     '<|channel|>commentary<|message|>{"query":"do not guess a tool"}',
+    '{"tool": "math.calc", "args": ["2+2"]}',
+    '{"tool": "math.calc"}',
+    '{"tool": "math.calc", "args": {}} trailing prose',
+    '{"tool": "math.calc", "args":',
 ])
 def test_malformed_tool_request_does_not_execute_or_leak_as_answer(output):
     tool = Mock(return_value='should not run')
@@ -115,7 +139,8 @@ def prompt_pipeline():
 
 
 @pytest.mark.parametrize('method', ['complete', 'generate'])
-def test_pipeline_uses_result_once_then_answers(prompt_pipeline, method):
+@pytest.mark.parametrize('wrapped', [True, False])
+def test_pipeline_uses_result_once_then_answers(prompt_pipeline, method, wrapped):
     pipeline, context = prompt_pipeline
     calculate = Mock(return_value='UNIQUE_RESULT: 4')
     pipeline.tool_orchestrator.register_tool('math.calc', calculate)
@@ -124,7 +149,8 @@ def test_pipeline_uses_result_once_then_answers(prompt_pipeline, method):
         prompts.append(prompt)
         if 'UNIQUE_RESULT: 4' in prompt:
             return 'The answer is 4.'
-        return tool_output('math.calc', {'expression': '2+2'})
+        output = tool_output('math.calc', {'expression': '2+2'})
+        return output if wrapped else output.split('<|message|>', 1)[1]
     pipeline.llm = SimpleNamespace(**{method: generate})
     answer = pipeline._build_and_generate('You are Penny.', 'Calculate two plus two', context)
     assert answer == 'The answer is 4.'

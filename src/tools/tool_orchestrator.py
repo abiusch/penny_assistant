@@ -49,7 +49,8 @@ class ToolCallParser:
     """
     Parses LLM output to detect and extract tool calls.
 
-    Handles the <|channel|>...<|message|>{...} syntax from gpt-oss-20b.
+    Handles channel-wrapped requests and bare JSON tool envelopes returned
+    by servers that strip the model's channel tokens.
     """
 
     def __init__(self):
@@ -74,10 +75,22 @@ class ToolCallParser:
 
         if match:
             return self._parse_tool_call(match, model_output)
-        elif '<|channel|>' in model_output or '<|message|>' in model_output:
+        # Only an explicit top-level tool envelope is executable. Do not
+        # search prose, code examples, or nested JSON for possible actions.
+        if model_output.startswith('{'):
+            try:
+                decoded, end = json.JSONDecoder().raw_decode(model_output)
+            except json.JSONDecodeError as e:
+                if re.match(r'\{\s*"tool"\s*:', model_output):
+                    raise ToolParseError("Invalid tool JSON") from e
+            else:
+                if isinstance(decoded, dict) and 'tool' in decoded:
+                    return self._validated_tool_call(
+                        decoded, model_output[end:].strip(), model_output,
+                    )
+        if '<|channel|>' in model_output or '<|message|>' in model_output:
             raise ToolParseError("Incomplete or mixed tool request")
-        else:
-            return self._parse_final_answer(model_output)
+        return self._parse_final_answer(model_output)
 
     def _parse_tool_call(self, match, raw_output: str) -> ToolCall:
         """Extract tool name and arguments from matched pattern."""
@@ -86,35 +99,36 @@ class ToolCallParser:
             payload = raw_output[match.end():]
             decoded, end = json.JSONDecoder().raw_decode(payload)
             suffix = payload[end:].strip()
-            if suffix not in ('', '<|im_end|>', '<|end|>', '<|fim_suffix|>'):
-                raise ToolParseError("Expected one tool request without trailing content")
-            if not isinstance(decoded, dict):
-                raise ToolParseError("Tool payload must be an object")
-
-            if 'tool' in decoded or 'args' in decoded:
-                if set(decoded) != {'tool', 'args'}:
-                    raise ToolParseError("Tool request requires only tool and args")
-                tool_name, arguments = decoded['tool'], decoded['args']
-            else:
-                # Compatibility with the previously documented flat payloads.
-                tool_name = self._map_tool_name(tool_descriptor, decoded)
-                arguments = decoded
-
-            if not isinstance(tool_name, str) or not re.fullmatch(r'[A-Za-z][\w.-]*', tool_name):
-                raise ToolParseError("Invalid tool name")
-            if not isinstance(arguments, dict):
-                raise ToolParseError("Tool arguments must be an object")
-
-            logger.info("Tool call detected: %s", tool_name)
-
-            return ToolCall(
-                tool_name=tool_name,
-                arguments=arguments,
-                raw_output=raw_output
-            )
+            return self._validated_tool_call(decoded, suffix, raw_output, tool_descriptor)
 
         except json.JSONDecodeError as e:
             raise ToolParseError("Invalid tool JSON") from e
+
+    def _validated_tool_call(self, decoded, suffix: str, raw_output: str,
+                             tool_descriptor: Optional[str] = None) -> ToolCall:
+        if suffix not in ('', '<|im_end|>', '<|end|>', '<|fim_suffix|>'):
+            raise ToolParseError("Expected one tool request without trailing content")
+        if not isinstance(decoded, dict):
+            raise ToolParseError("Tool payload must be an object")
+
+        if 'tool' in decoded or 'args' in decoded:
+            if set(decoded) != {'tool', 'args'}:
+                raise ToolParseError("Tool request requires only tool and args")
+            tool_name, arguments = decoded['tool'], decoded['args']
+        elif tool_descriptor is not None:
+            # Compatibility with the previously documented flat payloads.
+            tool_name = self._map_tool_name(tool_descriptor, decoded)
+            arguments = decoded
+        else:
+            raise ToolParseError("Missing tool envelope")
+
+        if not isinstance(tool_name, str) or not re.fullmatch(r'[A-Za-z][\w.-]*', tool_name):
+            raise ToolParseError("Invalid tool name")
+        if not isinstance(arguments, dict):
+            raise ToolParseError("Tool arguments must be an object")
+
+        logger.info("Tool call detected: %s", tool_name)
+        return ToolCall(tool_name=tool_name, arguments=arguments, raw_output=raw_output)
 
     def _map_tool_name(self, descriptor: str, arguments: Dict) -> str:
         """

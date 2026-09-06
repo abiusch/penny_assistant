@@ -41,6 +41,10 @@ class FinalAnswer:
         }
 
 
+class ToolParseError(ValueError):
+    """The model attempted a tool call that does not satisfy the protocol."""
+
+
 class ToolCallParser:
     """
     Parses LLM output to detect and extract tool calls.
@@ -49,9 +53,10 @@ class ToolCallParser:
     """
 
     def __init__(self):
-        # Pattern to match: <|channel|>anything<|message|>{json}
+        # Match only the header; a JSON decoder handles nested objects and
+        # braces inside strings. A brace regex cannot parse JSON correctly.
         self.tool_pattern = re.compile(
-            r'<\|channel\|>(.*?)<\|message\|>(\{.*?\})',
+            r'<\|channel\|>(.*?)<\|message\|>\s*',
             re.DOTALL
         )
 
@@ -64,26 +69,43 @@ class ToolCallParser:
             FinalAnswer if normal response
         """
         # Check for tool call syntax
-        match = self.tool_pattern.search(model_output)
+        model_output = model_output.strip()
+        match = self.tool_pattern.match(model_output)
 
         if match:
             return self._parse_tool_call(match, model_output)
+        elif '<|channel|>' in model_output or '<|message|>' in model_output:
+            raise ToolParseError("Incomplete or mixed tool request")
         else:
             return self._parse_final_answer(model_output)
 
     def _parse_tool_call(self, match, raw_output: str) -> ToolCall:
         """Extract tool name and arguments from matched pattern."""
         try:
-            tool_descriptor = match.group(1).strip()  # e.g., "commentary to=browser.run code"
-            args_json = match.group(2)  # e.g., '{"query": "..."}'
+            tool_descriptor = match.group(1).strip()
+            payload = raw_output[match.end():]
+            decoded, end = json.JSONDecoder().raw_decode(payload)
+            suffix = payload[end:].strip()
+            if suffix not in ('', '<|im_end|>', '<|end|>', '<|fim_suffix|>'):
+                raise ToolParseError("Expected one tool request without trailing content")
+            if not isinstance(decoded, dict):
+                raise ToolParseError("Tool payload must be an object")
 
-            # Parse arguments
-            arguments = json.loads(args_json)
+            if 'tool' in decoded or 'args' in decoded:
+                if set(decoded) != {'tool', 'args'}:
+                    raise ToolParseError("Tool request requires only tool and args")
+                tool_name, arguments = decoded['tool'], decoded['args']
+            else:
+                # Compatibility with the previously documented flat payloads.
+                tool_name = self._map_tool_name(tool_descriptor, decoded)
+                arguments = decoded
 
-            # Map tool descriptor to standard tool name
-            tool_name = self._map_tool_name(tool_descriptor, arguments)
+            if not isinstance(tool_name, str) or not re.fullmatch(r'[A-Za-z][\w.-]*', tool_name):
+                raise ToolParseError("Invalid tool name")
+            if not isinstance(arguments, dict):
+                raise ToolParseError("Tool arguments must be an object")
 
-            logger.info(f"🔧 Tool call detected: {tool_name} with args: {arguments}")
+            logger.info("Tool call detected: %s", tool_name)
 
             return ToolCall(
                 tool_name=tool_name,
@@ -92,12 +114,7 @@ class ToolCallParser:
             )
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse tool arguments: {e}")
-            # Treat as final answer if parsing fails
-            return FinalAnswer(content=raw_output)
-        except Exception as e:
-            logger.error(f"Error parsing tool call: {e}")
-            return FinalAnswer(content=raw_output)
+            raise ToolParseError("Invalid tool JSON") from e
 
     def _map_tool_name(self, descriptor: str, arguments: Dict) -> str:
         """
@@ -107,31 +124,18 @@ class ToolCallParser:
             "commentary to=browser.run code" → "web.search"
             "calculator" → "math.calc"
         """
-        descriptor_lower = descriptor.lower()
-
-        # Web search indicators
-        if any(keyword in descriptor_lower for keyword in ['browser', 'search', 'web', 'query']):
-            return "web.search"
-
-        # Math/calculator indicators
-        if any(keyword in descriptor_lower for keyword in ['calc', 'math', 'compute']):
-            return "math.calc"
-
-        # Code execution indicators
-        if any(keyword in descriptor_lower for keyword in ['code', 'execute', 'run', 'python']):
-            return "code.execute"
-
-        # Check arguments for hints
-        if 'query' in arguments:
-            return "web.search"
-        if 'expression' in arguments or 'equation' in arguments:
-            return "math.calc"
-        if 'code' in arguments:
-            return "code.execute"
-
-        # Default to web search (most common)
-        logger.warning(f"Unknown tool descriptor: {descriptor}, defaulting to web.search")
-        return "web.search"
+        match = re.fullmatch(
+            r'(?:commentary\s+to=)?([\w.-]+)(?:\s+(?:code|json))?',
+            descriptor.lower(),
+        )
+        if not match:
+            raise ToolParseError("Unrecognized legacy tool descriptor")
+        name = match.group(1)
+        if name in ('commentary', 'analysis', 'final'):
+            raise ToolParseError("Missing tool name")
+        # Unknown explicit names reach the registry and are refused there.
+        # Never infer a different action from argument keys or substrings.
+        return {'browser.run': 'web.search', 'calculator': 'math.calc'}.get(name, name)
 
     def _parse_final_answer(self, model_output: str) -> FinalAnswer:
         """Parse output as final answer (no tool call)."""
@@ -142,16 +146,11 @@ class ToolCallParser:
 
     def _clean_output(self, text: str) -> str:
         """Remove any residual tool syntax from output."""
-        # Remove incomplete tool calls
-        text = self.tool_pattern.sub('', text)
-
         # Remove other artifacts
         text = re.sub(r'<\|[^|]+\|>', '', text)
 
-        # Clean up whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
-
-        return text
+        # Preserve paragraph breaks, lists, and indentation in code blocks.
+        return text.strip()
 
 
 class ToolOrchestrator:
@@ -196,8 +195,7 @@ class ToolOrchestrator:
         Returns:
             Final answer string for user
         """
-        if conversation_context is None:
-            conversation_context = []
+        conversation_context = [dict(message) for message in (conversation_context or [])]
 
         # Add user query
         conversation_context.append({
@@ -219,7 +217,11 @@ class ToolOrchestrator:
                 return "I encountered an error processing your request."
 
             # Parse output
-            parsed = self.parser.parse(model_output)
+            try:
+                parsed = self.parser.parse(model_output)
+            except ToolParseError as e:
+                logger.warning("Invalid tool request: %s", e)
+                return "I couldn't read that tool request. Please try again."
 
             if isinstance(parsed, FinalAnswer):
                 # Done! Return to user
@@ -239,8 +241,9 @@ class ToolOrchestrator:
                 })
 
                 conversation_context.append({
-                    "role": "system",
-                    "content": f"TOOL_RESULT:\n{tool_result}\n\nNow provide a natural conversational answer using these results."
+                    "role": "tool",
+                    "name": parsed.tool_name,
+                    "content": tool_result,
                 })
 
                 # Loop continues - LLM will generate again with tool results

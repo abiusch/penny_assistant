@@ -174,13 +174,13 @@ You have access to the following tools. When you need to use a tool, output the 
 
 1. web.search - Search the web for current information
    Use when: User asks about recent events, current prices, new products, latest news
-   Syntax: <|channel|>browser.run<|message|>{"query": "search terms"}
-   Example: <|channel|>browser.run<|message|>{"query": "1x.tech NEO robot review"}
+   Syntax: <|channel|>commentary<|message|>{"tool": "web.search", "args": {"query": "search terms"}}
+   Example: <|channel|>commentary<|message|>{"tool": "web.search", "args": {"query": "1x.tech NEO robot review"}}
 
 2. math.calc - Perform mathematical calculations
    Use when: User asks for calculations, math problems
-   Syntax: <|channel|>calculator<|message|>{"expression": "2 + 2"}
-   Example: <|channel|>calculator<|message|>{"expression": "15% of 847293"}
+   Syntax: <|channel|>commentary<|message|>{"tool": "math.calc", "args": {"expression": "2 + 2"}}
+   Example: <|channel|>commentary<|message|>{"tool": "math.calc", "args": {"expression": "0.15 * 847293"}}
 
 3. code.execute - Execute code (coming soon)
    Status: Not yet implemented

@@ -13,13 +13,13 @@ the external and expensive seams and assert orchestration behavior):
   - ab_test             -> no-op (avoids A/B db access)
   - research_manager    -> requires_research False (no live web search)
 
-Slow (each build ~4.5s) — gated behind --run-slow via conftest SLOW_FILES.
+Uses isolated_pipeline to avoid model/audio/network I/O and production storage.
+Explicitly selected with --run-slow alongside the extended characterization suite.
 """
 
 import glob
 import os
-import shutil
-import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -51,9 +51,8 @@ async def _fake_orchestrate(initial_prompt=None, llm_generator=None,
 
 
 @pytest.fixture
-def pipeline():
-    d = tempfile.mkdtemp()
-    p = ResearchFirstPipeline(db_path=os.path.join(d, "tracking.db"), data_dir=d)
+def pipeline(isolated_pipeline):
+    p, d = isolated_pipeline
     p.llm = FakeLLM()
     p.tool_orchestrator.orchestrate = _fake_orchestrate
     p.ab_test.assign_group = lambda *a, **k: "treatment"
@@ -61,7 +60,6 @@ def pipeline():
     p.ab_test.record_metrics = lambda *a, **k: None
     p.research_manager.requires_research = lambda x: False  # keep tests offline
     yield p, d
-    shutil.rmtree(d, ignore_errors=True)
 
 
 class TestThinkContract:
@@ -106,10 +104,13 @@ class TestThinkContract:
 
 class TestThinkIsolation:
     def _real_data_files(self):
-        # Ignore transient WAL/SHM artifacts (created even by read-only WAL access).
+        # Use the real project path even while the fixture runs in scratch cwd.
+        # Include metadata so changes to existing files are detected too.
+        root = Path(__file__).resolve().parents[1] / 'data'
         return {
-            f for f in glob.glob("data/**/*", recursive=True)
-            if not f.endswith(("-shm", "-wal"))
+            str(f): (f.stat().st_size, f.stat().st_mtime_ns)
+            for f in root.rglob('*')
+            if f.is_file() and not str(f).endswith(("-shm", "-wal"))
         }
 
     def test_persistent_writes_stay_in_temp(self, pipeline):
@@ -119,6 +120,6 @@ class TestThinkIsolation:
         p.think("Hello Penny, I like tabs over spaces")
         after = self._real_data_files()
         # think() must not create new files under the real data/ dir
-        assert after == before, f"think() polluted real data/: {sorted(after - before)}"
+        assert after == before, "think() modified the real project data/ directory"
         # and the semantic memory vector store must live under the injected temp dir
         assert glob.glob(os.path.join(d, "embeddings", "*")), "vector store not in temp dir"

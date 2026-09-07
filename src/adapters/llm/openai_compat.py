@@ -1,6 +1,11 @@
 import json
 from typing import Any, Dict
 import requests
+import logging
+
+from src.llm.errors import ModelGenerationError, require_response_text
+
+logger = logging.getLogger(__name__)
 
 class OpenAICompatLLM:
     def __init__(self, config: dict):
@@ -30,6 +35,9 @@ class OpenAICompatLLM:
             prompt: User message or full conversation prompt
             tone: Optional tone hint (legacy)
             system_prompt: Custom system prompt (if None, uses default)
+
+        Returns a non-empty completion. Raises ModelGenerationError on request
+        failure or an unusable response; callers must not persist it as an answer.
         """
         try:
             # Try to import personality prompt builder
@@ -75,15 +83,21 @@ class OpenAICompatLLM:
             r = self._session.post(url, headers=headers, json=body, timeout=self.timeout)
             r.raise_for_status()
             data = r.json() if r.content else {}
-            choices = data.get("choices") or []
-            if not choices:
-                return ""
+            if not isinstance(data, dict):
+                raise ModelGenerationError()
+            choices = data.get("choices")
+            if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+                raise ModelGenerationError()
             msg = choices[0].get("message")
             if isinstance(msg, dict) and "content" in msg:
-                return (msg["content"] or "").strip()
-            return (choices[0].get("text", "") or "").strip()
+                return require_response_text(msg['content'])
+            return require_response_text(choices[0].get('text'))
+        except ModelGenerationError:
+            raise
         except Exception as e:
-            return f"[llm error] {e}\n{prompt}"
+            # Provider exceptions may contain request bodies, URLs or credentials.
+            logger.warning('Model request failed (%s)', type(e).__name__)
+            raise ModelGenerationError() from None
 
     def health(self) -> bool:
         try:

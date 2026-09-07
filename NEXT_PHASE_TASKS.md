@@ -22,22 +22,22 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 7):** PRs #32–#34 are merged (tool parsing/replay,
-live-model compatibility, and project review). Request-thread calculator execution
-and enforceable process timeouts are repaired in [PR #35](https://github.com/abiusch/penny_assistant/pull/35)
-on `codex/request-safe-calculator`, pending review. The 30 full-pipeline characterization checks remain offline and
-isolated; new request-thread tests also run in a focused Windows CI job.
+**Reliability pass (September 7):** PRs #32–#35 are merged (tool parsing/replay,
+live-model compatibility, project review, and request-thread calculator execution).
+Controlled model failures and failed-turn persistence protection are repaired on
+`codex/model-error-handling`, pending review. The 30 pipeline characterization
+checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** review/merge #35, then controlled model-error handling, consistent
-  config/data roots, and consent-aware storage/deletion.
+- **Next:** review/merge the model-error fix, then consistent config/data roots
+  and consent-aware storage/deletion.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (#35, local):** 534 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (model-error fix, local):** 569 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`).
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
   focused request-thread/process tests on Windows/Python 3.13. See the active PR
@@ -46,13 +46,52 @@ isolated; new request-thread tests also run in a focused Windows CI job.
 - **LLM:** `openai/gpt-oss-20b` via local LM Studio; synthetic calculator round trip
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
-  #34 review/evidence (`main` at `7b0939a`). **Active:** #35, awaiting review/merge.
+  #34 review/evidence, #35 request-thread tools (`main` at `9725d7b`).
+  **Active:** `codex/model-error-handling`, awaiting review/merge.
 
 ---
 
+## SESSION RECAP — September 7, 2026 (Model failures)
+
+On `codex/model-error-handling`, pending review:
+
+- Introduce a shared `ModelGenerationError` contract. The OpenAI-compatible
+  adapter raises it for connection/HTTP/timeout failures, invalid JSON or response
+  shapes, and missing/blank/non-text completions. It never returns provider errors
+  or the internal prompt as an answer. Successful chat and legacy text response
+  formats remain supported.
+- Propagate generation failure through the real tool loop, including failure
+  after a completed tool call. Do not retry generation or replay the tool.
+- The research pipeline returns “I couldn't generate a response right now. Please
+  try again.” and transitions to speaking, without saving an assistant turn,
+  recording success metrics, tagging a response, or applying personality processing
+  to a failed generation. Empty replies produced by output processing are also
+  rejected before persistence. A later successful request is saved normally.
+- The base voice pipeline returns the same controlled error instead of echoing
+  the user's input or recording a `thinking_complete` event after model failure.
+- Remove the full-prompt debug preview. Generation-failure diagnostics use exception
+  types, not provider details. Unexpected non-model pipeline errors still have
+  diagnostic logs, but their user-facing reply no longer includes exception text.
+- Add **35** canonical cases, including actual adapter → orchestrator → pipeline
+  failure/recovery in isolated storage and failures from request threads in both
+  A/B groups. **30 of the initial 32 cases failed before the fix.** Update the
+  characterization that deliberately preserved the old exception leak, plus three
+  legacy adapter error assertions. This is an intentional correction, not a
+  behavior-preserving refactor.
+- Validation: **569 passed, 2 expected failures**, all **30** characterization checks,
+  and the three updated legacy assertions pass. Fault injection is offline and
+  uses synthetic prompts/provider errors; no live service shutdown or private
+  conversation data is involved.
+
+Pre-generation user bookkeeping, research, and already executed tools are not
+rolled back. Tool-parse/tool-execution fallback replies retain their existing
+behavior. This change prevents failed model replies from being stored as successful
+turns; it does not make the entire conversation transaction atomic. The two Week 15
+expected failures, config/data-root consistency, and consent-aware storage remain open.
+
 ## SESSION RECAP — September 7, 2026 (Request-thread calculator)
 
-[PR #35](https://github.com/abiusch/penny_assistant/pull/35), on `codex/request-safe-calculator`, pending review:
+[PR #35](https://github.com/abiusch/penny_assistant/pull/35), merged:
 
 - Replace synchronous process-global alarm signals with a short-lived Python
   worker. The caller kills and waits for the worker on timeout, including from

@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from adapters.llm.openai_compat import OpenAICompatLLM
+from src.llm.errors import ModelGenerationError
 
 class TestOpenAICompatLLM(unittest.TestCase):
     """Test cases for OpenAICompatLLM adapter"""
@@ -150,11 +151,9 @@ class TestOpenAICompatLLM(unittest.TestCase):
         mock_session.post.side_effect = requests.exceptions.ConnectionError("Network unreachable")
         
         adapter = OpenAICompatLLM(self.config)
-        result = adapter.complete("Say hello")
-        
-        self.assertIn("[llm error]", result)
-        self.assertIn("Network/HTTP error", result)
-        self.assertIn("Network unreachable", result)
+        with self.assertRaises(ModelGenerationError) as caught:
+            adapter.complete("Say hello", system_prompt="Synthetic system prompt")
+        self.assertNotIn("Network unreachable", str(caught.exception))
 
     @patch('requests.Session')
     def test_complete_malformed_response(self, mock_session_class):
@@ -168,10 +167,8 @@ class TestOpenAICompatLLM(unittest.TestCase):
         mock_session.post.return_value = mock_response
         
         adapter = OpenAICompatLLM(self.config)
-        result = adapter.complete("Say hello")
-        
-        # Should handle gracefully and return empty string, not crash
-        self.assertEqual(result, "")
+        with self.assertRaises(ModelGenerationError):
+            adapter.complete("Say hello", system_prompt="Synthetic system prompt")
 
     def test_default_configuration(self):
         """Test adapter with empty/default configuration"""

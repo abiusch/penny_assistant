@@ -19,6 +19,7 @@ from core.vad.webrtc_vad import SimpleVAD
 from core.telemetry import Telemetry
 from core.llm_router import load_config
 from core.wake_word import detect_wake_word, extract_command
+from src.llm.errors import MODEL_FAILURE_REPLY, require_response_text
 
 class State(Enum):
     IDLE = "idle"
@@ -138,9 +139,11 @@ class PipelineLoop:
                 reply_raw = self.llm.complete(user_text or "Hello", tone=tone)
             else:
                 reply_raw = self.llm.generate(user_text or "Hello")
+            reply_raw = require_response_text(reply_raw)
         except Exception as e:
-            self.telemetry.log_event("llm_error", {"error": str(e)})
-            reply_raw = user_text or "Hello"
+            self.telemetry.log_event("llm_error", {"error_type": type(e).__name__})
+            self.state = State.SPEAKING
+            return MODEL_FAILURE_REPLY
         
         reply = apply_personality(reply_raw, self.cfg.get("personality", {}))
         self.telemetry.log_event("thinking_complete", {"reply": reply})

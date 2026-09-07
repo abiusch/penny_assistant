@@ -5,6 +5,7 @@ import requests
 from unittest.mock import patch, MagicMock
 
 from src.adapters.llm.openai_compat import OpenAICompatLLM
+from src.llm.errors import ModelGenerationError
 
 
 class TestOpenAICompatLLM:
@@ -84,16 +85,15 @@ class TestOpenAICompatLLM:
         assert result == "Hello, world!"
         mock_post.assert_called_once()
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def test_complete_error_handling(self, mock_post, llm_adapter):
         """Test error handling in completion."""
         mock_post.side_effect = requests.exceptions.RequestException("Connection error")
         
-        result = llm_adapter.complete("test prompt")
-        
-        assert result.startswith("[llm error]")
-        assert "Connection error" in result
-        assert "test prompt" in result
+        with pytest.raises(ModelGenerationError) as caught:
+            llm_adapter.complete("test prompt", system_prompt="Synthetic system prompt")
+        assert "Connection error" not in str(caught.value)
+        assert "test prompt" not in str(caught.value)
 
     def _check_lm_studio_running(self):
         """Check if LM Studio is running and accessible."""

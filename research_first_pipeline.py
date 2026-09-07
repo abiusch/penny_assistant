@@ -23,6 +23,7 @@ from memory_system import MemoryManager
 from emotional_memory_system import create_enhanced_memory_system
 from personality_integration import create_personality_integration
 from factual_research_manager import ResearchManager
+from src.llm.errors import ModelGenerationError, MODEL_FAILURE_REPLY, require_response_text
 
 # Phase 2: Dynamic Personality Adaptation
 from src.personality.dynamic_personality_prompt_builder import DynamicPersonalityPromptBuilder
@@ -632,9 +633,6 @@ class ResearchFirstPipeline(PipelineLoop):
               f"emotion={'yes' if emotion_result else 'no'}, "
               f"research={'yes' if research_context else 'no'}")
 
-        # Debug: Show actual prompt being sent to LLM
-        logger.debug(f"🔍 FULL PROMPT SENT TO LLM:\n{final_prompt[:500]}...\n")
-
         # Phase 3B Week 3: Use tool orchestrator
         logger.debug("🔧 Checking for tool calls...")
 
@@ -1143,7 +1141,7 @@ class ResearchFirstPipeline(PipelineLoop):
                 )
                 return _generated["raw"]
 
-            final_response = chat_respond(actual_command, generator=_generate)
+            final_response = require_response_text(chat_respond(actual_command, generator=_generate))
             render_debug["raw"] = _generated.get("raw")
 
             if render_debug.get('raw'):
@@ -1171,6 +1169,7 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.debug("🧪 A/B Test: Skipping response post-processing (control group)")
 
             # Step 6: Add financial disclaimer if needed (in Penny's style)
+            final_response = require_response_text(final_response)
             final_response = _apply_financial_disclaimer(final_response, financial_topic)
 
             self._persist_turn(actual_command, final_response, emotion_result,
@@ -1185,6 +1184,12 @@ class ResearchFirstPipeline(PipelineLoop):
             self.state = State.SPEAKING
             return final_response
 
+        except ModelGenerationError:
+            # No unusable answer reaches persistence, success metrics or
+            # response tagging. Generation failures also bypass post-processing.
+            logger.warning('Conversation generation failed; turn not saved')
+            self.state = State.SPEAKING
+            return MODEL_FAILURE_REPLY
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
@@ -1192,7 +1197,7 @@ class ResearchFirstPipeline(PipelineLoop):
             logger.error(f"❌ Pipeline error: {e}")
             logger.error(f"Full traceback:\n{error_details}")
             self.state = State.SPEAKING
-            return f"I encountered an issue processing that request. Please try rephrasing. Error: {str(e)}"
+            return "I encountered an issue processing that request. Please try again."
 
     def _update_personality_from_conversation(self, user_input: str, assistant_response: str, turn_id: str):
         """Analyze conversation and update personality dimensions (Phase 2.5: Active Learning)"""

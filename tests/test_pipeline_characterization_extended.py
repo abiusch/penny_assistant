@@ -259,13 +259,11 @@ class TestThinkResilience:
         assert "42" in r
         assert p.state == State.SPEAKING
 
-    def test_uncaught_error_message_leaks_exception_text(self, pipeline):
+    def test_uncaught_error_message_does_not_leak_exception_text(self, pipeline):
         """
-        Documents current (not necessarily desirable) behavior: the
-        top-level except block in think() interpolates str(e) directly into
-        the user-facing fallback response, so internal exception text is
-        exposed to the end user rather than being logged-only. Not fixed
-        here -- just characterized so a refactor doesn't change it silently.
+        Intentional reliability correction (September 7): unexpected pipeline
+        exceptions retain a graceful reply without exposing internal details.
+        This replaces the previous characterization of the known error leak.
         """
         async def boom(**kw):
             raise RuntimeError("boom-specific-detail")
@@ -275,7 +273,9 @@ class TestThinkResilience:
         p.state = State.THINKING
         r = p.think("Hello Penny")
 
-        assert "boom-specific-detail" in r
+        assert "issue processing" in r.lower()
+        assert "boom-specific-detail" not in r
+        assert p.state == State.SPEAKING
 
 
 class TestThinkKnownQuirks:

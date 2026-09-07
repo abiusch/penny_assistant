@@ -10,6 +10,7 @@ import asyncio
 from typing import Optional, Dict, Any, Callable, List, Union
 from dataclasses import dataclass
 import logging
+from src.llm.errors import ModelGenerationError, require_response_text
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,10 @@ class ToolOrchestrator:
 
         Returns:
             Final answer string for user
+
+        Raises:
+            ModelGenerationError: No usable model answer; the caller must handle
+                the failed turn without recording a successful conversation.
         """
         conversation_context = [dict(message) for message in (conversation_context or [])]
 
@@ -225,10 +230,12 @@ class ToolOrchestrator:
 
             # Generate LLM response
             try:
-                model_output = llm_generator(conversation_context)
+                model_output = require_response_text(llm_generator(conversation_context))
+            except ModelGenerationError:
+                raise
             except Exception as e:
-                logger.error(f"LLM generation failed: {e}")
-                return "I encountered an error processing your request."
+                logger.error('LLM generation failed (%s)', type(e).__name__)
+                raise ModelGenerationError() from None
 
             # Parse output
             try:
@@ -239,8 +246,9 @@ class ToolOrchestrator:
 
             if isinstance(parsed, FinalAnswer):
                 # Done! Return to user
+                answer = require_response_text(parsed.content)
                 logger.info(f"✅ Final answer received (iteration {iteration})")
-                return parsed.content
+                return answer
 
             elif isinstance(parsed, ToolCall):
                 # Execute tool

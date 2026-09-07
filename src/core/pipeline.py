@@ -28,9 +28,9 @@ class State(Enum):
     SPEAKING = "speaking"
 
 class PipelineLoop:
-    def __init__(self):
-        self.cfg = load_config()
-        self.llm = LLMFactory.from_config(self.cfg)
+    def __init__(self, config=None, *, initialize_llm=True):
+        self.cfg = load_config() if config is None else config
+        self.llm = LLMFactory.from_config(self.cfg) if initialize_llm else None
         self.stt = STTFactory.create(self.cfg)
         self.vad = SimpleVAD()
         self.tts = TTSFactory.create(self.cfg)

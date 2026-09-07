@@ -85,7 +85,8 @@ class PersonalityTracker:
     """
 
     def __init__(self, db_path: str = "data/personality_tracking.db"):
-        self.db_path = db_path
+        self.db_path = str(Path(db_path).expanduser().resolve())
+        self._cache_key = self.db_path
         self.tracked_dimensions = {
             'communication_formality': {
                 'range': (0.0, 1.0),  # 0=very casual, 1=very formal
@@ -169,7 +170,7 @@ class PersonalityTracker:
 
     def _init_database(self):
         """Initialize the personality tracking database with WAL mode"""
-        Path("data").mkdir(exist_ok=True)
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         
         with sqlite3.connect(self.db_path) as conn:
             # Enable WAL mode for concurrent access
@@ -536,7 +537,7 @@ class PersonalityTracker:
         # Phase 3A: Try cache first
         if CACHE_AVAILABLE:
             cache = get_cache()
-            cached_state = cache.get("default")
+            cached_state = cache.get(self._cache_key)
             if cached_state is not None:
                 return cached_state
 
@@ -569,7 +570,7 @@ class PersonalityTracker:
 
         # Store in cache
         if CACHE_AVAILABLE:
-            cache.set("default", personality_state)
+            cache.set(self._cache_key, personality_state)
 
         return personality_state
 
@@ -639,7 +640,7 @@ class PersonalityTracker:
                 # Phase 3A: Invalidate cache after update
                 if CACHE_AVAILABLE:
                     cache = get_cache()
-                    cache.invalidate("default")
+                    cache.invalidate(self._cache_key)
 
                 return True
 

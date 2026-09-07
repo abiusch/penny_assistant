@@ -31,36 +31,40 @@ class DataEncryption:
     Key is stored locally in data/.encryption_key with 0o600 permissions.
     """
 
-    def __init__(self, key_file: Path = None):
+    def __init__(self, key_file: Path = None, *, create_if_missing: bool = True):
         """
         Initialize encryption with secure key storage.
 
         Args:
             key_file: Path to encryption key file (default: data/.encryption_key)
+            create_if_missing: False when opening an existing encrypted store.
         """
         if key_file is None:
             key_file = Path(__file__).parent.parent.parent / "data" / ".encryption_key"
 
         self.key_file = Path(key_file)
+        self.create_if_missing = create_if_missing
         self._load_or_create_key()
 
     def _load_or_create_key(self):
         """Load existing key or create new one with secure permissions"""
-        if self.key_file.exists() and self.key_file.stat().st_size > 0:
-            # Load existing key (only if file has content)
+        if self.key_file.exists():
+            with open(self.key_file, 'rb') as f:
+                self.key = f.read()
+            # A newly allocated empty key file is supported for fresh stores.
+            # Existing stores pass create_if_missing=False and must restore it.
+            if not self.key and self.create_if_missing:
+                self._generate_new_key()
             try:
-                with open(self.key_file, 'rb') as f:
-                    self.key = f.read()
-
-                # Validate key format
                 Fernet(self.key)  # Will raise ValueError if invalid
                 logger.info(f"🔐 Loaded encryption key from {self.key_file}")
-            except (ValueError, Exception) as e:
-                # Invalid or corrupted key file, regenerate
-                logger.warning(f"Invalid key file, regenerating: {e}")
-                self._generate_new_key()
+            except (ValueError, TypeError):
+                raise ValueError('Invalid encryption key; restore the matching key. '
+                                 'The existing key has not been replaced.') from None
         else:
-            # Generate new key (file doesn't exist or is empty)
+            if not self.create_if_missing:
+                raise FileNotFoundError('Existing memory store has no encryption key. '
+                                        'Restore its matching .encryption_key before opening it.')
             self._generate_new_key()
 
         # Initialize cipher

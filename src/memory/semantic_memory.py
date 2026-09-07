@@ -41,7 +41,8 @@ class SemanticMemory:
         self,
         embedding_dim: int = 384,
         encrypt_sensitive: bool = True,
-        storage_path: str = "data/embeddings/vector_store"
+        storage_path: str = "data/embeddings/vector_store",
+        encryption=None,
     ):
         """
         Initialize semantic memory as the sole persistent store.
@@ -61,7 +62,7 @@ class SemanticMemory:
         # WEEK 7: Encryption for sensitive data (GDPR Article 9)
         self.encrypt_sensitive = encrypt_sensitive
         if encrypt_sensitive:
-            self.encryption = get_encryption()
+            self.encryption = encryption if encryption is not None else get_encryption()
             logger.info("🔐 Semantic Memory initialized with encryption enabled")
         else:
             self.encryption = None

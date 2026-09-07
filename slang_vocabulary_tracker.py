@@ -44,7 +44,7 @@ class SlangVocabularyTracker:
     
     def _init_database(self):
         """Initialize slang vocabulary database tables"""
-        Path("data").mkdir(exist_ok=True)
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         
         with sqlite3.connect(self.db_path) as conn:
             # Slang and vocabulary table

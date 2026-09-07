@@ -15,6 +15,7 @@ from slang_vocabulary_tracker import SlangVocabularyTracker
 from contextual_preference_engine import ContextualPreferenceEngine
 from response_effectiveness_analyzer import ResponseEffectivenessAnalyzer
 from personality_tracker import PersonalityTracker
+from src.runtime_paths import data_path, project_path
 
 class PersonalityObserver:
     """
@@ -22,12 +23,14 @@ class PersonalityObserver:
     Wraps around existing Penny to learn communication patterns
     """
     
-    def __init__(self):
+    def __init__(self, db_path=None):
+        db_path = str(project_path(db_path) if db_path is not None
+                      else data_path() / 'personality_tracking.db')
         print("🧠 Initializing Personality Observer (Silent Mode)...")
-        self.slang_tracker = SlangVocabularyTracker()
-        self.context_engine = ContextualPreferenceEngine()
-        self.effectiveness_analyzer = ResponseEffectivenessAnalyzer()
-        self.personality_tracker = PersonalityTracker()
+        self.slang_tracker = SlangVocabularyTracker(db_path)
+        self.context_engine = ContextualPreferenceEngine(db_path)
+        self.effectiveness_analyzer = ResponseEffectivenessAnalyzer(db_path)
+        self.personality_tracker = PersonalityTracker(db_path)
         
         self.last_penny_response = None
         self.last_response_time = None

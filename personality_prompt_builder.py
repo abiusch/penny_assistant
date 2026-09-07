@@ -7,6 +7,7 @@ Transforms learned personality preferences into dynamic LLM system prompts
 import asyncio
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from src.runtime_paths import data_path, project_path
 
 
 @dataclass
@@ -45,7 +46,9 @@ ABSOLUTE_CHAT_CONSTRAINTS = (
 class PersonalityPromptBuilder:
     """Builds personality-aware system prompts from learned preferences"""
 
-    def __init__(self):
+    def __init__(self, db_path=None):
+        self.db_path = str(project_path(db_path) if db_path is not None
+                           else data_path() / 'personality_tracking.db')
         self.base_identity = "You are Penny, an AI assistant"
 
     async def get_unified_personality_profile(self) -> PersonalityProfile:
@@ -56,9 +59,9 @@ class PersonalityPromptBuilder:
             from slang_vocabulary_tracker import SlangVocabularyTracker
             from contextual_preference_engine import ContextualPreferenceEngine
 
-            tracker = PersonalityTracker()
-            vocab_tracker = SlangVocabularyTracker()
-            context_engine = ContextualPreferenceEngine()
+            tracker = PersonalityTracker(self.db_path)
+            vocab_tracker = SlangVocabularyTracker(self.db_path)
+            context_engine = ContextualPreferenceEngine(self.db_path)
 
             # Get personality dimensions
             personality_state = await tracker.get_current_personality_state()
@@ -297,9 +300,10 @@ Confidence: 65% (learned from recent conversations)"""
 
 
 # Synchronous wrapper for easy integration
-def get_personality_prompt(base_prompt: Optional[str] = None, context: Optional[Dict[str, Any]] = None) -> str:
+def get_personality_prompt(base_prompt: Optional[str] = None, context: Optional[Dict[str, Any]] = None,
+                           *, db_path=None) -> str:
     """Synchronous wrapper - returns personality-aware prompt"""
-    builder = PersonalityPromptBuilder()
+    builder = PersonalityPromptBuilder(db_path=db_path)
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():

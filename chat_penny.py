@@ -160,7 +160,7 @@ def run_chat_loop(
 def main():
     pipeline = ResearchFirstPipeline()
     print_intro(pipeline)
-    observer = PersonalityObserver()
+    observer = PersonalityObserver(db_path=pipeline.db_path)
     run_chat_loop(pipeline, observer)
 
 

@@ -24,23 +24,22 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 7):** PRs #32–#35 are merged (tool parsing/replay,
-live-model compatibility, project review, and request-thread calculator execution).
-Controlled model failures and failed-turn persistence protection are repaired on
-`codex/model-error-handling` ([PR #36](https://github.com/abiusch/penny_assistant/pull/36)), pending review. The 30 pipeline characterization
+**Reliability pass (September 7):** PRs #32–#36 are merged (tool parsing/replay,
+live-model compatibility, project review, request-thread calculator execution,
+and controlled model failures). Stable configuration/data paths are repaired
+on `codex/stable-runtime-paths`, pending review. The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** review/merge the model-error fix, then consistent config/data roots
-  and consent-aware storage/deletion.
+- **Next:** review/merge stable config/data paths, then consent-aware storage/deletion.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (model-error fix, local):** 569 passed, 2 expected failures, plus all 30 `think()`
-  characterization checks (`--run-slow`).
+- **Tests (path fix, local):** 590 passed, 2 expected failures. All 30 `think()`
+  characterization checks (`--run-slow`) and five selected legacy encryption checks pass.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
   focused request-thread/process tests on Windows/Python 3.13. See the active PR
   for checks against its latest commit.
@@ -48,14 +47,55 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **LLM:** `openai/gpt-oss-20b` via local LM Studio; synthetic calculator round trip
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
-  #34 review/evidence, #35 request-thread tools (`main` at `9725d7b`).
-  **Active:** `codex/model-error-handling`, awaiting review/merge.
+  #34 review/evidence, #35 request-thread tools, #36 model failures (`main` at `ce8d1db`).
+  **Active:** `codex/stable-runtime-paths`, awaiting review/merge.
 
 ---
 
+## SESSION RECAP — September 7, 2026 (Stable runtime paths)
+
+On `codex/stable-runtime-paths`, pending review/merge:
+
+- Resolve main config and data paths independently of the launch directory.
+  Explicit arguments override `PENNY_CONFIG` / `PENNY_DATA_DIR`; relative overrides
+  are project-relative. Both main config loaders and the legacy personality filter
+  share selection rules. Invalid selected config fails pipeline startup instead
+  of quietly choosing a default model. The personality-only filter retains its
+  empty-settings fallback. See [runtime path rules](docs/runtime_paths.md).
+- Load one config snapshot and construct one selected model in the research
+  pipeline. Pass resolved paths to the personality helpers, adapter-side prompt,
+  consent, A/B store, milestones, snapshots, semantic vectors and encryption key.
+  The web backend reuses pipeline trackers; text observation uses the same database.
+- Scope personality cache lookup/invalidation by resolved database path and give
+  each pipeline its own A/B and encryption objects. Stop trackers from creating an
+  unrelated `data` directory in the current working directory.
+- Preserve existing data. The local `web_interface/data -> ../data` symlink is
+  unchanged. A separate populated legacy web store requires explicit selection;
+  no stores are combined or moved. Existing vector stores cannot receive a new
+  key when theirs is missing/empty; invalid nonempty keys are never regenerated.
+  Restore the matching key before opening an older alternate encrypted store.
+- **21 new canonical cases** cover launch/config selection, independent stores,
+  cache invalidation, key preservation and text observation. Three fresh processes
+  launched from different scratch folders retrieve earlier synthetic conversations
+  and decrypt emotion metadata using the same key. **All five initial regression
+  checks failed before the fix.** Offline fixtures now use real path injection
+  rather than patching away the A/B and encryption defaults.
+- Validation: **590 passed, 2 expected failures**, all **30** characterization checks
+  unchanged, and **five** selected legacy encryption checks pass. Tests use synthetic
+  data and mocked model/audio/embeddings; production-data guards pass.
+
+This covers the research/text/web runtime and shared config selection, not every
+legacy script, model/TTS cache, or log path. Full live web/audio and concurrent
+request isolation remain unverified. Startup/restart retrieval is covered, but the
+existing in-memory turn-ID map still causes the summary conversation count to reset
+on restart; map restoration and crash-safe persistence remain follow-ups. Consent
+storage/deletion enforcement, legacy adapter test cleanup and the inactive GPTOSS
+adapter's error reply remain open. Disabled learning remains disabled.
+
 ## SESSION RECAP — September 7, 2026 (Model failures)
 
-On `codex/model-error-handling` ([PR #36](https://github.com/abiusch/penny_assistant/pull/36)), pending review:
+[PR #36](https://github.com/abiusch/penny_assistant/pull/36), merged; all five latest
+GitHub checks passed and Claude found no merge blockers:
 
 - Introduce a shared `ModelGenerationError` contract. The OpenAI-compatible
   adapter raises it for connection/HTTP/timeout failures, invalid JSON or response

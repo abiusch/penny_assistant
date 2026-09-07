@@ -24,6 +24,8 @@ from emotional_memory_system import create_enhanced_memory_system
 from personality_integration import create_personality_integration
 from factual_research_manager import ResearchManager
 from src.llm.errors import ModelGenerationError, MODEL_FAILURE_REPLY, require_response_text
+from src.runtime_paths import RuntimePaths, load_runtime_config
+from src.security.encryption import DataEncryption
 
 # Phase 2: Dynamic Personality Adaptation
 from src.personality.dynamic_personality_prompt_builder import DynamicPersonalityPromptBuilder
@@ -33,7 +35,7 @@ import asyncio
 
 # Phase 3A Week 2: Milestone & Achievement System
 from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
-from src.personality.adaptation_ab_test import get_ab_test, ABTestMetrics
+from src.personality.adaptation_ab_test import AdaptationABTest, ABTestMetrics
 
 # Phase 3B Week 3: Tool Calling Infrastructure
 from src.tools.tool_orchestrator import ToolOrchestrator
@@ -139,22 +141,29 @@ class ResearchOutcome:
 class ResearchFirstPipeline(PipelineLoop):
     """Research-first pipeline that always researches before answering factual questions."""
 
-    def __init__(self, db_path: str = "data/personality_tracking.db", data_dir: str = "data"):
-        super().__init__()
-
-        # Injectable storage locations. Defaults point at the real data dir;
-        # tests pass temp paths so think() can run without polluting real data.
-        self.db_path = db_path
-        self.data_dir = data_dir
+    def __init__(self, db_path=None, data_dir=None, *, config_path=None):
+        self.paths = RuntimePaths.resolve(config=config_path, data_dir=data_dir, db_path=db_path)
+        config = load_runtime_config(self.paths.config)
+        existing_vectors = any((self.paths.data / 'embeddings' / filename).exists()
+                               for filename in ('vector_store.index', 'vector_store.pkl'))
+        encryption = DataEncryption(self.paths.data / '.encryption_key',
+                                    create_if_missing=not existing_vectors)
+        self.paths.data.mkdir(parents=True, exist_ok=True)
+        self.paths.personality_db.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = str(self.paths.personality_db)
+        self.data_dir = str(self.paths.data)
+        # This pipeline constructs its selected model below; avoid a second
+        # unused client with the base pipeline's separate factory/default paths.
+        super().__init__(config=config, initialize_llm=False)
 
         # LLM selection is config-driven (penny_config.json -> "llm"). Adding a
         # model is a config change; standardized on OpenAI-compatible serving.
         # See src/llm/registry.py. Nemotron/Ollama remains a graceful fallback.
         self.llm = None
         try:
-            from src.llm.registry import create_llm, load_llm_config
-            _llm_cfg = load_llm_config()
-            self.llm = create_llm(_llm_cfg)
+            from src.llm.registry import create_llm
+            _llm_cfg = self.cfg
+            self.llm = create_llm(_llm_cfg, personality_db_path=self.db_path)
             _active = (_llm_cfg.get("llm") or {})
             logger.info(
                 f"✅ LLM: {_active.get('model')} via {_active.get('provider')} "
@@ -176,9 +185,11 @@ class ResearchFirstPipeline(PipelineLoop):
         self.research_manager = ResearchManager()
 
         # Phase 2: Dynamic Personality Adaptation
-        self.personality_prompt_builder = DynamicPersonalityPromptBuilder()
-        self.personality_post_processor = PersonalityResponsePostProcessor()
         self.personality_tracker = PersonalityTracker(db_path=self.db_path)
+        self.personality_prompt_builder = DynamicPersonalityPromptBuilder(
+            personality_tracker=self.personality_tracker, db_path=self.db_path)
+        self.personality_post_processor = PersonalityResponsePostProcessor(
+            personality_tracker=self.personality_tracker, db_path=self.db_path)
 
         # Phase 3A Week 2: Milestone & Achievement System
         self.milestone_tracker = PersonalityMilestoneTracker(
@@ -187,7 +198,7 @@ class ResearchFirstPipeline(PipelineLoop):
         )
         logger.info("🏆 Milestone tracker initialized")
 
-        self.ab_test = get_ab_test()
+        self.ab_test = AdaptationABTest(db_path=os.path.join(self.data_dir, 'personality.db'))
         logger.info("📊 A/B testing framework initialized")
 
         # Phase 3B Week 3: Tool Calling Infrastructure
@@ -200,12 +211,13 @@ class ResearchFirstPipeline(PipelineLoop):
         self.context_manager = ContextManager(max_window_size=10)
         self.emotion_detector = EmotionDetector()
         self.semantic_memory = SemanticMemory(
-            storage_path=os.path.join(self.data_dir, "embeddings", "vector_store")
+            storage_path=os.path.join(self.data_dir, "embeddings", "vector_store"),
+            encryption=encryption,
         )
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
         # Week 8: Emotional Continuity System
-        self.consent_manager = ConsentManager()
+        self.consent_manager = ConsentManager(storage_path=self.paths.data / 'user_consent.json')
         self.emotion_detector_v2 = EmotionDetectorV2()
         self.emotional_continuity = EmotionalContinuity(
             semantic_memory=self.semantic_memory,

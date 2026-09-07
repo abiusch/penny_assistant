@@ -26,30 +26,19 @@ If "models"/"active_model" are absent, the flat "model" field is used
 (backward compatible). Per-model entries override the base llm settings.
 """
 
-import json
 import logging
-import os
 from typing import Any, Dict, List, Optional
+from src.runtime_paths import load_runtime_config
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_CONFIG_PATH = "penny_config.json"
 
 # Providers that speak the OpenAI HTTP API (chat/completions).
 _OPENAI_COMPATIBLE = {"openai_compatible", "openai-compatible", "lmstudio", "lm_studio", "vllm", "openai"}
 
 
-def load_llm_config(path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
-    """Load the full config dict from penny_config.json (empty dict if missing)."""
-    if not os.path.exists(path):
-        logger.warning(f"LLM config not found at {path}; using defaults")
-        return {"llm": {}}
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception as e:
-        logger.warning(f"Failed to read {path}: {e}; using defaults")
-        return {"llm": {}}
+def load_llm_config(path=None) -> Dict[str, Any]:
+    """Load the selected runtime config; invalid/missing configuration fails."""
+    return load_runtime_config(path)
 
 
 def available_models(config: Dict[str, Any]) -> List[str]:
@@ -94,7 +83,8 @@ def resolve_model_config(
     return resolved
 
 
-def create_llm(config: Optional[Dict[str, Any]] = None, model_name: Optional[str] = None):
+def create_llm(config: Optional[Dict[str, Any]] = None, model_name: Optional[str] = None,
+               *, personality_db_path=None):
     """
     Construct the active LLM client from config.
 
@@ -113,7 +103,7 @@ def create_llm(config: Optional[Dict[str, Any]] = None, model_name: Optional[str
             from src.adapters.llm.openai_compat import OpenAICompatLLM
         except ImportError:
             from adapters.llm.openai_compat import OpenAICompatLLM
-        client = OpenAICompatLLM(resolved)
+        client = OpenAICompatLLM(resolved, personality_db_path=personality_db_path)
         logger.info(f"LLM: {llm.get('model')} via {provider} @ {llm.get('base_url')}")
         return client
 

@@ -400,15 +400,10 @@ class TestInputProcessorPrereqCoverage:
     def test_emotional_checkin_injects_context(self, pipeline):
         # GAP 1: emotional-continuity check-in path (Step 1.6).
         # should_check_in() only fires when tracking + check-ins consent are on
-        # AND EmotionalContinuity.enabled is True. That `enabled` flag is
-        # captured once at __init__ from is_tracking_enabled() (default False),
-        # so flipping the consent prefs alone is not enough -- we must also flip
-        # emotional_continuity.enabled directly. Set everything in-memory;
-        # grant_consent() would write to data/user_consent.json.
+        # Grant through the public API in isolated storage. Live continuity now
+        # follows durable consent instead of a constructor-time flag.
         p, _ = pipeline
-        p.consent_manager.preferences['emotional_tracking_enabled'] = True
-        p.consent_manager.preferences['proactive_checkins_enabled'] = True
-        p.emotional_continuity.enabled = True
+        p.consent_manager.grant_consent(proactive_checkins=True)
         # Seed a prior high-intensity, un-followed-up thread inside the window.
         p.emotional_continuity.threads.append(EmotionalThread(
             emotion='stress',
@@ -506,7 +501,6 @@ class TestPostTurnProcessorPrereqCoverage:
         p.semantic_memory.add_conversation_turn = lambda **kw: sem_calls.append(kw)
 
         craft = "Tell me about the history of computers"
-        expected_emotion = p.emotion_detector.detect_emotion(craft)
         p.state = State.THINKING
         final = p.think(craft)
 
@@ -524,8 +518,8 @@ class TestPostTurnProcessorPrereqCoverage:
         assert meta["research_used"] is False           # fixture: requires_research=False
         assert meta["financial_topic"] is False         # non-financial input
         assert meta["ab_test_group"] == "treatment"     # fixture assign_group stub
-        assert meta["emotion"] == expected_emotion.primary_emotion
-        assert meta["sentiment"] == expected_emotion.sentiment
+        # Intentional consent correction: default opt-out must not persist labels.
+        assert not {'emotion', 'emotion_confidence', 'sentiment', 'sentiment_score'}.intersection(meta)
         assert isinstance(meta["response_time_ms"], int) and meta["response_time_ms"] >= 0
 
     def test_personality_snapshot_fires_on_first_turn(self, pipeline):
@@ -615,9 +609,7 @@ class TestPostTurnProcessorPrereqCoverage:
         # control path exercises the identical code. sanitize_output preserves
         # plain words.
         p.ab_test.is_control_group = lambda *a, **k: True
-        p.consent_manager.preferences["emotional_tracking_enabled"] = True
-        p.consent_manager.preferences["proactive_checkins_enabled"] = True
-        p.emotional_continuity.enabled = True
+        p.consent_manager.grant_consent(proactive_checkins=True)
         seeded = EmotionalThread(
             emotion="stress", intensity=0.9, context="worried about layoffs",
             timestamp=datetime.now(), turn_id="prev",

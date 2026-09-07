@@ -9,6 +9,8 @@
 >
 > 📋 **Reliability review:** [September 6 review](docs/reviews/2026-09-06_project_review.md)
 >
+> **Claude handoff:** [September 7 work summary](docs/reviews/2026-09-07_claude_handoff.md)
+>
 > 📚 **Project overview:** [README.md](README.md)
 
 **Last Updated:** September 7, 2026
@@ -25,7 +27,7 @@ Older recaps are historical evidence, not the current test or deployment status.
 **Reliability pass (September 7):** PRs #32–#35 are merged (tool parsing/replay,
 live-model compatibility, project review, and request-thread calculator execution).
 Controlled model failures and failed-turn persistence protection are repaired on
-`codex/model-error-handling`, pending review. The 30 pipeline characterization
+`codex/model-error-handling` ([PR #36](https://github.com/abiusch/penny_assistant/pull/36)), pending review. The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
@@ -53,7 +55,7 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 ## SESSION RECAP — September 7, 2026 (Model failures)
 
-On `codex/model-error-handling`, pending review:
+On `codex/model-error-handling` ([PR #36](https://github.com/abiusch/penny_assistant/pull/36)), pending review:
 
 - Introduce a shared `ModelGenerationError` contract. The OpenAI-compatible
   adapter raises it for connection/HTTP/timeout failures, invalid JSON or response

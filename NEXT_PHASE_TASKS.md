@@ -15,10 +15,11 @@
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 6):** Tool request parsing and tool-result replay
-are repaired on `codex/repair-tool-roundtrip`, pending PR review. The fast suite
-now includes real tool-roundtrip coverage; the 30 full-pipeline characterization
-checks use offline, isolated fixtures and run explicitly in CI. See recap below.
+**Reliability pass (September 6):** PR #32 merged the tool request parsing and
+tool-result replay repairs. The live-model bare-JSON follow-up is on
+`codex/live-tool-json`, pending review. The fast suite now includes real
+tool-roundtrip coverage; the 30 full-pipeline characterization checks use offline,
+isolated fixtures and run explicitly in CI. See recap below.
 
 **⏭️ Week 14 (Platform Abstraction Layer) substantively complete (Sep 1, 2026) — audio-output abstraction (#27) + VAD import guard (#28). Next: Week 15 (Capability Awareness).**  
 
@@ -27,7 +28,7 @@ checks use offline, isolated fixtures and run explicitly in CI. See recap below.
 **Phase 4:** ✅ 100% Complete  
 **Phase 5:** 🔄 In progress (Weeks 14-18 — Polish & Productization); Week 14 substantively complete  
 **Server:** 🟢 Port 5001  
-**Tests:** 🟢 463 canonical (~2s) + 29 `think()` characterization (`--run-slow`)  
+**Tests (live-model follow-up):** 🟢 499 passed, 2 expected failures + 30 `think()` characterization (`--run-slow`)
 **Diagnostics:** 🟢 18/18 passing  
 **CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
@@ -37,18 +38,24 @@ checks use offline, isolated fixtures and run explicitly in CI. See recap below.
 
 ## SESSION RECAP — September 6, 2026 (Tool reliability)
 
-On `codex/repair-tool-roundtrip`, pending review:
+PR #32 is merged. The bare-JSON follow-up on `codex/live-tool-json` is pending review:
 
 - Parse the advertised nested `tool`/`args` JSON envelope correctly, retaining
-  documented legacy calculator/browser formats. Malformed calls fail explicitly;
+  documented legacy calculator/browser formats and bare JSON envelopes from
+  LM Studio. Malformed calls fail explicitly;
   unknown tool names are no longer silently rerouted to web search.
 - Replay tool calls and results into subsequent LLM prompts. External results
   are labeled as tool data. Direct replies retain paragraph/code formatting.
-- Add 21 offline regression cases, including a real registered calculator through
-  `think()`. The canonical suite is **489 passed, 2 expected failures** locally.
+- Add 31 offline regression cases, including a real registered calculator through
+  `think()`. The canonical suite is **499 passed, 2 expected failures** locally.
 - Make the 30 characterization tests offline and isolate construction/storage;
   all 30 pass. Add them as an explicit CI step on Python 3.11 and 3.13.
 - Declare pytest-timeout and make `make test` use the project virtualenv.
+- Verify a synthetic request against the local `openai/gpt-oss-20b` model:
+  `347 * 29` executes the registered calculator once and answers **10,063** in
+  two model calls. The first live check exposed the bare-JSON compatibility gap;
+  the regression suite now covers that exact response format. This checks tool
+  generation/replay, not audio or every possible model response format.
 
 The two existing Week 15 expected failures remain unfinished. The request-thread
 calculator timeout defect is also a separate follow-up; these changes repair

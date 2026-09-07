@@ -12,6 +12,8 @@ from typing import Dict, List, Optional
 import json
 import logging
 from pathlib import Path
+from src.memory.storage_io import atomic_write
+from src.memory.consent_manager import ConsentManager, consent_guarded
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +115,8 @@ class PersonalitySnapshotManager:
     def __init__(
         self,
         storage_path: str = "data/personality_snapshots",
-        snapshot_interval: int = 50
+        snapshot_interval: int = 50,
+        consent_manager=None,
     ):
         """
         Initialize snapshot manager.
@@ -124,6 +127,7 @@ class PersonalitySnapshotManager:
         """
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
+        self.consent_manager = consent_manager or ConsentManager(self.storage_path.parent / 'user_consent.json')
         
         self.snapshot_interval = snapshot_interval
         self.snapshots: List[PersonalitySnapshot] = []
@@ -164,6 +168,7 @@ class PersonalitySnapshotManager:
         last_snapshot_count = self.snapshots[-1].conversation_count
         return conversation_count - last_snapshot_count >= self.snapshot_interval
     
+    @consent_guarded
     def create_snapshot(
         self,
         personality_state: dict,
@@ -190,6 +195,7 @@ class PersonalitySnapshotManager:
             >>> print(snapshot)
             PersonalitySnapshot(v4, 150 conversations, 3 threads)
         """
+        emotional_threads = self.consent_manager.filter_threads(emotional_threads, reading=True)
         version = len(self.snapshots) + 1
         
         snapshot = PersonalitySnapshot(
@@ -206,6 +212,12 @@ class PersonalitySnapshotManager:
         logger.info(f"📸 Created personality snapshot v{version}")
         return snapshot
     
+    def _apply_consent(self):
+        for snapshot in self.snapshots:
+            snapshot.emotional_threads = self.consent_manager.filter_threads(
+                snapshot.emotional_threads, reading=True)
+
+    @consent_guarded
     def rollback_to_version(self, version: int) -> Optional[PersonalitySnapshot]:
         """
         Rollback personality to a previous version.
@@ -223,6 +235,7 @@ class PersonalitySnapshotManager:
             ...     restore_personality(snapshot.personality_state)
             ...     restore_threads(snapshot.emotional_threads)
         """
+        self._apply_consent()
         for snapshot in self.snapshots:
             if snapshot.version == version:
                 logger.info(f"↩️ Rolling back to personality v{version}")
@@ -231,10 +244,13 @@ class PersonalitySnapshotManager:
         logger.warning(f"Snapshot v{version} not found")
         return None
     
+    @consent_guarded
     def get_latest(self) -> Optional[PersonalitySnapshot]:
         """Get most recent snapshot"""
+        self._apply_consent()
         return self.snapshots[-1] if self.snapshots else None
     
+    @consent_guarded
     def list_versions(self) -> List[dict]:
         """
         List all snapshot versions.
@@ -250,6 +266,7 @@ class PersonalitySnapshotManager:
             v2: 100 conversations
             v3: 150 conversations
         """
+        self._apply_consent()
         return [
             {
                 'version': s.version,
@@ -260,6 +277,7 @@ class PersonalitySnapshotManager:
             for s in self.snapshots
         ]
     
+    @consent_guarded
     def get_snapshot_at_time(self, timestamp: datetime) -> Optional[PersonalitySnapshot]:
         """
         Find snapshot closest to a given time.
@@ -272,22 +290,25 @@ class PersonalitySnapshotManager:
         Returns:
             Closest snapshot before or at that time
         """
+        self._apply_consent()
         candidates = [s for s in self.snapshots if s.timestamp <= timestamp]
         if not candidates:
             return None
         return max(candidates, key=lambda s: s.timestamp)
     
+    @consent_guarded
     def _save_snapshot(self, snapshot: PersonalitySnapshot):
         """Save snapshot to disk"""
         path = self.storage_path / f"snapshot_v{snapshot.version}.json"
         
         try:
-            with open(path, 'w') as f:
-                json.dump(snapshot.to_dict(), f, indent=2)
+            snapshot.emotional_threads = self.consent_manager.filter_threads(snapshot.emotional_threads)
+            atomic_write(path, json.dumps(snapshot.to_dict(), indent=2).encode('utf-8'))
             logger.debug(f"Saved snapshot v{snapshot.version} to {path}")
         except Exception as e:
             logger.error(f"Failed to save snapshot v{snapshot.version}: {e}")
     
+    @consent_guarded
     def _load_snapshots(self):
         """Load all snapshots from disk"""
         if not self.storage_path.exists():
@@ -300,6 +321,7 @@ class PersonalitySnapshotManager:
             try:
                 with open(file, 'r') as f:
                     data = json.load(f)
+                    data['emotional_threads'] = self.consent_manager.filter_threads(data['emotional_threads'])
                     snapshot = PersonalitySnapshot.from_dict(data)
                     self.snapshots.append(snapshot)
             except Exception as e:
@@ -307,6 +329,16 @@ class PersonalitySnapshotManager:
         
         if self.snapshots:
             logger.info(f"Loaded {len(self.snapshots)} existing snapshots")
+
+    @consent_guarded
+    def delete_emotional_threads(self):
+        """Redact every on-disk snapshot, including ones absent from the cache."""
+        for snapshot in self.snapshots:
+            snapshot.emotional_threads = []
+        for path in self.storage_path.glob('snapshot_v*.json'):
+            data = json.loads(path.read_text(encoding='utf-8'))
+            data['emotional_threads'] = []
+            atomic_write(path, json.dumps(data, indent=2).encode('utf-8'))
     
     def delete_snapshot(self, version: int) -> bool:
         """

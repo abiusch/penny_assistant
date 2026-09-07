@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from enhanced_web_search import EnhancedWebSearch
 from src.tools.tool_safety import get_safe_tool_wrapper, SafeToolWrapper
+from src.tools.calculator import calculate
 
 logger = logging.getLogger(__name__)
 
@@ -67,46 +68,9 @@ class ToolImplementations:
             logger.error(f"❌ {error_msg}")
             return f"ERROR: {error_msg}"
 
-    @staticmethod
-    def math_calc(args: Dict[str, Any]) -> str:
-        """
-        Execute mathematical calculation.
-
-        Args:
-            args: {"expression": "2 + 2"} or {"equation": "..."}
-
-        Returns:
-            Calculation result
-        """
-        expression = args.get("expression") or args.get("equation", "")
-
-        if not expression:
-            return "ERROR: No expression provided"
-
-        logger.info(f"🧮 Calculating: '{expression}'")
-
-        try:
-            # Safe eval with limited scope
-            # Only allow basic math operations
-            allowed_names = {
-                'abs': abs,
-                'round': round,
-                'pow': pow,
-                'sum': sum,
-                'min': min,
-                'max': max,
-            }
-
-            # Use eval with restricted namespace
-            result = eval(expression, {"__builtins__": {}}, allowed_names)
-
-            logger.info(f"✅ Calculation result: {result}")
-            return f"CALCULATION RESULT:\n{expression} = {result}"
-
-        except Exception as e:
-            error_msg = f"Calculation failed: {e}"
-            logger.error(f"❌ {error_msg}")
-            return f"ERROR: {error_msg}"
+    # Keep the public synchronous callable, but import only this lightweight
+    # arithmetic module in each timeout worker (no web/pipeline initialization).
+    math_calc = staticmethod(calculate)
 
     @staticmethod
     def code_execute(args: Dict[str, Any]) -> str:

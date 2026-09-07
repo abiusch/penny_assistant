@@ -185,7 +185,8 @@ def test_tool_failures_reach_next_model_call(prompt_pipeline):
     assert len(prompts) == 2
 
 
-def test_complete_turn_uses_real_registered_calculator(isolated_pipeline):
+@pytest.mark.parametrize('request_thread', [False, True])
+def test_complete_turn_uses_real_registered_calculator(isolated_pipeline, request_thread):
     from src.core.pipeline import State
     from src.tools.tool_registry import ToolRegistry
     from src.tools.tool_safety import get_safe_tool_wrapper
@@ -207,7 +208,13 @@ def test_complete_turn_uses_real_registered_calculator(isolated_pipeline):
     pipeline.llm = SimpleNamespace(complete=complete)
     try:
         pipeline.state = State.THINKING
-        assert pipeline.think('Please calculate 2 + 2') == 'The answer is 4.'
+        if request_thread:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                answer = pool.submit(pipeline.think, 'Please calculate 2 + 2').result(timeout=10)
+        else:
+            answer = pipeline.think('Please calculate 2 + 2')
+        assert answer == 'The answer is 4.'
         assert len(prompts) == 2
         assert get_safe_tool_wrapper().rate_limiter.get_remaining_calls('math.calc') == 4
         assert pipeline.context_manager.get_stats()['window_size'] == 1

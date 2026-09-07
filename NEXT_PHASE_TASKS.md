@@ -9,17 +9,17 @@
 > 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 6, 2026
+**Last Updated:** September 7, 2026
 
 ---
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 6):** PR #32 merged the tool request parsing and
-tool-result replay repairs. The live-model bare-JSON follow-up is on
-`codex/live-tool-json`, pending review. The fast suite now includes real
-tool-roundtrip coverage; the 30 full-pipeline characterization checks use offline,
-isolated fixtures and run explicitly in CI. See recap below.
+**Reliability pass (September 7):** PRs #32–#34 are merged (tool parsing/replay,
+live-model compatibility, and project review). Request-thread calculator execution
+and enforceable process timeouts are repaired on `codex/request-safe-calculator`,
+pending review. The 30 full-pipeline characterization checks remain offline and
+isolated; new request-thread tests also run in a focused Windows CI job.
 
 **⏭️ Week 14 (Platform Abstraction Layer) substantively complete (Sep 1, 2026) — audio-output abstraction (#27) + VAD import guard (#28). Next: Week 15 (Capability Awareness).**  
 
@@ -28,7 +28,7 @@ isolated fixtures and run explicitly in CI. See recap below.
 **Phase 4:** ✅ 100% Complete  
 **Phase 5:** 🔄 In progress (Weeks 14-18 — Polish & Productization); Week 14 substantively complete  
 **Server:** 🟢 Port 5001  
-**Tests (live-model follow-up):** 🟢 499 passed, 2 expected failures + 30 `think()` characterization (`--run-slow`)
+**Tests (request-thread follow-up):** 🟢 534 passed, 2 expected failures + 30 `think()` characterization (`--run-slow`)
 **Diagnostics:** 🟢 18/18 passing  
 **CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
 **LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
@@ -36,9 +36,45 @@ isolated fixtures and run explicitly in CI. See recap below.
 
 ---
 
+## SESSION RECAP — September 7, 2026 (Request-thread calculator)
+
+On `codex/request-safe-calculator`, pending review:
+
+- Replace synchronous process-global alarm signals with a short-lived Python
+  worker. The caller kills and waits for the worker on timeout, including from
+  request threads. Async tools retain cancellation through `asyncio.wait_for`.
+- Keep validation and shared rate accounting in the caller, before worker startup;
+  disabled code never starts a worker. Rate-limit checks are atomic across threads
+  and use a monotonic clock. Invalid requests still consume a call, as before.
+- Replace calculator `eval` with bounded arithmetic: at most 200 characters,
+  100 syntax nodes, 20 nesting levels, 4096-bit integers and exponent magnitude
+  4096. Preserve numeric arithmetic, `abs`, `round`, `pow`, `sum`, `min`, `max`,
+  the `equation` alias, and the existing text result format. Non-finite values,
+  objects, comprehensions, and oversized calculations produce explicit errors.
+- Add 34 focused cases for real worker execution, termination/reaping, validation,
+  concurrent rate limits, error propagation without retries, arithmetic, and
+  complexity bounds. Extend the existing real `think()` calculator test to a
+  request thread. Local result: **534 passed, 2 expected failures**, plus all
+  **30** characterization checks. Five initial regression tests failed before
+  the timeout fix. A lightweight Windows CI job verifies the same worker tests.
+- Live synthetic verification from a request thread with LM Studio's
+  `openai/gpt-oss-20b`: one registered calculator execution and **10,063** returned
+  on the second model call for `347 * 29`. No stored conversations or memory used.
+
+Synchronous tools now require importable functions and JSON inputs/results.
+Closures, bound instances, and in-process state mutation are unsupported; new
+stateful tools need an explicit execution design. A worker is a timeout boundary
+for trusted tool code, not a security sandbox. Child-spawning tools are outside
+this contract. Each calculator call starts a fresh lightweight interpreter.
+
+This verifies the real conversation pipeline from a request-style thread, not
+the entire live web interface or concurrent conversation isolation. Model-error
+handling, consistent config/data roots, and consent-aware durable storage remain
+next. The two Week 15 expected failures remain unfinished.
+
 ## SESSION RECAP — September 6, 2026 (Tool reliability)
 
-PR #32 is merged. The bare-JSON follow-up on `codex/live-tool-json` is pending review:
+PRs #32 and #33 are merged:
 
 - Parse the advertised nested `tool`/`args` JSON envelope correctly, retaining
   documented legacy calculator/browser formats and bare JSON envelopes from

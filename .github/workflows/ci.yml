@@ -7,6 +7,18 @@ on:
     branches: [ main ]
 
 jobs:
+  windows-tool-safety:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+    - name: Install tool-test dependencies
+      run: python -m pip install pytest==8.4.1 pytest-timeout==2.4.0 aiohttp==3.12.15
+    - name: Verify request-thread tools and process timeouts on Windows
+      run: python -m pytest tests/test_tool_request_safety.py -o timeout_method=thread --tb=short
+
   test:
     runs-on: ubuntu-latest
     strategy:

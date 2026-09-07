@@ -12,6 +12,7 @@ WEEK 7 REFACTOR:
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from collections import deque
+from copy import deepcopy
 import logging
 from src.memory.consent_manager import consent_guarded, without_emotion
 
@@ -97,13 +98,18 @@ class ContextManager:
 
     def _apply_consent(self):
         if self.consent_manager is None:
-            return
+            return list(self._turns)
         for turn in self._turns:
-            if (not self.consent_manager.is_tracking_enabled()
-                    or self.consent_manager.was_deleted(turn.get('timestamp'))):
+            if self.consent_manager.was_deleted(turn.get('timestamp')):
                 turn['metadata'] = without_emotion(turn.get('metadata'))
-        self._current_emotion = next((turn['metadata']['emotion'] for turn in reversed(self._turns)
+        # Opt-out hides retained history; only a deletion cutoff purges the cache.
+        turns = deepcopy(list(self._turns))
+        if not self.consent_manager.is_tracking_enabled():
+            for turn in turns:
+                turn['metadata'] = without_emotion(turn.get('metadata'))
+        self._current_emotion = next((turn['metadata']['emotion'] for turn in reversed(turns)
                                      if 'emotion' in turn['metadata']), None)
+        return turns
 
     @consent_guarded
     def get_context_window(self, max_turns: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -116,13 +122,13 @@ class ContextManager:
         Returns:
             List of recent conversation turns (most recent last)
         """
-        self._apply_consent()
+        turns = self._apply_consent()
         if max_turns is None:
-            return list(self._turns)
+            return turns
 
         # Get last N turns (deque slicing)
-        n = min(max_turns, len(self._turns))
-        return list(self._turns)[-n:] if n > 0 else []
+        n = min(max_turns, len(turns))
+        return turns[-n:] if n > 0 else []
 
     def get_current_topic(self) -> Optional[str]:
         """
@@ -248,9 +254,9 @@ class ContextManager:
         Returns:
             List of emotions in chronological order
         """
-        self._apply_consent()
+        turns = self._apply_consent()
         emotions = []
-        for turn in self._turns:
+        for turn in turns:
             if turn.get('metadata') and 'emotion' in turn['metadata']:
                 emotions.append(turn['metadata']['emotion'])
         return emotions

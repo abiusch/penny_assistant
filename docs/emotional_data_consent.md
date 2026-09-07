@@ -18,9 +18,10 @@ Changes to consent, intensity threshold and memory window take effect in the liv
 pipeline rather than requiring a restart to update the continuity enable flag.
 
 `revoke_consent(delete_data=False)` disables further tracking. It does not erase
-historical disk data. Ordinary prompt-facing memory reads suppress historical
-tracking fields while opted out. Use `delete_data=True` to remove historical labels
-and check-in threads from the active store.
+historical disk or cached data. Memory and snapshot reads return filtered copies
+while opted out; reading history does not delete it. A later opt-in makes retained
+history available again. Use `delete_data=True` to remove historical labels and
+check-in threads from the active store; later opt-in cannot restore deleted data.
 
 ## Existing API
 
@@ -95,6 +96,10 @@ Verification uses isolated real stores with synthetic conversations and mocked
 model/audio/embeddings. Tests cover default opt-out, opt-in encryption, revoke with
 and without deletion, preserved text/vectors/keys, pending retries and corruption,
 mid-generation revocation, stale caches after regrant, and thread/process ordering.
+Regression cases exercise every context/snapshot read path between opt-out and
+regrant, both with and without deletion. Preservation checks compare SQLite schema
+and rows, since WAL checkpointing can change file bytes without changing data;
+vector index, key and unrelated-file preservation still use exact byte comparisons.
 One characterization formerly asserting metadata retention during opt-out is
 intentionally corrected. Two check-in fixtures now grant consent through the public
 API, and the encrypted-restart probe explicitly opts in. These are disclosed

@@ -27,7 +27,9 @@ Older recaps are historical evidence, not the current test or deployment status.
 **Reliability pass (September 7):** PRs #32–#37 are merged (tool parsing/replay,
 live-model compatibility, project review, request-thread calculator execution,
 controlled model failures, and stable configuration/data paths). Consent-aware
-emotion storage/deletion is repaired on `codex/consent-storage-enforcement`, pending review.
+emotion storage/deletion is repaired in PR #38 on `codex/consent-storage-enforcement`.
+Its CI preservation-test failure and Claude's cached-history finding are fixed
+locally; updated GitHub checks and review are pending.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
@@ -40,7 +42,7 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (consent fix, local):** 610 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (consent fix, local):** 628 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`). Intentional consent changes to one assertion
   and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
@@ -57,7 +59,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 ## SESSION RECAP — September 7, 2026 (Consent-aware emotional storage)
 
-On `codex/consent-storage-enforcement`, pending review/merge:
+[PR #38](https://github.com/abiusch/penny_assistant/pull/38), on
+`codex/consent-storage-enforcement`, pending updated checks/review and merge:
 
 - CJ explicitly chose to **keep conversations and remove emotion tracking data**.
   Default opt-out now strips emotion, confidence, sentiment and sentiment score
@@ -66,7 +69,8 @@ On `codex/consent-storage-enforcement`, pending review/merge:
 - `revoke_consent(delete_data=True)` now removes tracking fields from persisted
   vector metadata, cache and snapshot/check-in threads, preserving ordinary text,
   embeddings, vector IDs, unrelated metadata, personality state and encryption keys.
-  Revoking without deletion stops new tracking but retains historical disk data.
+  Revoking without deletion stops new tracking but retains historical disk and
+  cached data. Read APIs hide retained emotion history until tracking is re-enabled.
 - Persist opt-out and a pending-deletion marker before cleanup. Atomically replace
   individual consent/metadata/snapshot records; report failures instead of claiming
   success. Startup retries pending deletion, and regrant is blocked until completion.
@@ -77,11 +81,19 @@ On `codex/consent-storage-enforcement`, pending review/merge:
   The deletion cutoff suppresses pre-deletion cached records and snapshot threads
   on later reads/saves, including after regrant. This does not merge independent
   stale vector-store snapshots or fix general conversation durability.
-- Add **20 canonical regression cases**. The first five reproduced defects before
+- Add **38 canonical regression cases**. The first five reproduced defects before
   implementation. Cover default/opt-in behavior, encrypted labels, preservation,
   restart retries, corruption, failed completion records, mid-generation revocation,
   older caches, atomic-write failure, and thread/separate-process write ordering.
-- Validation: **610 passed, 2 expected failures**, plus **all 30** characterizations.
+- PR follow-up: Python 3.11 CI failed a raw SQLite-file preservation assertion.
+  WAL checkpointing can alter those bytes without changing database contents
+  (reproduced independently). Compare schema/rows instead, explicitly exercise
+  connection cleanup, and retain byte comparisons for the index, key and unrelated
+  file. Claude also found opted-out reads destructively clearing cached history
+  without a deletion request. Read filtered copies; purge actual cache entries
+  only for deletion. All nine read-path regression cases reproduced the bug;
+  paired deletion cases ensure deleted history stays gone after opt-in.
+- Validation: **628 passed, 2 expected failures**, plus **all 30** characterizations.
   One characterization previously asserted the consent leak; it now explicitly
   requires omitted metadata. Two check-in fixtures use durable public opt-in, and
   the encrypted path-restart probe opts in explicitly. These are intentional,

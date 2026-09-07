@@ -7,6 +7,9 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import sqlite3
+import gc
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -177,15 +180,23 @@ def test_older_instance_cannot_restore_deleted_metadata_even_after_regrant(offli
 def test_delete_is_idempotent_and_preserves_vectors_keys_and_unrelated_files(isolated_pipeline):
     p, _ = isolated_pipeline
     seed(p)
-    unchanged = [p.semantic_memory.vector_store.index_path, p.semantic_memory.encryption.key_file,
-                 Path(p.db_path)]
+    unchanged = [p.semantic_memory.vector_store.index_path, p.semantic_memory.encryption.key_file]
     marker = Path(p.data_dir) / 'unrelated.txt'
     marker.write_text('leave me alone')
     unchanged.append(marker)
     before = {path: path.read_bytes() for path in unchanged}
+    # SQLite may checkpoint WAL pages when connections are collected. Compare
+    # logical schema/rows, including WAL content, rather than main-file bytes.
+    def database_contents():
+        with closing(sqlite3.connect(p.db_path)) as connection:
+            return tuple(connection.iterdump())
+    database_before = database_contents()
     p.consent_manager.revoke_consent(delete_data=True)
     p.consent_manager.revoke_consent(delete_data=True)
-    assert all(path.read_bytes() == content for path, content in before.items())
+    gc.collect()  # Exercise deferred SQLite connection cleanup, as on Python 3.11.
+    for path, content in before.items():
+        assert path.read_bytes() == content, f'Unexpected change to {path.name}'
+    assert database_contents() == database_before
     assert p.semantic_memory.vector_store.size() == 1
     assert disk_records(p)[0]['assistant_response'] == 'Keep this reply'
 
@@ -317,3 +328,46 @@ with manager.guard():
         if child.poll() is None:
             child.kill()
             child.wait(timeout=5)
+
+
+@pytest.mark.parametrize('delete', [False, True])
+@pytest.mark.parametrize('reader', ['window', 'prompt', 'summary', 'trajectory', 'stats'])
+def test_context_reads_preserve_optout_history_until_actual_deletion(isolated_pipeline, delete, reader):
+    p, _ = isolated_pipeline
+    seed(p)
+    p.consent_manager.revoke_consent(delete_data=delete)
+    context = p.context_manager
+    if reader == 'window':
+        assert not FIELDS.intersection(context.get_context_window()[0]['metadata'])
+    elif reader == 'prompt':
+        assert '(Emotion:' not in context.get_context_for_prompt(include_metadata=True)
+    elif reader == 'summary':
+        assert 'sadness' not in context.summarize_context()
+    elif reader == 'trajectory':
+        assert context.get_emotional_trajectory() == []
+    else:
+        assert context.get_stats()['emotional_state'] is None
+    p.consent_manager.grant_consent()
+    restored = context.get_context_window()[0]
+    assert restored['user_input'] == 'Synthetic conversation'
+    assert context.get_emotional_trajectory() == ([] if delete else ['sadness'])
+    assert ('emotion' in restored['metadata']) is (not delete)
+
+
+@pytest.mark.parametrize('delete', [False, True])
+@pytest.mark.parametrize('reader', ['latest', 'versions', 'rollback', 'time'])
+def test_snapshot_reads_preserve_optout_history_until_actual_deletion(isolated_pipeline, delete, reader):
+    p, _ = isolated_pipeline
+    seed(p)
+    p.consent_manager.revoke_consent(delete_data=delete)
+    snapshots = p.personality_snapshots
+    if reader == 'versions':
+        assert snapshots.list_versions()[0]['thread_count'] == 0
+    else:
+        snapshot = {'latest': snapshots.get_latest,
+                    'rollback': lambda: snapshots.rollback_to_version(1),
+                    'time': lambda: snapshots.get_snapshot_at_time(datetime.now())}[reader]()
+        assert not snapshot.emotional_threads
+        assert snapshot.personality_state == {'formality': 0.5}
+    p.consent_manager.grant_consent()
+    assert len(snapshots.get_latest().emotional_threads) == (0 if delete else 1)

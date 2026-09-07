@@ -8,6 +8,7 @@ Week 8 Implementation
 """
 
 from datetime import datetime
+from copy import deepcopy
 from typing import Dict, List, Optional
 import json
 import logging
@@ -215,7 +216,13 @@ class PersonalitySnapshotManager:
     def _apply_consent(self):
         for snapshot in self.snapshots:
             snapshot.emotional_threads = self.consent_manager.filter_threads(
+                snapshot.emotional_threads)
+        # Suppress opted-out reads without erasing retained snapshot history.
+        snapshots = deepcopy(self.snapshots)
+        for snapshot in snapshots:
+            snapshot.emotional_threads = self.consent_manager.filter_threads(
                 snapshot.emotional_threads, reading=True)
+        return snapshots
 
     @consent_guarded
     def rollback_to_version(self, version: int) -> Optional[PersonalitySnapshot]:
@@ -235,8 +242,7 @@ class PersonalitySnapshotManager:
             ...     restore_personality(snapshot.personality_state)
             ...     restore_threads(snapshot.emotional_threads)
         """
-        self._apply_consent()
-        for snapshot in self.snapshots:
+        for snapshot in self._apply_consent():
             if snapshot.version == version:
                 logger.info(f"↩️ Rolling back to personality v{version}")
                 return snapshot
@@ -247,8 +253,8 @@ class PersonalitySnapshotManager:
     @consent_guarded
     def get_latest(self) -> Optional[PersonalitySnapshot]:
         """Get most recent snapshot"""
-        self._apply_consent()
-        return self.snapshots[-1] if self.snapshots else None
+        snapshots = self._apply_consent()
+        return snapshots[-1] if snapshots else None
     
     @consent_guarded
     def list_versions(self) -> List[dict]:
@@ -266,7 +272,6 @@ class PersonalitySnapshotManager:
             v2: 100 conversations
             v3: 150 conversations
         """
-        self._apply_consent()
         return [
             {
                 'version': s.version,
@@ -274,7 +279,7 @@ class PersonalitySnapshotManager:
                 'conversation_count': s.conversation_count,
                 'thread_count': len(s.emotional_threads)
             }
-            for s in self.snapshots
+            for s in self._apply_consent()
         ]
     
     @consent_guarded
@@ -290,8 +295,7 @@ class PersonalitySnapshotManager:
         Returns:
             Closest snapshot before or at that time
         """
-        self._apply_consent()
-        candidates = [s for s in self.snapshots if s.timestamp <= timestamp]
+        candidates = [s for s in self._apply_consent() if s.timestamp <= timestamp]
         if not candidates:
             return None
         return max(candidates, key=lambda s: s.timestamp)

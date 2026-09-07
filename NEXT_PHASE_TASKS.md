@@ -5,11 +5,18 @@
 > This file is the **primary reference** for Penny's development status.
 > All major documentation files are in the root directory.
 > 
-> 🎯 **Current status:** [CURRENT_STATUS.md](CURRENT_STATUS.md)  
-> 📋 **Detailed roadmap:** [ROADMAP.md](ROADMAP.md)  
+> 🎯 **Current status:** see Quick Status below.
+>
+> 📋 **Reliability review:** [September 6 review](docs/reviews/2026-09-06_project_review.md)
+>
 > 📚 **Project overview:** [README.md](README.md)
 
 **Last Updated:** September 7, 2026
+
+Keep Quick Status and the relevant session recap current as implementation,
+verification, and PR merges progress. Record the PR/branch, what was actually
+verified, remaining work, and whether a change is merged or awaiting review.
+Older recaps are historical evidence, not the current test or deployment status.
 
 ---
 
@@ -17,28 +24,35 @@
 
 **Reliability pass (September 7):** PRs #32–#34 are merged (tool parsing/replay,
 live-model compatibility, and project review). Request-thread calculator execution
-and enforceable process timeouts are repaired on `codex/request-safe-calculator`,
-pending review. The 30 full-pipeline characterization checks remain offline and
+and enforceable process timeouts are repaired in [PR #35](https://github.com/abiusch/penny_assistant/pull/35)
+on `codex/request-safe-calculator`, pending review. The 30 full-pipeline characterization checks remain offline and
 isolated; new request-thread tests also run in a focused Windows CI job.
 
-**⏭️ Week 14 (Platform Abstraction Layer) substantively complete (Sep 1, 2026) — audio-output abstraction (#27) + VAD import guard (#28). Next: Week 15 (Capability Awareness).**  
-
-**Current:** Phase 5 in progress — Week 14 substantively complete (audio-output #27, VAD guard #28). R1 `think()` decomposition COMPLETE (PRs #15–#23)  
-**Next:** Week 15 (Capability Awareness System, 2026 Risk 5). R4/R5/R2 remain in Week 16; calendar cross-platform in Week 18  
-**Phase 4:** ✅ 100% Complete  
-**Phase 5:** 🔄 In progress (Weeks 14-18 — Polish & Productization); Week 14 substantively complete  
-**Server:** 🟢 Port 5001  
-**Tests (request-thread follow-up):** 🟢 534 passed, 2 expected failures + 30 `think()` characterization (`--run-slow`)
-**Diagnostics:** 🟢 18/18 passing  
-**CI:** 🟢 stabilized — runs the canonical suite; 6 pre-existing bugs fixed (see Aug 5 recap below)  
-**LLM:** gpt-oss-20b via LM Studio (localhost:1234), config-driven multi-model  
-**Last Commit:** `0e8c784` (R1 step 6: PostTurnProcessor extraction, #23)
+- **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
+  failures still represent unfinished enforcement. Reliability work takes priority.
+- **Next:** review/merge #35, then controlled model-error handling, consistent
+  config/data roots, and consent-aware storage/deletion.
+- **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
+  audio-output abstraction (#27) and VAD import guard (#28).
+- **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
+- **Web server:** configured for port 5001; full live web behavior was not verified
+  during this reliability pass.
+- **Tests (#35, local):** 534 passed, 2 expected failures, plus all 30 `think()`
+  characterization checks (`--run-slow`).
+- **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
+  focused request-thread/process tests on Windows/Python 3.13. See the active PR
+  for checks against its latest commit.
+- **Diagnostics:** historical 18/18 result; not rerun during this pass.
+- **LLM:** `openai/gpt-oss-20b` via local LM Studio; synthetic calculator round trip
+  verified from a request thread on September 7.
+- **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
+  #34 review/evidence (`main` at `7b0939a`). **Active:** #35, awaiting review/merge.
 
 ---
 
 ## SESSION RECAP — September 7, 2026 (Request-thread calculator)
 
-On `codex/request-safe-calculator`, pending review:
+[PR #35](https://github.com/abiusch/penny_assistant/pull/35), on `codex/request-safe-calculator`, pending review:
 
 - Replace synchronous process-global alarm signals with a short-lived Python
   worker. The caller kills and waits for the worker on timeout, including from

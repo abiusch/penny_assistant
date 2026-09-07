@@ -10,8 +10,7 @@ Features:
 - Config-driven enable/disable
 """
 
-import json
-import os
+from src.runtime_paths import load_runtime_config
 import random
 import re
 from dataclasses import dataclass
@@ -71,23 +70,10 @@ PENNY_SASS = [
 
 def _load_config() -> Dict:
     """Load personality configuration from penny_config.json"""
-    # Try to find config file from various locations
-    config_paths = [
-        "penny_config.json",
-        "../penny_config.json", 
-        "../../penny_config.json",
-        os.path.join(os.path.dirname(__file__), "..", "..", "penny_config.json")
-    ]
-    
-    for path in config_paths:
-        if os.path.exists(path):
-            try:
-                with open(path, 'r') as f:
-                    return json.load(f)
-            except Exception:
-                continue
-    
-    return {}
+    try:
+        return load_runtime_config()
+    except (OSError, ValueError):
+        return {}
 
 
 def _detect_sensitive_content(text: str) -> bool:

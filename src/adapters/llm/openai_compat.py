@@ -4,11 +4,14 @@ import requests
 import logging
 
 from src.llm.errors import ModelGenerationError, require_response_text
+from src.runtime_paths import data_path, project_path
 
 logger = logging.getLogger(__name__)
 
 class OpenAICompatLLM:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, *, personality_db_path=None):
+        self.personality_db_path = (project_path(personality_db_path) if personality_db_path is not None
+                                    else data_path() / 'personality_tracking.db')
         self.cfg = config or {}
         llm = self.cfg.get("llm") or {}
         # accept with/without trailing slash and with/without /v1
@@ -60,7 +63,8 @@ class OpenAICompatLLM:
                     base = "You are Penny, an AI assistant"
                     if tone:
                         base += f" with {tone} tone"
-                    final_system_prompt = get_personality_prompt(base, context=None)
+                    final_system_prompt = get_personality_prompt(
+                        base, context=None, db_path=self.personality_db_path)
                     print(f"🎭 Personality-enhanced prompt applied (length: {len(final_system_prompt)} chars)")
                 except Exception as e:
                     print(f"⚠️ Personality prompt failed: {e}, using fallback")

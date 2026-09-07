@@ -8,7 +8,7 @@ import pytest
 
 
 @pytest.fixture
-def isolated_pipeline(tmp_path, monkeypatch):
+def offline_pipeline_factory(tmp_path, monkeypatch):
     """Construct the real pipeline with scratch storage and no model/audio I/O.
 
     Patch expensive dependencies BEFORE construction, not afterwards. Keep real
@@ -27,10 +27,7 @@ def isolated_pipeline(tmp_path, monkeypatch):
     from core.stt.factory import STTFactory
     from core.tts.factory import TTSFactory
     from src.memory.embedding_generator import EmbeddingGenerator
-    from src.memory import semantic_memory
-    from src.personality.adaptation_ab_test import AdaptationABTest
     from src.personality import personality_state_cache
-    from src.security.encryption import DataEncryption
 
     monkeypatch.chdir(tmp_path)
     (tmp_path / 'data').mkdir()
@@ -38,6 +35,8 @@ def isolated_pipeline(tmp_path, monkeypatch):
         'llm': {'provider': 'openai_compatible', 'model': 'offline-test',
                 'base_url': 'http://127.0.0.1:1/v1', 'api_key': 'test'},
     }))
+    monkeypatch.setenv('PENNY_CONFIG', str(tmp_path / 'penny_config.json'))
+    monkeypatch.setenv('PENNY_DATA_DIR', str(tmp_path / 'data'))
     monkeypatch.setattr(STTFactory, 'create', lambda config: SimpleNamespace())
     monkeypatch.setattr(TTSFactory, 'create', lambda config: SimpleNamespace())
     monkeypatch.setattr(module, 'EmotionDetectorV2', lambda: SimpleNamespace(
@@ -48,17 +47,22 @@ def isolated_pipeline(tmp_path, monkeypatch):
     monkeypatch.setattr(EmbeddingGenerator, 'encode',
                         lambda self, text, **kwargs: np.ones(
                             384 if isinstance(text, str) else (len(text), 384), dtype='float32'))
-    encryption = DataEncryption(tmp_path / 'data' / '.encryption_key')
-    monkeypatch.setattr(semantic_memory, 'get_encryption', lambda: encryption)
-    monkeypatch.setattr(module, 'get_ab_test', lambda: AdaptationABTest('data/personality.db'))
     monkeypatch.setattr(personality_state_cache, '_cache', personality_state_cache.PersonalityStateCache())
 
-    pipeline = module.ResearchFirstPipeline(
-        db_path=str(tmp_path / 'data' / 'personality_tracking.db'),
-        data_dir=str(tmp_path / 'data'),
-    )
+    pipelines = []
+    def create(**kwargs):
+        pipeline = module.ResearchFirstPipeline(**kwargs)
+        pipelines.append(pipeline)
+        return pipeline
     try:
-        yield pipeline, str(tmp_path / 'data')
+        yield create
     finally:
-        pipeline.research_manager.shutdown()
+        for pipeline in pipelines:
+            pipeline.research_manager.shutdown()
         assert real_file_state() == original_files, 'Pipeline test modified production data'
+
+
+@pytest.fixture
+def isolated_pipeline(offline_pipeline_factory):
+    pipeline = offline_pipeline_factory()
+    return pipeline, pipeline.data_dir

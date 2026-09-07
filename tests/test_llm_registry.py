@@ -96,9 +96,9 @@ class TestConfigLoading:
         finally:
             os.unlink(path)
 
-    def test_load_missing_file_returns_default(self):
-        loaded = load_llm_config("/nonexistent/path/penny_config.json")
-        assert loaded == {"llm": {}}
+    def test_load_missing_file_fails_without_silent_model_fallback(self):
+        with pytest.raises(FileNotFoundError):
+            load_llm_config("/nonexistent/path/penny_config.json")
 
     def test_real_config_is_resolvable(self):
         """The committed penny_config.json must resolve to a concrete model."""

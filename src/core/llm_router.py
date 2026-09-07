@@ -1,41 +1,19 @@
-import json
-import os
 from typing import Any
+from src.runtime_paths import config_path, load_runtime_config
 
 from adapters.llm.local_ollama_adapter import LocalLLM
 from adapters.llm.cloud_openai_adapter import CloudLLM
 from adapters.llm.gptoss_adapter import GPTOSS
 
-_CONFIG_CACHE: dict | None = None
 _LLM_INSTANCE: Any | None = None
 
 
 def _config_path() -> str:
-    # 1) Optional override via env
-    env_path = os.getenv("PENNY_CONFIG")
-    if env_path and os.path.exists(env_path):
-        return os.path.abspath(env_path)
-
-    here = os.path.dirname(__file__)
-    repo_root = os.path.abspath(os.path.join(here, "..", ".."))  # Updated for src/ layout
-
-    candidates = [
-        os.path.join(repo_root, "penny_config.json"),             # root
-        os.path.join(repo_root, "config", "penny_config.json"),   # config/
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            return os.path.abspath(p)
-
-    raise FileNotFoundError("penny_config.json not found in repo root or config/ (and PENNY_CONFIG not set)")
+    return str(config_path())
 
 
 def _load_config() -> dict:
-    global _CONFIG_CACHE
-    if _CONFIG_CACHE is None:
-        with open(_config_path(), "r", encoding="utf-8") as f:
-            _CONFIG_CACHE = json.load(f)
-    return _CONFIG_CACHE
+    return load_runtime_config()
 
 
 def load_config() -> dict:

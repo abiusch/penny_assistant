@@ -22,16 +22,6 @@ os.environ['HF_HOME'] = str(Path(__file__).parent.parent / '.cache' / 'huggingfa
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from research_first_pipeline import ResearchFirstPipeline
-from personality_tracker import PersonalityTracker
-
-# Phase 3A Week 2: Milestone & Achievement System
-try:
-    from src.personality.personality_milestone_tracker import PersonalityMilestoneTracker
-    milestone_tracker = PersonalityMilestoneTracker()
-    MILESTONES_AVAILABLE = True
-except ImportError:
-    milestone_tracker = None
-    MILESTONES_AVAILABLE = False
 
 app = Flask(__name__, static_folder='.')
 CORS(app)  # Enable CORS for local development
@@ -44,7 +34,9 @@ ALLOW_NETWORK = os.environ.get('PENNY_ALLOW_NETWORK', 'False').lower() == 'true'
 # Initialize Penny
 print("Initializing Penny's pipeline...")
 pipeline = ResearchFirstPipeline()
-personality_tracker = PersonalityTracker()
+personality_tracker = pipeline.personality_tracker
+milestone_tracker = pipeline.milestone_tracker
+MILESTONES_AVAILABLE = milestone_tracker is not None
 print("✅ Penny initialized successfully!")
 if MILESTONES_AVAILABLE:
     print("🏆 Milestone & Achievement System enabled")

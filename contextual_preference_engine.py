@@ -59,7 +59,7 @@ class ContextualPreferenceEngine:
     
     def _init_database(self):
         """Initialize contextual preferences database"""
-        Path("data").mkdir(exist_ok=True)
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         
         with sqlite3.connect(self.db_path) as conn:
             # Contextual preferences table

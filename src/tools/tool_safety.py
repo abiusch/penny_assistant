@@ -12,6 +12,12 @@ import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
+import builtins
+import json
+from pathlib import Path
+import subprocess
+import sys
+from threading import Lock
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +56,7 @@ class RateLimiter:
         self.max_calls = max_calls
         self.window_seconds = window_seconds
         self.calls: Dict[str, list] = defaultdict(list)
+        self._lock = Lock()
     
     def check_rate_limit(self, tool_name: str) -> bool:
         """
@@ -61,43 +68,32 @@ class RateLimiter:
         Returns:
             True if call is allowed, False otherwise
         """
-        now = time.time()
-        cutoff = now - self.window_seconds
-        
-        # Clean old calls
-        self.calls[tool_name] = [
-            call_time for call_time in self.calls[tool_name]
-            if call_time > cutoff
-        ]
-        
-        # Check limit
-        if len(self.calls[tool_name]) >= self.max_calls:
-            logger.warning(f"Rate limit exceeded for {tool_name}")
-            return False
-        
-        # Record this call
-        self.calls[tool_name].append(now)
-        return True
+        with self._lock:
+            now = time.monotonic()
+            self._expire(tool_name, now)
+            if len(self.calls[tool_name]) >= self.max_calls:
+                logger.warning(f"Rate limit exceeded for {tool_name}")
+                return False
+            self.calls[tool_name].append(now)
+            return True
     
     def get_remaining_calls(self, tool_name: str) -> int:
         """Get number of remaining calls in current window."""
-        now = time.time()
-        cutoff = now - self.window_seconds
-        
-        # Clean old calls
-        self.calls[tool_name] = [
-            call_time for call_time in self.calls[tool_name]
-            if call_time > cutoff
-        ]
-        
-        return max(0, self.max_calls - len(self.calls[tool_name]))
+        with self._lock:
+            self._expire(tool_name, time.monotonic())
+            return max(0, self.max_calls - len(self.calls[tool_name]))
+
+    def _expire(self, tool_name, now):
+        self.calls[tool_name] = [stamp for stamp in self.calls[tool_name]
+                                 if stamp > now - self.window_seconds]
     
     def reset(self, tool_name: str = None):
         """Reset rate limiter for specific tool or all tools."""
-        if tool_name:
-            self.calls[tool_name] = []
-        else:
-            self.calls.clear()
+        with self._lock:
+            if tool_name:
+                self.calls[tool_name] = []
+            else:
+                self.calls.clear()
 
 
 class InputValidator:
@@ -212,7 +208,11 @@ class InputValidator:
 
 def with_timeout(seconds: int = 30):
     """
-    Decorator to add timeout to tool functions.
+    Cancel async tools or kill/reap a synchronous tool's worker on timeout.
+
+    Sync tools must be importable functions with JSON inputs/results; closures,
+    bound instances, and in-process state mutations are not supported. Validation
+    and shared rate limits belong outside this boundary, in the caller process.
     
     Args:
         seconds: Timeout in seconds (default: 30)
@@ -231,22 +231,35 @@ def with_timeout(seconds: int = 30):
         
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise ToolTimeoutError(f"Tool execution timed out after {seconds} seconds")
-            
-            # Set up timeout (Unix only)
+            module, name = func.__module__, func.__qualname__
+            if module == '__main__' or '<locals>' in name or getattr(func, '__self__', None) is not None:
+                raise ToolSafetyError('Synchronous tools must be importable functions')
+            worker = Path(__file__).with_name('sync_worker.py').resolve()
             try:
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(seconds)
-                result = func(*args, **kwargs)
-                signal.alarm(0)  # Cancel alarm
-                return result
-            except AttributeError:
-                # Windows doesn't have SIGALRM, just execute without timeout
-                logger.warning("Timeout not supported on this platform")
-                return func(*args, **kwargs)
+                # subprocess.run kills and waits for the child on timeout.
+                # No shell, process-global alarms, or abandoned worker threads.
+                completed = subprocess.run(
+                    [sys.executable, str(worker), module, name],
+                    input=json.dumps([args, kwargs], allow_nan=False),
+                    text=True, encoding='utf-8', stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL, timeout=seconds,
+                )
+            except subprocess.TimeoutExpired as error:
+                raise ToolTimeoutError(f'Tool execution timed out after {seconds} seconds') from error
+            if completed.returncode != 0:
+                raise ToolSafetyError('Tool worker exited without a result')
+            try:
+                response = json.loads(completed.stdout)
+            except json.JSONDecodeError as error:
+                raise ToolSafetyError('Tool worker returned an invalid result') from error
+            if response['ok']:
+                return response['result']
+            error_type = getattr(builtins, response['error'], ToolSafetyError)
+            if not isinstance(error_type, type) or not issubclass(error_type, Exception):
+                error_type = ToolSafetyError
+            raise error_type(response['message'])
+
+        sync_wrapper._penny_timeout_target = func
         
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
@@ -367,9 +380,9 @@ class SafeToolWrapper:
         validator = validator_map.get(tool_name, lambda args: True)
         
         # Apply decorators
-        safe_func = with_validation(validator)(tool_func)
+        safe_func = with_timeout(self.timeout_seconds)(tool_func)
+        safe_func = with_validation(validator)(safe_func)
         safe_func = with_rate_limit(self.rate_limiter, tool_name)(safe_func)
-        safe_func = with_timeout(self.timeout_seconds)(safe_func)
         
         logger.info(f"✅ Tool {tool_name} wrapped with safety mechanisms")
         

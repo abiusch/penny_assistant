@@ -30,7 +30,9 @@ controlled model failures, and stable configuration/data paths). Consent-aware
 emotion storage/deletion is repaired in PR #38 on `codex/consent-storage-enforcement`.
 All five checks passed on `8a2660e`, and Claude's updated review found no blockers.
 PR #38 remains open, ready for CJ to merge. The next fix restores memory identity
-after restart on `codex/memory-restart-identity`, based on #38.
+after restart in draft PR #40 on `codex/memory-restart-identity`, based on #38.
+All five #40 checks passed on `07a99d9`; Claude found no blockers in the incremental
+fix. Keep #40 in draft until #38 merges, then verify the narrowed diff and checks.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
@@ -60,8 +62,10 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 ## SESSION RECAP — September 12, 2026 (Memory identity after restart)
 
-On `codex/memory-restart-identity`, based on #38; prepared separately so #38 can
-merge first. GitHub checks for this follow-up are pending.
+[Draft PR #40](https://github.com/abiusch/penny_assistant/pull/40), on
+`codex/memory-restart-identity`, based on #38. All five GitHub checks passed on
+`07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
+characterizations with no blockers. Merge #38 first; #40 stays in draft meanwhile.
 
 - Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
   Previously saved vectors remained searchable, but conversation counts reset to

@@ -64,6 +64,7 @@ class SemanticMemory:
             consent_manager=self.consent_manager,
         )
         self.turn_id_to_vector_id: Dict[str, int] = {}
+        self._rebuild_turn_id_mapping()
 
         # WEEK 7: Encryption for sensitive data (GDPR Article 9)
         self.encrypt_sensitive = encrypt_sensitive
@@ -75,6 +76,14 @@ class SemanticMemory:
             logger.info("⚠️  Semantic Memory initialized WITHOUT encryption")
 
         logger.info(f"✅ SemanticMemory initialized (SOLE persistent store) at {storage_path}")
+
+    def _rebuild_turn_id_mapping(self):
+        """Recover conversation identity from metadata already loaded by VectorStore."""
+        self.turn_id_to_vector_id = {
+            metadata['turn_id']: vector_id
+            for vector_id, metadata in self.vector_store.id_to_metadata.items()
+            if metadata.get('turn_id')
+        }
 
     @consent_guarded
     def add_conversation_turn(
@@ -298,7 +307,9 @@ class SemanticMemory:
 
         # Use the combined text to search
         combined_text = metadata.get('combined_text', '')
-        return self.semantic_search(combined_text, k=k + 1)[1:]  # Exclude the query itself
+        # Equal scores can put the source anywhere in the results.
+        results = self.semantic_search(combined_text, k=k + 1)
+        return [result for result in results if result['turn_id'] != turn_id][:k]
 
     def get_conversation_by_id(self, turn_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -377,10 +388,5 @@ class SemanticMemory:
             filepath: Path to load the vector store from
         """
         self.vector_store.load(filepath)
-        # Rebuild turn_id mapping from metadata
-        self.turn_id_to_vector_id.clear()
-        for vector_id, metadata in self.vector_store.id_to_metadata.items():
-            turn_id = metadata.get('turn_id')
-            if turn_id:
-                self.turn_id_to_vector_id[turn_id] = vector_id
+        self._rebuild_turn_id_mapping()
         logger.info(f"Loaded semantic memory from {filepath}")

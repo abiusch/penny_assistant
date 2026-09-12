@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 7, 2026
+**Last Updated:** September 12, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -24,22 +24,30 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 7):** PRs #32–#36 are merged (tool parsing/replay,
+**Reliability pass (September 12):** PRs #32–#37 are merged (tool parsing/replay,
 live-model compatibility, project review, request-thread calculator execution,
-and controlled model failures). Stable configuration/data paths are repaired
-on `codex/stable-runtime-paths`, pending review. The 30 pipeline characterization
+controlled model failures, and stable configuration/data paths). Consent-aware
+emotion storage/deletion is repaired in PR #38 on `codex/consent-storage-enforcement`.
+All five checks passed on `8a2660e`, and Claude's updated review found no blockers.
+PR #38 remains open, ready for CJ to merge. The next fix restores memory identity
+after restart in draft PR #40 on `codex/memory-restart-identity`, based on #38.
+All five #40 checks passed on `07a99d9`; Claude found no blockers in the incremental
+fix. Keep #40 in draft until #38 merges, then verify the narrowed diff and checks.
+The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** review/merge stable config/data paths, then consent-aware storage/deletion.
+- **Next:** merge #38, review memory restart identity, then address memory durability
+  and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (path fix, local):** 590 passed, 2 expected failures. All 30 `think()`
-  characterization checks (`--run-slow`) and five selected legacy encryption checks pass.
+- **Tests (restart fix, local):** 635 passed, 2 expected failures, plus all 30 `think()`
+  characterization checks (`--run-slow`). Intentional consent changes to one assertion
+  and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
   focused request-thread/process tests on Windows/Python 3.13. See the active PR
   for checks against its latest commit.
@@ -47,14 +55,97 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **LLM:** `openai/gpt-oss-20b` via local LM Studio; synthetic calculator round trip
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
-  #34 review/evidence, #35 request-thread tools, #36 model failures (`main` at `ce8d1db`).
-  **Active:** `codex/stable-runtime-paths`, awaiting review/merge.
+  #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
+  (`main` at `8af2556`). **Active:** `codex/memory-restart-identity`, based on #38.
 
 ---
 
+## SESSION RECAP — September 12, 2026 (Memory identity after restart)
+
+[Draft PR #40](https://github.com/abiusch/penny_assistant/pull/40), on
+`codex/memory-restart-identity`, based on #38. All five GitHub checks passed on
+`07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
+characterizations with no blockers. Merge #38 first; #40 stays in draft meanwhile.
+
+- Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
+  Previously saved vectors remained searchable, but conversation counts reset to
+  zero and ID-based retrieval/deletion/similarity lookup failed after restart.
+  Startup restoration does not rewrite the index or metadata files.
+- Exclude the source conversation from similar-conversation results by its ID.
+  Previously the first result was dropped, which could remove another conversation
+  and leave the source in the results when similarity scores tied.
+- Add seven isolated canonical cases; six failed before implementation. Cover
+  restart lookup/count, new turns after restart, deletion by recovered ID, missing
+  IDs, cleared stores, and tied-score similarity before/after restart. Extend the
+  existing three-process launch probe to check counts and ID retrieval as well as
+  encrypted semantic retrieval and stable paths.
+- Validation: **635 passed, 2 expected failures**, plus **all 30** offline pipeline
+  characterizations. Production-data guards pass; no live user history was edited.
+
+This restores identity for successfully loaded stores. General save/load error
+handling, crash-safe paired-file writes, stale writers, vector tombstone/search
+cleanup, duplicate-ID policy, and the legacy explicit filepath save/load wrappers
+remain durability/API follow-ups. Deletion here uses the existing metadata-only
+vector deletion behavior; it is not physical vector removal. Next: repair general
+memory durability, then unify conversation entry points and address web turn state.
+
+## SESSION RECAP — September 7, 2026 (Consent-aware emotional storage)
+
+[PR #38](https://github.com/abiusch/penny_assistant/pull/38), on
+`codex/consent-storage-enforcement`. September 12 verification: all five checks
+passed on `8a2660e`; Claude found no remaining merge blockers. Still open for CJ
+to merge.
+
+- CJ explicitly chose to **keep conversations and remove emotion tracking data**.
+  Default opt-out now strips emotion, confidence, sentiment and sentiment score
+  at the semantic-memory boundary and recent-context cache. Snapshots omit emotional
+  threads without consent. Current-reply emotion inference remains available.
+- `revoke_consent(delete_data=True)` now removes tracking fields from persisted
+  vector metadata, cache and snapshot/check-in threads, preserving ordinary text,
+  embeddings, vector IDs, unrelated metadata, personality state and encryption keys.
+  Revoking without deletion stops new tracking but retains historical disk and
+  cached data. Read APIs hide retained emotion history until tracking is re-enabled.
+- Persist opt-out and a pending-deletion marker before cleanup. Atomically replace
+  individual consent/metadata/snapshot records; report failures instead of claiming
+  success. Startup retries pending deletion, and regrant is blocked until completion.
+  Missing metadata/corrupt snapshots leave the request pending. If the initial
+  preference write fails, report that the change is unconfirmed.
+- Read durable consent at operation boundaries, synchronize live continuity flags,
+  and serialize participating writers with reentrant thread + advisory process locks.
+  The deletion cutoff suppresses pre-deletion cached records and snapshot threads
+  on later reads/saves, including after regrant. This does not merge independent
+  stale vector-store snapshots or fix general conversation durability.
+- Add **38 canonical regression cases**. The first five reproduced defects before
+  implementation. Cover default/opt-in behavior, encrypted labels, preservation,
+  restart retries, corruption, failed completion records, mid-generation revocation,
+  older caches, atomic-write failure, and thread/separate-process write ordering.
+- PR follow-up: Python 3.11 CI failed a raw SQLite-file preservation assertion.
+  WAL checkpointing can alter those bytes without changing database contents
+  (reproduced independently). Compare schema/rows instead, explicitly exercise
+  connection cleanup, and retain byte comparisons for the index, key and unrelated
+  file. Claude also found opted-out reads destructively clearing cached history
+  without a deletion request. Read filtered copies; purge actual cache entries
+  only for deletion. All nine read-path regression cases reproduced the bug;
+  paired deletion cases ensure deleted history stays gone after opt-in.
+- Validation: **628 passed, 2 expected failures**, plus **all 30** characterizations.
+  One characterization previously asserted the consent leak; it now explicitly
+  requires omitted metadata. Two check-in fixtures use durable public opt-in, and
+  the encrypted path-restart probe opts in explicitly. These are intentional,
+  disclosed changes. No live user consent toggle or deletion was performed.
+
+See [emotional data consent](docs/emotional_data_consent.md) for API behavior,
+recovery and limits. Existing logs, external backups/exports and legacy experimental
+stores are outside this cleanup. No new web setting or natural-language command is
+added. Raw conversation retention is unchanged. Next: restore the restart turn-ID
+map and improve memory durability, then converge conversation entry points and
+address shared web turn state. Disabled learning and the two Week 15 expected
+failures remain unchanged.
+
 ## SESSION RECAP — September 7, 2026 (Stable runtime paths)
 
-On `codex/stable-runtime-paths`, pending review/merge:
+[PR #37](https://github.com/abiusch/penny_assistant/pull/37), merged. All five
+GitHub checks passed; Claude found no blockers. Its first review job exceeded
+the turn limit after posting a positive review; the rerun passed.
 
 - Resolve main config and data paths independently of the launch directory.
   Explicit arguments override `PENNY_CONFIG` / `PENNY_DATA_DIR`; relative overrides

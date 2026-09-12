@@ -12,7 +12,9 @@ WEEK 7 REFACTOR:
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from collections import deque
+from copy import deepcopy
 import logging
+from src.memory.consent_manager import consent_guarded, without_emotion
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ class ContextManager:
     - O(n) topic extraction (n = window size, typically 10)
     """
 
-    def __init__(self, max_window_size: int = 10):
+    def __init__(self, max_window_size: int = 10, *, consent_manager=None):
         """
         Initialize in-memory context manager.
 
@@ -39,6 +41,7 @@ class ContextManager:
             max_window_size: Maximum number of turns to keep in memory (LRU)
         """
         self.max_window_size = max_window_size
+        self.consent_manager = consent_manager
 
         # Use deque with maxlen for automatic LRU eviction
         self._turns: deque = deque(maxlen=max_window_size)
@@ -49,6 +52,7 @@ class ContextManager:
 
         logger.info(f"✅ ContextManager initialized (in-memory only, window={max_window_size})")
 
+    @consent_guarded
     def add_turn(
         self,
         user_input: str,
@@ -65,6 +69,8 @@ class ContextManager:
             assistant_response: Assistant's response
             metadata: Optional metadata (emotions, timestamps, etc.)
         """
+        if self.consent_manager is not None:
+            metadata = self.consent_manager.filter_context(metadata)
         turn = {
             'user_input': user_input,
             'assistant_response': assistant_response,
@@ -84,6 +90,28 @@ class ContextManager:
 
         logger.debug(f"✅ Turn added to cache (window size: {len(self._turns)}/{self.max_window_size})")
 
+    @consent_guarded
+    def delete_emotional_metadata(self):
+        for turn in self._turns:
+            turn['metadata'] = without_emotion(turn.get('metadata'))
+        self._current_emotion = None
+
+    def _apply_consent(self):
+        if self.consent_manager is None:
+            return list(self._turns)
+        for turn in self._turns:
+            if self.consent_manager.was_deleted(turn.get('timestamp')):
+                turn['metadata'] = without_emotion(turn.get('metadata'))
+        # Opt-out hides retained history; only a deletion cutoff purges the cache.
+        turns = deepcopy(list(self._turns))
+        if not self.consent_manager.is_tracking_enabled():
+            for turn in turns:
+                turn['metadata'] = without_emotion(turn.get('metadata'))
+        self._current_emotion = next((turn['metadata']['emotion'] for turn in reversed(turns)
+                                     if 'emotion' in turn['metadata']), None)
+        return turns
+
+    @consent_guarded
     def get_context_window(self, max_turns: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get recent conversation turns from in-memory cache.
@@ -94,12 +122,13 @@ class ContextManager:
         Returns:
             List of recent conversation turns (most recent last)
         """
+        turns = self._apply_consent()
         if max_turns is None:
-            return list(self._turns)
+            return turns
 
         # Get last N turns (deque slicing)
-        n = min(max_turns, len(self._turns))
-        return list(self._turns)[-n:] if n > 0 else []
+        n = min(max_turns, len(turns))
+        return turns[-n:] if n > 0 else []
 
     def get_current_topic(self) -> Optional[str]:
         """
@@ -110,6 +139,7 @@ class ContextManager:
         """
         return self._current_topic
 
+    @consent_guarded
     def summarize_context(self) -> str:
         """
         Create a summary of the current in-memory context.
@@ -117,6 +147,7 @@ class ContextManager:
         Returns:
             Human-readable context summary
         """
+        self._apply_consent()
         if not self._turns:
             return "No conversation history in cache."
 
@@ -215,6 +246,7 @@ class ContextManager:
             if self._current_topic is None:
                 self._current_topic = "general conversation"
 
+    @consent_guarded
     def get_emotional_trajectory(self) -> List[str]:
         """
         Get the emotional trajectory over cached conversation.
@@ -222,12 +254,14 @@ class ContextManager:
         Returns:
             List of emotions in chronological order
         """
+        turns = self._apply_consent()
         emotions = []
-        for turn in self._turns:
+        for turn in turns:
             if turn.get('metadata') and 'emotion' in turn['metadata']:
                 emotions.append(turn['metadata']['emotion'])
         return emotions
 
+    @consent_guarded
     def get_stats(self) -> Dict[str, Any]:
         """
         Get statistics about the in-memory context cache.
@@ -235,6 +269,7 @@ class ContextManager:
         Returns:
             Dictionary with context statistics
         """
+        self._apply_consent()
         return {
             'window_size': len(self._turns),
             'max_window_size': self.max_window_size,

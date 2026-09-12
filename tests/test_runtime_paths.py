@@ -221,16 +221,21 @@ with patch.object(STTFactory, 'create', lambda cfg: SimpleNamespace(config=cfg))
      patch('requests.Session.post', return_value=SimpleNamespace(content=b'json', raise_for_status=Mock(), json=lambda: {'choices':[{'message':{'content':'Synthetic reply.'}}]})):
     p = module.ResearchFirstPipeline()
     try:
+        # This probe verifies encrypted metadata recovery, so opt in explicitly.
+        p.consent_manager.grant_consent()
         p.research_manager.requires_research = lambda text: False
         p.ab_test.assign_group = lambda *args: 'control'
         p.ab_test.is_control_group = lambda *args: True
         before = p.semantic_memory.vector_store.size()
+        assert p.semantic_memory.get_stats()['total_conversations'] == before
         if before:
             found = p.semantic_memory.semantic_search('Synthetic', k=1)[0]
             assert found['user_input'] == 'Hello Penny'
             assert found['context']['emotion'] == 'neutral'
+            assert p.semantic_memory.get_conversation_by_id(found['turn_id'])['user_input'] == 'Hello Penny'
         p.state = State.THINKING
         assert 'Synthetic reply.' in p.think('Hello Penny')
+        assert p.semantic_memory.get_stats()['total_conversations'] == before + 1
         print('PROBE_RESULT=' + json.dumps({'model':p.llm.model, 'config':str(p.paths.config), 'data':p.data_dir, 'before':before, 'after':p.semantic_memory.vector_store.size(), 'stt_model':p.stt.config['llm']['model']}))
     finally:
         p.research_manager.shutdown()

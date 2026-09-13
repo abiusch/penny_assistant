@@ -24,36 +24,37 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 13):** PRs #32–#38 are merged, including consent-aware
-emotion storage/deletion (#38, `main` at `1a52084`). PR #40 restores conversation
-identity after restart; its squash-merge conflicts are resolved, all five checks
-passed on `067e8b4`, and Claude's updated review found no blockers. It is ready
-for CJ to merge.
+**Reliability pass (September 13):** PRs #32–#39 are merged. Consent-aware emotion
+storage/deletion landed in #38; eight dependency updates, the approved Claude-only
+bot review allowlist, and the standing working agreement landed in #39 (`a3199a1`).
+PR #40 restores conversation identity after restart. All five checks passed on
+`067e8b4` with a clean Claude review; it is now refreshed with #39 and the task-doc
+conflict is resolved. Fresh checks/review with the updated dependencies are pending.
 
-PR #39 updates eight dependencies. Its original four CI jobs passed, but review
-failed before execution because the trigger actor was the Claude bot. CJ explicitly
-approved the narrow `allowed_bots: "claude"` workflow fix on September 13. This
-branch includes merged #38 and the approved fix; fresh CI/review are pending.
-The original vulnerability counts are the September 7 watchdog report, not a new
-audit. No further dependency versions were changed during the review repair.
+PR #39's original tests passed. Its first review rejected the bot actor; the review
+on the workflow-changing commit later reported success by skipping validation,
+not by reviewing the dependencies. CJ merged #39 while its refreshed Python checks
+were still running. The workflow now matches `main`, so #40 can receive a real
+review. Original vulnerability counts remain the September 7 watchdog report;
+the audit has not been rerun here. No additional dependency versions were changed.
 
-Standing development authority and approval boundaries are recorded in
-[AGENTS.md](AGENTS.md). Continue routine work independently; CJ retains approval
-for merges, deployments, extra spending, live-data deletion and further permission
-expansions.
+Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
+Continue routine development independently; CJ approves merges, deployments,
+extra spending, live-data deletion and further security-permission expansions.
+The separately prepared bot-workflow branch is redundant; no extra PR was opened.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** verify #39 review repair, merge #39/#40 after checks and CJ approval,
-  then memory durability and consistent conversation entry points.
+- **Next:** verify updated-dependency checks and review/merge #40, then memory durability
+  and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (consent fix, local):** 628 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (restart fix, local):** 635 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`). Intentional consent changes to one assertion
   and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
@@ -64,16 +65,49 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  and #38 consent enforcement (`main` at `1a52084`). **Active:** PR #39 review repair;
-  PR #40 restart identity is ready for CJ to merge.
+  #38 consent enforcement, and #39 dependency/review updates (`main` at `a3199a1`).
+  **Active:** `codex/memory-restart-identity` (#40).
 
 ---
+
+## SESSION RECAP — September 12, 2026 (Memory identity after restart)
+
+[PR #40](https://github.com/abiusch/penny_assistant/pull/40), on
+`codex/memory-restart-identity`, based on #38. All five GitHub checks passed on
+`07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
+characterizations with no blockers. September 13: #38 merged; refreshed #40 with
+`main` and resolved squash-merge conflicts while preserving the restart fix.
+Both #38 and #39 are merged; #40 is refreshed with their changes. Fresh checks
+with the updated dependencies are pending; the restart application code is unchanged.
+
+- Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
+  Previously saved vectors remained searchable, but conversation counts reset to
+  zero and ID-based retrieval/deletion/similarity lookup failed after restart.
+  Startup restoration does not rewrite the index or metadata files.
+- Exclude the source conversation from similar-conversation results by its ID.
+  Previously the first result was dropped, which could remove another conversation
+  and leave the source in the results when similarity scores tied.
+- Add seven isolated canonical cases; six failed before implementation. Cover
+  restart lookup/count, new turns after restart, deletion by recovered ID, missing
+  IDs, cleared stores, and tied-score similarity before/after restart. Extend the
+  existing three-process launch probe to check counts and ID retrieval as well as
+  encrypted semantic retrieval and stable paths.
+- Validation: **635 passed, 2 expected failures**, plus **all 30** offline pipeline
+  characterizations. Production-data guards pass; no live user history was edited.
+
+This restores identity for successfully loaded stores. General save/load error
+handling, crash-safe paired-file writes, stale writers, vector tombstone/search
+cleanup, duplicate-ID policy, and the legacy explicit filepath save/load wrappers
+remain durability/API follow-ups. Deletion here uses the existing metadata-only
+vector deletion behavior; it is not physical vector removal. Next: repair general
+memory durability, then unify conversation entry points and address web turn state.
 
 ## SESSION RECAP — September 7, 2026 (Consent-aware emotional storage)
 
 [PR #38](https://github.com/abiusch/penny_assistant/pull/38), on
-`codex/consent-storage-enforcement`, merged September 13 as `1a52084`. All five
-checks passed and Claude found no remaining blockers after the read-cache fix:
+`codex/consent-storage-enforcement`. September 12 verification: all five checks
+passed on `8a2660e`; Claude found no remaining merge blockers. CJ merged it
+on September 13 as `1a52084`.
 
 - CJ explicitly chose to **keep conversations and remove emotion tracking data**.
   Default opt-out now strips emotion, confidence, sentiment and sentiment score

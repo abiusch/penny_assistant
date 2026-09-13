@@ -24,19 +24,18 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 13):** PRs #32–#39 are merged. Consent-aware emotion
-storage/deletion landed in #38; eight dependency updates, the approved Claude-only
-bot review allowlist, and the standing working agreement landed in #39 (`a3199a1`).
-PR #40 restores conversation identity after restart. All five checks passed on
-`067e8b4` with a clean Claude review; it is now refreshed with #39 and the task-doc
-conflict is resolved. Fresh checks/review with the updated dependencies are pending.
+**Reliability pass (September 13):** PRs #32–#40 are merged (`main` at `85b58bb`).
+#40's final checks passed on `cbb2750` with a clean Claude review, including the
+updated dependencies from #39. #39's test pipeline also finished successfully;
+its workflow-changing review had skipped, as previously documented.
 
-PR #39's original tests passed. Its first review rejected the bot actor; the review
-on the workflow-changing commit later reported success by skipping validation,
-not by reviewing the dependencies. CJ merged #39 while its refreshed Python checks
-were still running. The workflow now matches `main`, so #40 can receive a real
-review. Original vulnerability counts remain the September 7 watchdog report;
-the audit has not been rerun here. No additional dependency versions were changed.
+Active [PR #41](https://github.com/abiusch/penny_assistant/pull/41) on `codex/memory-storage-errors` makes failed memory loads/saves
+explicit and blocks reuse of failed instances. Local validation: 653 passed,
+2 existing expected failures; all 30 characterizations pass unchanged. Fresh
+GitHub checks/review are pending. Main's own post-#40 CI passed at `85b58bb`
+([run 34767192912](https://github.com/abiusch/penny_assistant/actions/runs/34767192912)),
+verified separately from the PR checks. This is failure containment, not yet a paired-file
+transaction or automatic recovery system.
 
 Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
 Continue routine development independently; CJ approves merges, deployments,
@@ -47,14 +46,14 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** verify updated-dependency checks and review/merge #40, then memory durability
-  and consistent conversation entry points.
+- **Next:** review memory storage error handling, then transactional durability,
+  writer coordination and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (restart fix, local):** 635 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (storage errors, local):** 653 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`). Intentional consent changes to one assertion
   and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
@@ -65,10 +64,80 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  #38 consent enforcement, and #39 dependency/review updates (`main` at `a3199a1`).
-  **Active:** `codex/memory-restart-identity` (#40).
+  #38 consent enforcement, #39 dependency/review updates and #40 restart identity
+  (`main` at `85b58bb`). **Active:** `codex/memory-storage-errors`.
 
 ---
+
+## SUPPORTING CONTEXT — September 13, 2026 (Project Overlord)
+
+CJ supplied the Overlord handoff during #41. Local `Project-Overlord` is a separate
+repository, clean at merge `19db80e` when inspected. Its README, configuration,
+instruction template and scaffold describe developer-session continuity, not
+Penny's personality or relationship memory. No bootstrap, hooks, settings, optional
+model indexing or runtime integration was applied to Penny during this review.
+The kit's port-status document has pre-merge wording; use CJ's merged handoff and
+verified repository state instead. Kit: https://github.com/abiusch/Project-Overlord.
+
+Reconciled with current Penny code:
+
+- `AGENTS.md` retains CJ's approved authority and boundaries; `NEXT_PHASE_TASKS.md`
+  remains the current backlog/status source. Overlord's generic `docs/ROADMAP.md`
+  convention must not create a competing source. Penny's December 2025
+  `docs/ROADMAP.md` is stale historical planning, not current implementation status.
+- Hebbian learning is implemented and wired, but `hebbian_enabled = False` in the
+  research pipeline. Outcome/goal/follow-up/belief integrations also exist;
+  presence does not establish complete end-to-end verification. Do not rebuild or
+  enable them merely because the older roadmap labels them future work.
+- The dynamic personality prompt builder specifies natural, dry conversation,
+  subtle wit and appropriate sarcasm, with no forced humor/excessive enthusiasm.
+  Learned dimensions are confidence-filtered (default threshold 0.65); personality
+  updates blend according to the dimension's learning rate. Preserve these,
+  explicit preferences, consent/deletion, snapshots and proactivity limits.
+- CJ reports Claude transcripts archived outside repositories at
+  `~/Development/session-archives`, with keyword search available. Installation
+  and scheduling were not rerun here. Codex capture was not implemented; optional
+  model indexing/summaries remain off. Archives are developer evidence only:
+  never ingest them into Penny's personal memory, embeddings or learning stores.
+
+Tailored follow-up after the current storage fix: mark obsolete roadmap claims,
+add a code-backed architecture/verification index and a concise session handoff
+that point to the existing task source. Mine Overlord's wrap/review practices;
+do not copy generic permissions, placeholder gates, backlog conventions or
+bootstrap files over the approved project instructions. Behavioral tests should
+check stable contracts while allowing natural variation in model replies.
+
+## SESSION RECAP — September 13, 2026 (Memory storage errors)
+
+On `codex/memory-storage-errors`, awaiting GitHub checks/review:
+
+- Refuse incomplete, unreadable or structurally inconsistent vector-store pairs
+  instead of silently replacing them with empty memory. Validate index type,
+  dimensions, next ID and metadata shape/ranges before installing loaded objects.
+  Missing metadata for deleted vector IDs remains valid.
+- Serialize both files before writing, then replace each atomically. Raise
+  `MemoryStorageError` on failure and mark the instance unusable until a validated
+  reload or restart. Block later reads/writes/deletion/clear/stats rather than
+  expose or persist an unconfirmed in-memory mutation. Preserve files during failed
+  loads and preserve an individual file when its replacement fails.
+- Persist before updating recent context or running post-save learning/follow-up
+  work. On storage failure, retain the generated answer with an unconfirmed-save
+  warning and skip success metrics/tagging. Failed startup closes the research
+  manager. These are intentional error-path and save-order changes; no existing
+  characterization assertions were altered.
+- Add 18 canonical cases; all 14 initial cases failed before implementation.
+  Cover corrupt/missing pairs, invalid metadata/dimensions, first/second-file write
+  failure, serialization failure, failed reload/clear/delete, constructor cleanup
+  and real pipeline response/side effects. **653 passed, 2 expected failures**;
+  **all 30** characterizations unchanged. Isolated synthetic stores and production
+  data guards pass; no live data repair, deletion or migration was performed.
+
+See [memory recovery](docs/memory_storage_recovery.md). A second-file failure can
+still leave a mixed pair; equal-shape mismatches are not all detectable. Backups,
+transactional commits, stale writers, incremental saves, vector tombstones and
+legacy explicit filepath wrappers remain follow-ups. Do not describe this as
+full crash-safe persistence. Next: a transactional record store or paired checkpoint
+protocol with recovery and writer-coordination tests.
 
 ## SESSION RECAP — September 12, 2026 (Memory identity after restart)
 
@@ -77,8 +146,9 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 `07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
 characterizations with no blockers. September 13: #38 merged; refreshed #40 with
 `main` and resolved squash-merge conflicts while preserving the restart fix.
-Both #38 and #39 are merged; #40 is refreshed with their changes. Fresh checks
-with the updated dependencies are pending; the restart application code is unchanged.
+#40 merged September 13 as `85b58bb`. All five checks passed on `cbb2750`, and
+Claude independently verified 635 + 2 expected failures and 30 characterizations
+with no blockers against the updated dependencies.
 
 - Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
   Previously saved vectors remained searchable, but conversation counts reset to

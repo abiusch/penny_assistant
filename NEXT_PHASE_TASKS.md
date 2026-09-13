@@ -24,25 +24,30 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 13):** PRs #32–#38 are merged, including consent-aware
-emotion storage and deletion (#38, `main` at `1a52084`). The next fix restores
-memory identity after restart in PR #40 on `codex/memory-restart-identity`.
-All five #40 checks passed on `f3fa4d3`; Claude found no blockers. Its conflicts
-following #38's squash merge are resolved, retaining the tested restart changes.
-Fresh checks against the merged base are pending.
+**Reliability pass (September 13):** PRs #32–#39 are merged. Consent-aware emotion
+storage/deletion landed in #38; eight dependency updates, the approved Claude-only
+bot review allowlist, and the standing working agreement landed in #39 (`a3199a1`).
+PR #40 restores conversation identity after restart. All five checks passed on
+`067e8b4` with a clean Claude review; it is now refreshed with #39 and the task-doc
+conflict is resolved. Fresh checks/review with the updated dependencies are pending.
 
-PR #39's four test/integration jobs passed, but its review never started because
-Claude's action rejects bot actors by default. A narrow `allowed_bots: "claude"`
-workflow change is prepared but not pushed: automatic approval review requires
-CJ's explicit permission because the review job has PR-write/OIDC permissions.
-The dependency branch was refreshed with #38 locally; no dependency versions were
-changed during this investigation. Its original audit is historical, not rerun.
+PR #39's original tests passed. Its first review rejected the bot actor; the review
+on the workflow-changing commit later reported success by skipping validation,
+not by reviewing the dependencies. CJ merged #39 while its refreshed Python checks
+were still running. The workflow now matches `main`, so #40 can receive a real
+review. Original vulnerability counts remain the September 7 watchdog report;
+the audit has not been rerun here. No additional dependency versions were changed.
+
+Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
+Continue routine development independently; CJ approves merges, deployments,
+extra spending, live-data deletion and further security-permission expansions.
+The separately prepared bot-workflow branch is redundant; no extra PR was opened.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** resolve #39 review startup, review/merge #40, then address memory durability
+- **Next:** verify updated-dependency checks and review/merge #40, then memory durability
   and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
@@ -60,7 +65,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  and #38 consent enforcement (`main` at `1a52084`). **Active:** `codex/memory-restart-identity`.
+  #38 consent enforcement, and #39 dependency/review updates (`main` at `a3199a1`).
+  **Active:** `codex/memory-restart-identity` (#40).
 
 ---
 
@@ -71,7 +77,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 `07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
 characterizations with no blockers. September 13: #38 merged; refreshed #40 with
 `main` and resolved squash-merge conflicts while preserving the restart fix.
-The dependency is satisfied; fresh checks are pending.
+Both #38 and #39 are merged; #40 is refreshed with their changes. Fresh checks
+with the updated dependencies are pending; the restart application code is unchanged.
 
 - Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
   Previously saved vectors remained searchable, but conversation counts reset to

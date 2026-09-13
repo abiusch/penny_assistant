@@ -9,6 +9,8 @@ from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
 import pickle
 import logging
+from src.memory.storage_io import atomic_write
+from src.memory.consent_manager import consent_guarded, without_emotion
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,8 @@ class VectorStore:
     def __init__(
         self,
         embedding_dim: int = 384,
-        storage_path: str = "data/embeddings/vector_store"
+        storage_path: str = "data/embeddings/vector_store",
+        consent_manager=None,
     ):
         """
         Initialize vector store with persistent storage.
@@ -29,6 +32,7 @@ class VectorStore:
             storage_path: Base path for storing index and metadata (without extension)
         """
         self.embedding_dim = int(embedding_dim)
+        self.consent_manager = consent_manager
         self.storage_path = Path(storage_path)
         self.index_path = self.storage_path.with_suffix('.index')
         self.metadata_path = self.storage_path.with_suffix('.pkl')
@@ -143,9 +147,13 @@ class VectorStore:
         logger.debug(f"Search found {len(results)} results")
         return results
 
+    @consent_guarded
     def save(self):
         """Save index and metadata to disk"""
         try:
+            if self.consent_manager is not None:
+                self.id_to_metadata = {key: self.consent_manager.filter_record(record)
+                                       for key, record in self.id_to_metadata.items()}
             # Save FAISS index
             faiss.write_index(self.index, str(self.index_path))
 
@@ -160,6 +168,28 @@ class VectorStore:
             logger.debug(f"Saved vector store: {self.index.ntotal} vectors")
         except Exception as e:
             logger.error(f"Failed to save vector store: {e}")
+
+    @consent_guarded
+    def delete_emotional_metadata(self):
+        """Atomically redact metadata without rewriting vectors or conversations.
+
+        Read disk directly, including records not in this instance's cache. Unlike
+        ordinary legacy save(), errors propagate so deletion remains pending.
+        """
+        def redact(record):
+            result = without_emotion(record)
+            result['context'] = without_emotion(record.get('context'))
+            return result
+        self.id_to_metadata = {key: redact(record) for key, record in self.id_to_metadata.items()}
+        if not self.metadata_path.exists():
+            if self.index_path.exists():
+                raise FileNotFoundError('Memory metadata missing; deletion cannot be verified')
+            return
+        with self.metadata_path.open('rb') as source:
+            payload = pickle.load(source)
+        payload['id_to_metadata'] = {key: redact(record)
+                                     for key, record in payload['id_to_metadata'].items()}
+        atomic_write(self.metadata_path, pickle.dumps(payload))
 
     def load(self):
         """Load index and metadata from disk"""

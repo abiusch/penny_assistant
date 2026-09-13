@@ -13,6 +13,8 @@ import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
+from pathlib import Path
+from src.memory.consent_manager import ConsentManager, consent_guarded
 
 from src.memory.embedding_generator import get_embedding_generator
 from src.memory.vector_store import VectorStore
@@ -43,6 +45,7 @@ class SemanticMemory:
         encrypt_sensitive: bool = True,
         storage_path: str = "data/embeddings/vector_store",
         encryption=None,
+        consent_manager=None,
     ):
         """
         Initialize semantic memory as the sole persistent store.
@@ -52,10 +55,13 @@ class SemanticMemory:
             encrypt_sensitive: Encrypt emotion/sentiment fields (default: True)
             storage_path: Path for vector store persistence (default: "data/embeddings/vector_store")
         """
+        self.consent_manager = consent_manager or ConsentManager(
+            Path(storage_path).parent.parent / 'user_consent.json')
         self.embedding_generator = get_embedding_generator()
         self.vector_store = VectorStore(
             embedding_dim=embedding_dim,
-            storage_path=storage_path  # CROSS-MODAL FIX: Pass storage path
+            storage_path=storage_path,
+            consent_manager=self.consent_manager,
         )
         self.turn_id_to_vector_id: Dict[str, int] = {}
 
@@ -70,6 +76,7 @@ class SemanticMemory:
 
         logger.info(f"✅ SemanticMemory initialized (SOLE persistent store) at {storage_path}")
 
+    @consent_guarded
     def add_conversation_turn(
         self,
         user_input: str,
@@ -126,6 +133,7 @@ class SemanticMemory:
         }
 
         # Add context with encryption for sensitive fields
+        context = self.consent_manager.filter_context(context)
         if context:
             # Encrypt sensitive fields (GDPR Article 9 compliance)
             encrypted_context = context.copy()
@@ -150,6 +158,7 @@ class SemanticMemory:
         logger.debug(f"✅ Turn {turn_id} added (encrypted={'yes' if self.encrypt_sensitive else 'no'})")
         return turn_id
 
+    @consent_guarded
     def semantic_search(
         self,
         query: str,
@@ -190,6 +199,7 @@ class SemanticMemory:
             if similarity >= min_similarity:
 
                 # Decrypt sensitive fields if encryption is enabled
+                metadata = self.consent_manager.filter_record(metadata, reading=True)
                 context = metadata.get('context', {})
                 if self.encrypt_sensitive and self.encryption and context:
                     decrypted_context = context.copy()

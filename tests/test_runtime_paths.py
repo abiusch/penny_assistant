@@ -221,6 +221,8 @@ with patch.object(STTFactory, 'create', lambda cfg: SimpleNamespace(config=cfg))
      patch('requests.Session.post', return_value=SimpleNamespace(content=b'json', raise_for_status=Mock(), json=lambda: {'choices':[{'message':{'content':'Synthetic reply.'}}]})):
     p = module.ResearchFirstPipeline()
     try:
+        # This probe verifies encrypted metadata recovery, so opt in explicitly.
+        p.consent_manager.grant_consent()
         p.research_manager.requires_research = lambda text: False
         p.ab_test.assign_group = lambda *args: 'control'
         p.ab_test.is_control_group = lambda *args: True

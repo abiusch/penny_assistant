@@ -52,7 +52,7 @@ from src.memory.emotion_detector_v2 import EmotionDetectorV2
 from src.memory.emotional_continuity import EmotionalContinuity
 from src.personality.personality_snapshots import PersonalitySnapshotManager
 from src.memory.forgetting_mechanism import ForgettingMechanism
-from src.memory.consent_manager import ConsentManager
+from src.memory.consent_manager import ConsentManager, consent_guarded
 
 # Week 8.5: Judgment & Clarify System
 from src.judgment import JudgmentEngine, PennyStyleClarifier
@@ -144,6 +144,7 @@ class ResearchFirstPipeline(PipelineLoop):
     def __init__(self, db_path=None, data_dir=None, *, config_path=None):
         self.paths = RuntimePaths.resolve(config=config_path, data_dir=data_dir, db_path=db_path)
         config = load_runtime_config(self.paths.config)
+        self.consent_manager = ConsentManager(storage_path=self.paths.data / 'user_consent.json')
         existing_vectors = any((self.paths.data / 'embeddings' / filename).exists()
                                for filename in ('vector_store.index', 'vector_store.pkl'))
         encryption = DataEncryption(self.paths.data / '.encryption_key',
@@ -208,16 +209,16 @@ class ResearchFirstPipeline(PipelineLoop):
         logger.info("🔧 Tool orchestrator initialized with {} tools".format(len(self.tool_registry.tools)))
 
         # Week 6: Context Manager, Emotion Detector, Semantic Memory
-        self.context_manager = ContextManager(max_window_size=10)
+        self.context_manager = ContextManager(max_window_size=10, consent_manager=self.consent_manager)
         self.emotion_detector = EmotionDetector()
         self.semantic_memory = SemanticMemory(
             storage_path=os.path.join(self.data_dir, "embeddings", "vector_store"),
             encryption=encryption,
+            consent_manager=self.consent_manager,
         )
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
         # Week 8: Emotional Continuity System
-        self.consent_manager = ConsentManager(storage_path=self.paths.data / 'user_consent.json')
         self.emotion_detector_v2 = EmotionDetectorV2()
         self.emotional_continuity = EmotionalContinuity(
             semantic_memory=self.semantic_memory,
@@ -228,9 +229,16 @@ class ResearchFirstPipeline(PipelineLoop):
         )
         self.personality_snapshots = PersonalitySnapshotManager(
             storage_path=os.path.join(self.data_dir, "personality_snapshots"),
-            snapshot_interval=50
+            snapshot_interval=50,
+            consent_manager=self.consent_manager,
         )
         self.forgetting_mechanism = ForgettingMechanism(decay_days=30)
+        self.consent_manager.set_delete_handler(self._delete_emotional_data)
+        try:
+            self.consent_manager.resume_pending_deletion()
+        except Exception:
+            self.research_manager.shutdown()
+            raise
         logger.info("🧠 Week 8 Emotional Continuity initialized")
 
         # Week 8.5: Initialize Judgment & Clarify System
@@ -843,6 +851,15 @@ class ResearchFirstPipeline(PipelineLoop):
 
         return actual_command
 
+    def _delete_emotional_data(self):
+        """Delete derived tracking data, retaining conversation text and vectors."""
+        self.emotional_continuity.enabled = False
+        self.emotional_continuity.threads.clear()
+        self.context_manager.delete_emotional_metadata()
+        self.semantic_memory.vector_store.delete_emotional_metadata()
+        self.personality_snapshots.delete_emotional_threads()
+
+    @consent_guarded
     def _process_emotion(self, actual_command: str):
         """Emotion detection + Week 8 emotional-continuity check-in.
 
@@ -852,7 +869,12 @@ class ResearchFirstPipeline(PipelineLoop):
         """
         # Step 1.5: Week 6 - Detect emotion from user input
         emotion_result = self.emotion_detector.detect_emotion(actual_command)
-        logger.info(f"😊 Emotion detected: {emotion_result.primary_emotion} (confidence: {emotion_result.confidence:.2f}, sentiment: {emotion_result.sentiment})")
+        # Detection can inform this reply, but derived labels are not logged.
+        self.emotional_continuity.enabled = self.consent_manager.is_tracking_enabled()
+        self.emotional_continuity.intensity_threshold = self.consent_manager.get_intensity_threshold()
+        self.emotional_continuity.window_days = self.consent_manager.get_memory_window()
+        self.emotional_continuity.threads = [thread for thread in self.emotional_continuity.threads
+                                            if not self.consent_manager.was_deleted(thread.timestamp.isoformat())]
 
         # Step 1.6: Week 8 - Track significant emotions and check for emotional context
         turn_id = f"turn_{int(time.time() * 1000)}"
@@ -885,6 +907,7 @@ class ResearchFirstPipeline(PipelineLoop):
 
         return emotion_result, emotional_context, check_in_thread
 
+    @consent_guarded
     def _persist_turn(self, actual_command, final_response, emotion_result,
                       research_required, financial_topic, group, start_time,
                       check_in_thread) -> None:
@@ -913,6 +936,7 @@ class ResearchFirstPipeline(PipelineLoop):
                 "tools_used": [],  # TODO: Track tool usage from orchestrator
                 "response_time_ms": int((time.time() - start_time) * 1000)
             }
+            enhanced_metadata = self.consent_manager.filter_context(enhanced_metadata)
 
             # WEEK 7: Removed base_memory and enhanced_memory saves (redundant)
             # OLD: self.base_memory.add_conversation_turn(...) - REMOVED
@@ -970,7 +994,9 @@ class ResearchFirstPipeline(PipelineLoop):
                 logger.debug("Hebbian learning skipped: safety check failed")
 
             # Week 8: Mark emotional follow-up if we referenced past emotion
-            if check_in_thread and self._response_references_emotion(final_response, check_in_thread):
+            if (self.consent_manager.is_checkins_enabled() and check_in_thread
+                    and not self.consent_manager.was_deleted(check_in_thread.timestamp.isoformat())
+                    and self._response_references_emotion(final_response, check_in_thread)):
                 self.emotional_continuity.mark_followed_up(check_in_thread, turn_id)
                 logger.info(f"✅ Marked emotional follow-up for {check_in_thread.turn_id}")
 

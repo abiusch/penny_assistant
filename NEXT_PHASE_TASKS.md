@@ -29,10 +29,12 @@ Older recaps are historical evidence, not the current test or deployment status.
 updated dependencies from #39. #39's test pipeline also finished successfully;
 its workflow-changing review had skipped, as previously documented.
 
-Active work on `codex/memory-storage-errors` makes failed memory loads/saves
+Active [PR #41](https://github.com/abiusch/penny_assistant/pull/41) on `codex/memory-storage-errors` makes failed memory loads/saves
 explicit and blocks reuse of failed instances. Local validation: 653 passed,
 2 existing expected failures; all 30 characterizations pass unchanged. Fresh
-GitHub checks/review are pending. This is failure containment, not yet a paired-file
+GitHub checks/review are pending. Main's own post-#40 CI passed at `85b58bb`
+([run 34767192912](https://github.com/abiusch/penny_assistant/actions/runs/34767192912)),
+verified separately from the PR checks. This is failure containment, not yet a paired-file
 transaction or automatic recovery system.
 
 Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
@@ -66,6 +68,44 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   (`main` at `85b58bb`). **Active:** `codex/memory-storage-errors`.
 
 ---
+
+## SUPPORTING CONTEXT — September 13, 2026 (Project Overlord)
+
+CJ supplied the Overlord handoff during #41. Local `Project-Overlord` is a separate
+repository, clean at merge `19db80e` when inspected. Its README, configuration,
+instruction template and scaffold describe developer-session continuity, not
+Penny's personality or relationship memory. No bootstrap, hooks, settings, optional
+model indexing or runtime integration was applied to Penny during this review.
+The kit's port-status document has pre-merge wording; use CJ's merged handoff and
+verified repository state instead. Kit: https://github.com/abiusch/Project-Overlord.
+
+Reconciled with current Penny code:
+
+- `AGENTS.md` retains CJ's approved authority and boundaries; `NEXT_PHASE_TASKS.md`
+  remains the current backlog/status source. Overlord's generic `docs/ROADMAP.md`
+  convention must not create a competing source. Penny's December 2025
+  `docs/ROADMAP.md` is stale historical planning, not current implementation status.
+- Hebbian learning is implemented and wired, but `hebbian_enabled = False` in the
+  research pipeline. Outcome/goal/follow-up/belief integrations also exist;
+  presence does not establish complete end-to-end verification. Do not rebuild or
+  enable them merely because the older roadmap labels them future work.
+- The dynamic personality prompt builder specifies natural, dry conversation,
+  subtle wit and appropriate sarcasm, with no forced humor/excessive enthusiasm.
+  Learned dimensions are confidence-filtered (default threshold 0.65); personality
+  updates blend according to the dimension's learning rate. Preserve these,
+  explicit preferences, consent/deletion, snapshots and proactivity limits.
+- CJ reports Claude transcripts archived outside repositories at
+  `~/Development/session-archives`, with keyword search available. Installation
+  and scheduling were not rerun here. Codex capture was not implemented; optional
+  model indexing/summaries remain off. Archives are developer evidence only:
+  never ingest them into Penny's personal memory, embeddings or learning stores.
+
+Tailored follow-up after the current storage fix: mark obsolete roadmap claims,
+add a code-backed architecture/verification index and a concise session handoff
+that point to the existing task source. Mine Overlord's wrap/review practices;
+do not copy generic permissions, placeholder gates, backlog conventions or
+bootstrap files over the approved project instructions. Behavioral tests should
+check stable contracts while allowing natural variation in model replies.
 
 ## SESSION RECAP — September 13, 2026 (Memory storage errors)
 

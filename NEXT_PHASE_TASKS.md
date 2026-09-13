@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 7, 2026
+**Last Updated:** September 13, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -24,19 +24,30 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 7):** PRs #32–#37 are merged (tool parsing/replay,
-live-model compatibility, project review, request-thread calculator execution,
-controlled model failures, and stable configuration/data paths). Consent-aware
-emotion storage/deletion is repaired in PR #38 on `codex/consent-storage-enforcement`.
-Its CI preservation-test failure and Claude's cached-history finding are fixed
-locally; updated GitHub checks and review are pending.
+**Reliability pass (September 13):** PRs #32–#38 are merged, including consent-aware
+emotion storage/deletion (#38, `main` at `1a52084`). PR #40 restores conversation
+identity after restart; its squash-merge conflicts are resolved, all five checks
+passed on `067e8b4`, and Claude's updated review found no blockers. It is ready
+for CJ to merge.
+
+PR #39 updates eight dependencies. Its original four CI jobs passed, but review
+failed before execution because the trigger actor was the Claude bot. CJ explicitly
+approved the narrow `allowed_bots: "claude"` workflow fix on September 13. This
+branch includes merged #38 and the approved fix; fresh CI/review are pending.
+The original vulnerability counts are the September 7 watchdog report, not a new
+audit. No further dependency versions were changed during the review repair.
+
+Standing development authority and approval boundaries are recorded in
+[AGENTS.md](AGENTS.md). Continue routine work independently; CJ retains approval
+for merges, deployments, extra spending, live-data deletion and further permission
+expansions.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** review/merge consent-aware storage/deletion, then memory restart/durability
-  and consistent conversation entry points.
+- **Next:** verify #39 review repair, merge #39/#40 after checks and CJ approval,
+  then memory durability and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
@@ -53,14 +64,16 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  (`main` at `8af2556`). **Active:** `codex/consent-storage-enforcement`.
+  and #38 consent enforcement (`main` at `1a52084`). **Active:** PR #39 review repair;
+  PR #40 restart identity is ready for CJ to merge.
 
 ---
 
 ## SESSION RECAP — September 7, 2026 (Consent-aware emotional storage)
 
 [PR #38](https://github.com/abiusch/penny_assistant/pull/38), on
-`codex/consent-storage-enforcement`, pending updated checks/review and merge:
+`codex/consent-storage-enforcement`, merged September 13 as `1a52084`. All five
+checks passed and Claude found no remaining blockers after the read-cache fix:
 
 - CJ explicitly chose to **keep conversations and remove emotion tracking data**.
   Default opt-out now strips emotion, confidence, sentiment and sentiment score

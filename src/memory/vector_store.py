@@ -10,6 +10,7 @@ from pathlib import Path
 import pickle
 import logging
 from src.memory.storage_io import atomic_write
+from src.memory.errors import MemoryStorageError
 from src.memory.consent_manager import consent_guarded, without_emotion
 
 logger = logging.getLogger(__name__)
@@ -36,12 +37,13 @@ class VectorStore:
         self.storage_path = Path(storage_path)
         self.index_path = self.storage_path.with_suffix('.index')
         self.metadata_path = self.storage_path.with_suffix('.pkl')
+        self._storage_failed = False
 
         # Ensure directory exists
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Try to load existing index
-        if self.index_path.exists() and self.metadata_path.exists():
+        if self.index_path.exists() or self.metadata_path.exists():
             logger.info(f"Loading existing vector store from {self.storage_path}")
             self.load()
         else:
@@ -52,6 +54,11 @@ class VectorStore:
 
         logger.info(f"VectorStore initialized: {self.index.ntotal} vectors, dim={self.embedding_dim}")
 
+    def _require_healthy(self):
+        if self._storage_failed:
+            raise MemoryStorageError('The memory store is unavailable; repair and reload it before continuing')
+
+    @consent_guarded
     def add(self, embeddings: np.ndarray, metadata: Optional[List[Dict[str, Any]]] = None) -> List[int]:
         """
         Add embeddings to the index with metadata.
@@ -63,6 +70,7 @@ class VectorStore:
         Returns:
             List of assigned IDs
         """
+        self._require_healthy()
         # Handle single embedding
         if len(embeddings.shape) == 1:
             embeddings = embeddings.reshape(1, -1)
@@ -113,6 +121,7 @@ class VectorStore:
         Returns:
             List of (id, similarity_score, metadata) tuples
         """
+        self._require_healthy()
         if self.index.ntotal == 0:
             logger.warning("Vector store is empty")
             return []
@@ -149,32 +158,38 @@ class VectorStore:
 
     @consent_guarded
     def save(self):
-        """Save index and metadata to disk"""
+        """Replace each file atomically; failure invalidates this instance.
+
+        These two replacements are not an atomic pair. A failed second write
+        leaves an unconfirmed store requiring validation/recovery before reuse.
+        """
+        self._require_healthy()
         try:
             if self.consent_manager is not None:
                 self.id_to_metadata = {key: self.consent_manager.filter_record(record)
                                        for key, record in self.id_to_metadata.items()}
-            # Save FAISS index
-            faiss.write_index(self.index, str(self.index_path))
-
-            # Save metadata
-            with open(self.metadata_path, 'wb') as f:
-                pickle.dump({
-                    'id_to_metadata': self.id_to_metadata,
-                    'next_id': self.next_id,
-                    'embedding_dim': self.embedding_dim
-                }, f)
+            # Serialize both before changing either existing file.
+            index_bytes = faiss.serialize_index(self.index).tobytes()
+            metadata_bytes = pickle.dumps({
+                'id_to_metadata': self.id_to_metadata,
+                'next_id': self.next_id,
+                'embedding_dim': self.embedding_dim
+            })
+            atomic_write(self.index_path, index_bytes)
+            atomic_write(self.metadata_path, metadata_bytes)
 
             logger.debug(f"Saved vector store: {self.index.ntotal} vectors")
         except Exception as e:
-            logger.error(f"Failed to save vector store: {e}")
+            self._storage_failed = True
+            logger.error('Memory store save failed (%s)', type(e).__name__)
+            raise MemoryStorageError('The memory store save is not confirmed; repair and reload before continuing') from e
 
     @consent_guarded
     def delete_emotional_metadata(self):
         """Atomically redact metadata without rewriting vectors or conversations.
 
         Read disk directly, including records not in this instance's cache. Unlike
-        ordinary legacy save(), errors propagate so deletion remains pending.
+        ordinary save(), this edits only metadata. Errors leave deletion pending.
         """
         def redact(record):
             result = without_emotion(record)
@@ -191,29 +206,39 @@ class VectorStore:
                                      for key, record in payload['id_to_metadata'].items()}
         atomic_write(self.metadata_path, pickle.dumps(payload))
 
+    @consent_guarded
     def load(self):
-        """Load index and metadata from disk"""
+        """Validate a complete pair before installing it; never reset bad data."""
         try:
-            # Load FAISS index
-            self.index = faiss.read_index(str(self.index_path))
-
-            # Load metadata
+            index = faiss.read_index(str(self.index_path))
             with open(self.metadata_path, 'rb') as f:
                 data = pickle.load(f)
-                self.id_to_metadata = data['id_to_metadata']
-                self.next_id = data['next_id']
-                self.embedding_dim = data.get('embedding_dim', 384)
+            metadata = data['id_to_metadata']
+            next_id = data['next_id']
+            dimension = data.get('embedding_dim', 384)
+            if (not isinstance(index, faiss.IndexFlatIP)
+                    or index.d != self.embedding_dim or dimension != index.d
+                    or type(next_id) is not int or next_id != index.ntotal
+                    or not isinstance(metadata, dict)
+                    or any(type(key) is not int or not 0 <= key < next_id
+                           or not isinstance(record, dict)
+                           for key, record in metadata.items())):
+                raise ValueError('Inconsistent vector index and metadata')
 
+            self.index = index
+            self.id_to_metadata = metadata
+            self.next_id = next_id
+            self._storage_failed = False
             logger.info(f"Loaded vector store: {self.index.ntotal} vectors")
         except Exception as e:
-            logger.error(f"Failed to load vector store: {e}")
-            # Fall back to empty index
-            self.index = faiss.IndexFlatIP(int(self.embedding_dim))
-            self.id_to_metadata = {}
-            self.next_id = 0
+            self._storage_failed = True
+            logger.error('Memory store load failed (%s)', type(e).__name__)
+            raise MemoryStorageError('Cannot load the memory store; restore a complete matching pair before continuing') from e
 
+    @consent_guarded
     def clear(self):
         """Clear all vectors and metadata"""
+        self._require_healthy()
         self.index = faiss.IndexFlatIP(int(self.embedding_dim))
         self.id_to_metadata = {}
         self.next_id = 0
@@ -222,6 +247,7 @@ class VectorStore:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the vector store"""
+        self._require_healthy()
         return {
             'total_vectors': self.index.ntotal,
             'embedding_dim': self.embedding_dim,
@@ -232,14 +258,18 @@ class VectorStore:
     # Legacy compatibility methods
     def size(self) -> int:
         """Get the number of vectors in the store"""
+        self._require_healthy()
         return self.index.ntotal
 
     def get_by_id(self, id: int) -> Optional[Dict[str, Any]]:
         """Get metadata for a specific ID"""
+        self._require_healthy()
         return self.id_to_metadata.get(id)
 
+    @consent_guarded
     def delete(self, ids: List[int]):
         """Delete entries by ID (removes metadata only)"""
+        self._require_healthy()
         for id in ids:
             if id in self.id_to_metadata:
                 del self.id_to_metadata[id]

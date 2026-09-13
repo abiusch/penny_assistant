@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 12, 2026
+**Last Updated:** September 13, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -24,21 +24,25 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 12):** PRs #32–#37 are merged (tool parsing/replay,
-live-model compatibility, project review, request-thread calculator execution,
-controlled model failures, and stable configuration/data paths). Consent-aware
-emotion storage/deletion is repaired in PR #38 on `codex/consent-storage-enforcement`.
-All five checks passed on `8a2660e`, and Claude's updated review found no blockers.
-PR #38 remains open, ready for CJ to merge. The next fix restores memory identity
-after restart in draft PR #40 on `codex/memory-restart-identity`, based on #38.
-All five #40 checks passed on `07a99d9`; Claude found no blockers in the incremental
-fix. Keep #40 in draft until #38 merges, then verify the narrowed diff and checks.
+**Reliability pass (September 13):** PRs #32–#38 are merged, including consent-aware
+emotion storage and deletion (#38, `main` at `1a52084`). The next fix restores
+memory identity after restart in PR #40 on `codex/memory-restart-identity`.
+All five #40 checks passed on `f3fa4d3`; Claude found no blockers. Its conflicts
+following #38's squash merge are resolved, retaining the tested restart changes.
+Fresh checks against the merged base are pending.
+
+PR #39's four test/integration jobs passed, but its review never started because
+Claude's action rejects bot actors by default. A narrow `allowed_bots: "claude"`
+workflow change is prepared but not pushed: automatic approval review requires
+CJ's explicit permission because the review job has PR-write/OIDC permissions.
+The dependency branch was refreshed with #38 locally; no dependency versions were
+changed during this investigation. Its original audit is historical, not rerun.
 The 30 pipeline characterization
 checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** merge #38, review memory restart identity, then address memory durability
+- **Next:** resolve #39 review startup, review/merge #40, then address memory durability
   and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
@@ -56,16 +60,18 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  (`main` at `8af2556`). **Active:** `codex/memory-restart-identity`, based on #38.
+  and #38 consent enforcement (`main` at `1a52084`). **Active:** `codex/memory-restart-identity`.
 
 ---
 
 ## SESSION RECAP — September 12, 2026 (Memory identity after restart)
 
-[Draft PR #40](https://github.com/abiusch/penny_assistant/pull/40), on
+[PR #40](https://github.com/abiusch/penny_assistant/pull/40), on
 `codex/memory-restart-identity`, based on #38. All five GitHub checks passed on
 `07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
-characterizations with no blockers. Merge #38 first; #40 stays in draft meanwhile.
+characterizations with no blockers. September 13: #38 merged; refreshed #40 with
+`main` and resolved squash-merge conflicts while preserving the restart fix.
+The dependency is satisfied; fresh checks are pending.
 
 - Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
   Previously saved vectors remained searchable, but conversation counts reset to
@@ -93,8 +99,8 @@ memory durability, then unify conversation entry points and address web turn sta
 
 [PR #38](https://github.com/abiusch/penny_assistant/pull/38), on
 `codex/consent-storage-enforcement`. September 12 verification: all five checks
-passed on `8a2660e`; Claude found no remaining merge blockers. Still open for CJ
-to merge.
+passed on `8a2660e`; Claude found no remaining merge blockers. CJ merged it
+on September 13 as `1a52084`.
 
 - CJ explicitly chose to **keep conversations and remove emotion tracking data**.
   Default opt-out now strips emotion, confidence, sentiment and sentiment score

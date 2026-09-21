@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 13, 2026
+**Last Updated:** September 21, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -66,9 +66,57 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
   #38 consent enforcement, and #39 dependency/review updates (`main` at `a3199a1`).
-  **Active:** `codex/memory-restart-identity` (#40).
+  #40 (memory restart identity) merged. **Active, awaiting review:**
+  `fix/pip-audit-anyio-torch-cve` (#42, dependency CVE fixes).
 
 ---
+
+## SESSION RECAP — September 21, 2026 (pip-audit dependency CVE sweep)
+
+[PR #42](https://github.com/abiusch/penny_assistant/pull/42), on
+`fix/pip-audit-anyio-torch-cve`, based on `main` at `85b58bb` (#40 merged).
+Not merged — awaiting CJ review per standing instructions. Routine `pip-audit`
+sweep of `requirements.txt`, run independently per the working agreement.
+
+- `pip-audit -r requirements.txt` found 35 known vulnerabilities across 7
+  packages: anyio, click, starlette, pytest, torch, setuptools, transformers.
+- **Fixed:** anyio 4.10.0 → 4.14.2 and torch 2.8.0 → 2.13.0. Both stay within
+  their current major version and satisfy every direct dependent's constraint
+  (httpx/openai/starlette/watchfiles for anyio; openai-whisper/sentence-transformers
+  for torch). Only `requirements.txt` changed — neither package is pinned in
+  `requirements.in` (both transitive) and no production code changed.
+- **Not fixed, left for human review** — each blocked by something stronger than
+  "would be nice to avoid":
+  - click 8.1.8 (fix 8.3.3): gTTS 2.5.4, the latest release, pins `click<8.2`.
+    Bumping click makes the lock file uninstallable unless gTTS is replaced.
+  - setuptools 80.10.2 (fix 83.0.0): blocked by the existing `setuptools<81`
+    ceiling in `requirements.in`, needed because webrtcvad imports
+    `pkg_resources`, removed in setuptools 81+.
+  - starlette 0.47.3 (6 CVEs, fixes 0.49.1 → 1.3.1): fastapi 0.116.1 pins
+    `starlette<0.48.0`, so even the smallest fix needs a fastapi upgrade too,
+    and full remediation needs the breaking 1.x line.
+  - pytest 8.4.1 (fix 9.0.3): major version bump, test-only dependency.
+  - transformers 4.57.6 (5 CVEs, fixes in 5.x): not a direct dependency
+    (transitive via sentence-transformers, which pins `transformers<5.0.0`);
+    5.x is breaking regardless.
+- **Pre-existing gap noticed, not touched:** sentence-transformers' own
+  transitive dependencies (transformers, huggingface-hub, tokenizers,
+  safetensors, scikit-learn, scipy, etc.) are absent from `requirements.txt`
+  even though sentence-transformers requires them — the checked-in lock file
+  predates this and was generated on macOS/Python 3.13, so recompiling it on
+  this Linux/Python-3.12 box pulls in a much larger dependency graph and
+  silently drops the `setuptools<81` line and the 5 PyObjC
+  `; platform_system == "Darwin"` lines. Fixed anyio/torch by hand-editing the
+  two version pins instead of recompiling, to avoid that.
+- Validation: clean-venv install (`pip install --no-cache-dir -r
+  requirements.txt`) succeeds with 0 conflicts (`pip check`); `pip-audit`
+  confirms anyio/torch findings are gone (35 → 25); `make test` — 635 passed,
+  2 expected failures, no regressions.
+
+Next: CJ decides on the six remaining findings above (gTTS/click replacement,
+setuptools ceiling, fastapi+starlette upgrade, pytest major bump, and whether
+to also close the sentence-transformers lock-file gap). Re-run `pip-audit`
+after any of those land.
 
 ## SESSION RECAP — September 12, 2026 (Memory identity after restart)
 

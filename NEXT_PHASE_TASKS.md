@@ -3,13 +3,15 @@
 > ⚠️ **SINGLE SOURCE OF TRUTH**
 > 
 > This file is the **primary reference** for Penny's development status.
-> All major documentation files are in the root directory.
+> Architecture and verification references are linked below.
 > 
 > 🎯 **Current status:** see Quick Status below.
 >
 > 📋 **Reliability review:** [September 6 review](docs/reviews/2026-09-06_project_review.md)
 >
-> **Claude handoff:** [September 7 work summary](docs/reviews/2026-09-07_claude_handoff.md)
+> **Claude handoff:** [September 24 work summary](docs/reviews/2026-09-24_claude_handoff.md)
+>
+> **Development references:** [Architecture](docs/SYSTEM_BLUEPRINT.md) · [Verification](docs/VERIFICATION.md) · [Session continuity](docs/SESSION_TRANSFER.md)
 >
 > 📚 **Project overview:** [README.md](README.md)
 
@@ -24,18 +26,26 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 24):** PRs #32–#41 are merged. CJ merged #41 as
+**Reliability pass (September 24):** PRs #32–#42 are merged. CJ merged #41 as
 `6b06d7ce04346dc35b594ca564eb136857119a1b`. Its five checks passed on `865a19e`,
 and Claude's posted reviews independently verified 653 passed, 2 expected failures
 and all 30 characterizations with no blockers. Main's own post-#41 pipeline
 ([run 36056483851](https://github.com/abiusch/penny_assistant/actions/runs/36056483851))
-is running; do not substitute PR results for that run.
+passed on `6b06d7c`, verified independently of the PR results.
 
-Active [PR #42](https://github.com/abiusch/penny_assistant/pull/42) updates anyio
-and torch. Its previous five checks passed on `1e27574`; merging #41 into this
+[PR #42](https://github.com/abiusch/penny_assistant/pull/42) updated anyio
+and torch; CJ merged it as `6079f233710b386c6a3f12774438ae882cfb4a09`. Its previous five checks passed on `1e27574`; merging #41 into this
 branch required reconciling only this task document. Both dependency and memory
-recaps are retained. Fresh checks on the refreshed commit are pending. The
-separate `codex/project-continuity` documentation follow-up is in progress.
+recaps are retained. All five fresh checks passed on `7f782da`, and Claude's
+completed review found no blockers. Directly inspected Linux/Python 3.11 CI logs
+confirm anyio 4.14.2 / torch 2.13.0 installed and **653 passed, 2 expected failures**
+plus **30** characterizations. Claude's comment reports an older 635 count; use
+the actual CI logs for this revision. Main's separate post-#42 pipeline
+([run 36059816739](https://github.com/abiusch/penny_assistant/actions/runs/36059816739))
+is running at `6079f23`.
+[PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
+`codex/project-continuity`, contains the documentation follow-up and is refreshed
+with #42. Its own checks/review on the refreshed commit are pending.
 
 Memory failures now surface explicitly, but paired-file transactions, recovery and
 stale-writer coordination remain unfinished. See [recovery limits](docs/memory_storage_recovery.md).
@@ -49,7 +59,7 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** finish #42 verification and the documentation follow-up, then
+- **Next:** finish the documentation follow-up and verify post-merge CI, then
   transactional durability, writer coordination and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
@@ -68,10 +78,42 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
   #38 consent enforcement, #39 dependency/review updates, #40 restart identity and
-  #41 memory failures (`main` at `6b06d7c`). **Active:** dependency PR #42 and
-  `codex/project-continuity` documentation work.
+  #41 memory failures and #42 anyio/torch updates (`main` at `6079f23`).
+  **Active:** `codex/project-continuity` documentation work (#43).
 
 ---
+
+## SESSION RECAP — September 24, 2026 (Project continuity)
+
+[PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
+`codex/project-continuity`, now refreshed with merged #42 (`6079f23`):
+
+- Add a code-backed architecture/coverage map, verification commands and short
+  session guide. Add `CLAUDE.md` as a pointer to the existing agreement and task
+  source; do not duplicate or replace the approved permissions.
+- Mark the December 2025 roadmap and README inventory as historical. Correct the
+  obsolete path-document claim about restart counters. Record that Hebbian,
+  outcome/proactivity, goal/follow-up and belief implementations exist but their
+  research-pipeline switches remain off. Preserve runtime voice and behavior.
+- Refresh the dated Claude handoff with merged #36–#41, dependency PR #42 and
+  explicit coverage/durability limits. Keep developer archives outside Penny's
+  personal memory; no bootstrap, hooks or archive ingestion performed.
+- Reconcile source paths and documentation links. Documentation-only change;
+  no new runtime tests or dependencies. All new documentation links resolve and
+  `git diff --check` passes. The canonical direct-Python command passed 635 tests
+  plus 2 expected failures before #41, and the refreshed #42 checkout (same
+  application code as merged #41) passed 653 plus 2 expected failures and all 30
+  characterizations. This documentation pass does not rerun live model/audio tests.
+  Two old README targets (`VOICE_QUALITY_COMPLETE.md`, `LICENSE`) remain absent;
+  the new references do not depend on them. GitHub checks for this branch are
+  pending. The independent #42 conflict repair is documented below.
+
+September 24 merge follow-up: reconciled the task-document-only conflict with
+#42, preserving the newer check evidence and all historical recaps. Runtime code,
+dependencies and approved instructions now match main at `6079f23`.
+
+Next implementation work remains transactional memory durability and stale-writer
+coordination, then conversation entry-point consistency and shared web turn state.
 
 ## SESSION RECAP — September 24, 2026 (Refresh dependency PR #42)
 
@@ -82,8 +124,13 @@ pytest commands (Make is blocked by the Xcode license on this Mac) passed **653
 canonical tests, 2 expected failures**, and **all 30 characterizations** in the
 isolated checkout with offline settings. The shared existing Python 3.13 environment
 still has anyio 4.10.0 / torch 2.8.0: these runs validate code/conflict resolution,
-not the upgraded packages. Fresh GitHub installs/checks on the pushed commit remain
-required. The previous review job's final output said installation was still
+not the upgraded packages. Fresh GitHub verification subsequently passed all five
+checks on `7f782da` ([test run 36057361931](https://github.com/abiusch/penny_assistant/actions/runs/36057361931)).
+The Python 3.11 log explicitly confirms the new pins and 653 + 2 expected failures,
+plus 30 characterizations; Python 3.13 and integration jobs also passed. Claude's
+new posted review found no blockers, but its 635-test count differs from current
+CI, so use the directly inspected logs for the current count. Live transcription
+and embedding quality were not checked. The previous review job's final output said installation was still
 running and it would post later; no completed review was posted. Do not treat its
 green badge as a finished review. No workflow permissions or dependency pins were
 changed during this refresh.
@@ -94,7 +141,8 @@ changed during this refresh.
 `fix/pip-audit-anyio-torch-cve`, based on `main` at `85b58bb` (#40 merged).
 Original author report (September 21); vulnerability counts and clean-install
 results below have not been rerun during the September 24 conflict resolution.
-This remains an open dependency PR, now refreshed with merged #41.
+The PR was refreshed with merged #41 and subsequently merged September 24 as
+`6079f23`; see the newer validation recap above.
 
 - `pip-audit -r requirements.txt` found 35 known vulnerabilities across 7
   packages: anyio, click, starlette, pytest, torch, setuptools, transformers.

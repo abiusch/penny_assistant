@@ -77,6 +77,8 @@ They retrieve previous synthetic turns and decrypt stored emotion metadata using
 the same key. Tests assert real project data is unchanged.
 
 This verifies startup paths and synthetic restart retrieval, not live microphone,
-web browser or model behavior. The existing memory statistics counter uses an
-in-memory turn map and resets on restart even though vector search recovers stored
-turns; repairing that map and crash-safe persistence remains separate work.
+web browser or model behavior. PR #40 now rebuilds the conversation-ID map from
+loaded metadata, preserving counts and ID-based lookups after restart. PR #41
+reports failed storage operations and rejects damaged stores; see
+[memory recovery and remaining durability limits](memory_storage_recovery.md).
+Paired-file transactions and stale-writer coordination remain separate work.

@@ -1,8 +1,20 @@
-
-Test
 # PennyGPT - AI Companion with Personality & Learning
 
 A privacy-focused AI companion that learns, remembers relationships, and develops a unique personality through conversations. Goes far beyond basic voice assistant functionality to create genuine companionship.
+
+## Current development references
+
+Start with [NEXT_PHASE_TASKS.md](NEXT_PHASE_TASKS.md) for current status and
+[AGENTS.md](AGENTS.md) for the approved working agreement. The
+[architecture map](docs/SYSTEM_BLUEPRINT.md), [verification guide](docs/VERIFICATION.md)
+and [session handoff](docs/SESSION_TRANSFER.md) describe the code and its validation
+limits. [docs/ROADMAP.md](docs/ROADMAP.md) is historical planning.
+
+The feature inventory, setup suggestions and personality examples below are
+historical descriptions, not a current readiness checklist. Several implemented
+learning systems remain disabled by default. Emotional tracking requires consent;
+current voice constraints favor natural, dry conversation. Consult the references
+above before enabling features or treating an example as the intended runtime behavior.
 
 ## 🧠 What Makes PennyGPT Different
 
@@ -13,7 +25,7 @@ A privacy-focused AI companion that learns, remembers relationships, and develop
 - **Learns & Grows**: Remembers corrections, builds shared memories, explores topics together
 - **Respects Boundaries**: Asks permission before research, adapts to your stress levels
 
-## 🎉 Current Features (ALL IMPLEMENTED)
+## Historical feature inventory
 
 ### **🧠 Advanced Companion Features**
 - ✅ **Guided Learning & Reasoning**: Permission-based research, learning from corrections, proactive curiosity
@@ -258,8 +270,8 @@ PYTHONPATH=src python penny_with_tts.py
 ## 📝 Documentation
 
 - **[Current Status](CURRENT_STATUS_9.5.md)**: Complete achievement log
-- **[Guided Learning](GUIDED_LEARNING_COMPLETE.md)**: Advanced companion features
-- **[Engineering Improvements](ENGINEERING_IMPROVEMENTS_COMPLETE.md)**: Production readiness
+- **[Guided Learning](docs/archive/phases/GUIDED_LEARNING_COMPLETE.md)**: Advanced companion features
+- **[Engineering Improvements](docs/archive/phases/ENGINEERING_IMPROVEMENTS_COMPLETE.md)**: Production readiness
 - **[LM Studio Setup](docs/SETUP_LM_STUDIO.md)**: Local LLM configuration
 - **[Voice Quality](VOICE_QUALITY_COMPLETE.md)**: ElevenLabs integration
 

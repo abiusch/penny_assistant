@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 13, 2026
+**Last Updated:** September 24, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -24,18 +24,21 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 13):** PRs #32–#40 are merged (`main` at `85b58bb`).
-#40's final checks passed on `cbb2750` with a clean Claude review, including the
-updated dependencies from #39. #39's test pipeline also finished successfully;
-its workflow-changing review had skipped, as previously documented.
+**Reliability pass (September 24):** PRs #32–#41 are merged. CJ merged #41 as
+`6b06d7ce04346dc35b594ca564eb136857119a1b`. Its five checks passed on `865a19e`,
+and Claude's posted reviews independently verified 653 passed, 2 expected failures
+and all 30 characterizations with no blockers. Main's own post-#41 pipeline
+([run 36056483851](https://github.com/abiusch/penny_assistant/actions/runs/36056483851))
+is running; do not substitute PR results for that run.
 
-Active [PR #41](https://github.com/abiusch/penny_assistant/pull/41) on `codex/memory-storage-errors` makes failed memory loads/saves
-explicit and blocks reuse of failed instances. Local validation: 653 passed,
-2 existing expected failures; all 30 characterizations pass unchanged. Fresh
-GitHub checks/review are pending. Main's own post-#40 CI passed at `85b58bb`
-([run 34767192912](https://github.com/abiusch/penny_assistant/actions/runs/34767192912)),
-verified separately from the PR checks. This is failure containment, not yet a paired-file
-transaction or automatic recovery system.
+Active [PR #42](https://github.com/abiusch/penny_assistant/pull/42) updates anyio
+and torch. Its previous five checks passed on `1e27574`; merging #41 into this
+branch required reconciling only this task document. Both dependency and memory
+recaps are retained. Fresh checks on the refreshed commit are pending. The
+separate `codex/project-continuity` documentation follow-up is in progress.
+
+Memory failures now surface explicitly, but paired-file transactions, recovery and
+stale-writer coordination remain unfinished. See [recovery limits](docs/memory_storage_recovery.md).
 
 Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
 Continue routine development independently; CJ approves merges, deployments,
@@ -46,8 +49,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** review memory storage error handling, then transactional durability,
-  writer coordination and consistent conversation entry points.
+- **Next:** finish #42 verification and the documentation follow-up, then
+  transactional durability, writer coordination and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
@@ -64,10 +67,74 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  #38 consent enforcement, #39 dependency/review updates and #40 restart identity
-  (`main` at `85b58bb`). **Active:** `codex/memory-storage-errors`.
+  #38 consent enforcement, #39 dependency/review updates, #40 restart identity and
+  #41 memory failures (`main` at `6b06d7c`). **Active:** dependency PR #42 and
+  `codex/project-continuity` documentation work.
 
 ---
+
+## SESSION RECAP — September 24, 2026 (Refresh dependency PR #42)
+
+Merged main at `6b06d7c` into the PR branch and resolved the task-document-only
+conflict, preserving both recaps. Application code matches main; the only runtime
+difference remains the two dependency pins. On September 24, the direct virtualenv
+pytest commands (Make is blocked by the Xcode license on this Mac) passed **653
+canonical tests, 2 expected failures**, and **all 30 characterizations** in the
+isolated checkout with offline settings. The shared existing Python 3.13 environment
+still has anyio 4.10.0 / torch 2.8.0: these runs validate code/conflict resolution,
+not the upgraded packages. Fresh GitHub installs/checks on the pushed commit remain
+required. The previous review job's final output said installation was still
+running and it would post later; no completed review was posted. Do not treat its
+green badge as a finished review. No workflow permissions or dependency pins were
+changed during this refresh.
+
+## SESSION RECAP — September 21, 2026 (pip-audit dependency CVE sweep)
+
+[PR #42](https://github.com/abiusch/penny_assistant/pull/42), on
+`fix/pip-audit-anyio-torch-cve`, based on `main` at `85b58bb` (#40 merged).
+Original author report (September 21); vulnerability counts and clean-install
+results below have not been rerun during the September 24 conflict resolution.
+This remains an open dependency PR, now refreshed with merged #41.
+
+- `pip-audit -r requirements.txt` found 35 known vulnerabilities across 7
+  packages: anyio, click, starlette, pytest, torch, setuptools, transformers.
+- **Fixed:** anyio 4.10.0 → 4.14.2 and torch 2.8.0 → 2.13.0. Both stay within
+  their current major version and satisfy every direct dependent's constraint
+  (httpx/openai/starlette/watchfiles for anyio; openai-whisper/sentence-transformers
+  for torch). Only `requirements.txt` changed — neither package is pinned in
+  `requirements.in` (both transitive) and no production code changed.
+- **Not fixed, left for human review** — each blocked by something stronger than
+  "would be nice to avoid":
+  - click 8.1.8 (fix 8.3.3): gTTS 2.5.4, the latest release, pins `click<8.2`.
+    Bumping click makes the lock file uninstallable unless gTTS is replaced.
+  - setuptools 80.10.2 (fix 83.0.0): blocked by the existing `setuptools<81`
+    ceiling in `requirements.in`, needed because webrtcvad imports
+    `pkg_resources`, removed in setuptools 81+.
+  - starlette 0.47.3 (6 CVEs, fixes 0.49.1 → 1.3.1): fastapi 0.116.1 pins
+    `starlette<0.48.0`, so even the smallest fix needs a fastapi upgrade too,
+    and full remediation needs the breaking 1.x line.
+  - pytest 8.4.1 (fix 9.0.3): major version bump, test-only dependency.
+  - transformers 4.57.6 (5 CVEs, fixes in 5.x): not a direct dependency
+    (transitive via sentence-transformers, which pins `transformers<5.0.0`);
+    5.x is breaking regardless.
+- **Pre-existing gap noticed, not touched:** sentence-transformers' own
+  transitive dependencies (transformers, huggingface-hub, tokenizers,
+  safetensors, scikit-learn, scipy, etc.) are absent from `requirements.txt`
+  even though sentence-transformers requires them — the checked-in lock file
+  predates this and was generated on macOS/Python 3.13, so recompiling it on
+  this Linux/Python-3.12 box pulls in a much larger dependency graph and
+  silently drops the `setuptools<81` line and the 5 PyObjC
+  `; platform_system == "Darwin"` lines. Fixed anyio/torch by hand-editing the
+  two version pins instead of recompiling, to avoid that.
+- Validation: clean-venv install (`pip install --no-cache-dir -r
+  requirements.txt`) succeeds with 0 conflicts (`pip check`); `pip-audit`
+  confirms anyio/torch findings are gone (35 → 25); `make test` — 635 passed,
+  2 expected failures, no regressions.
+
+Follow-up: investigate the remaining dependency families and incomplete transitive
+pins in separate, tested changes under the existing working agreement. CJ retains
+merge authority; routine investigation does not require renewed approval. Re-run
+`pip-audit` after dependency changes.
 
 ## SUPPORTING CONTEXT — September 13, 2026 (Project Overlord)
 
@@ -109,7 +176,9 @@ check stable contracts while allowing natural variation in model replies.
 
 ## SESSION RECAP — September 13, 2026 (Memory storage errors)
 
-On `codex/memory-storage-errors`, awaiting GitHub checks/review:
+[PR #41](https://github.com/abiusch/penny_assistant/pull/41) merged September 24
+as `6b06d7c`; all five checks passed on `865a19e` with no blocking Claude findings.
+The implementation and original local validation below are unchanged:
 
 - Refuse incomplete, unreadable or structurally inconsistent vector-store pairs
   instead of silently replacing them with empty memory. Validate index type,

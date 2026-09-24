@@ -7,7 +7,7 @@ and [verification](../VERIFICATION.md) for commands. This supplements the
 
 ## Since the previous handoff
 
-PRs #32–#41 are merged; main is `6b06d7ce04346dc35b594ca564eb136857119a1b`.
+PRs #32–#42 are merged; main is `6079f233710b386c6a3f12774438ae882cfb4a09`.
 The work progressed from tool parsing/result replay and request-thread timeouts
 to these reliability fixes:
 
@@ -28,7 +28,7 @@ Main's post-#40 test pipeline passed at `85b58bb`
 ([run 34767192912](https://github.com/abiusch/penny_assistant/actions/runs/34767192912)).
 This is separate from the dependency watchdog's newer runs on that same commit.
 
-## Latest memory fix and open dependency work
+## Latest memory and dependency fixes
 
 [PR #41](https://github.com/abiusch/penny_assistant/pull/41),
 `865a19e58ab078f1ba9307a801a3c56f346006f5`: all five checks passed. Claude's two
@@ -62,10 +62,13 @@ the upgraded packages, 653 passed + 2 expected failures, and all 30 characteriza
 ([run 36057361931](https://github.com/abiusch/penny_assistant/actions/runs/36057361931)).
 Claude's completed review found no blockers but reported the older 635 count;
 use the actual CI output for this revision. Live transcription and embedding
-quality remain unverified. #42 is ready for CJ's merge decision.
+quality remain unverified. CJ merged #42 September 24 as `6079f23`. Main's own
+post-merge pipeline is running separately
+([run 36059816739](https://github.com/abiusch/penny_assistant/actions/runs/36059816739)).
 
-The documentation branch and #42 both touch `NEXT_PHASE_TASKS.md`; reconcile status
-and preserve relevant recaps rather than choosing one whole side of a conflict.
+The documentation branch is now refreshed with merged #42. Its task-document
+conflict was reconciled, preserving both recaps and the newer validation evidence.
+Fresh checks/review on #43 are pending.
 CJ retains merge authority under [AGENTS.md](../../AGENTS.md).
 
 ## Documentation adoption

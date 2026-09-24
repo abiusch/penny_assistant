@@ -1,4 +1,14 @@
-# PENNY - ACTIVE ROADMAP
+# Penny historical roadmap — December 2025
+
+**Historical snapshot, not the active backlog.** Current priorities and status live
+in [NEXT_PHASE_TASKS.md](../NEXT_PHASE_TASKS.md); implementation and verification
+references live in [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md). The original plan
+below is retained as history. Its phase labels, model choices and “next” claims
+must not be used as current instructions.
+
+Reconciled September 24, 2026: Hebbian learning, outcomes, goals/follow-ups and user
+beliefs already have implementations and tests. Their research-pipeline switches
+remain off by default. Do not rebuild or enable them based on this older plan.
 
 **Last Updated:** December 31, 2025  
 **Current Phase:** Phase 3 (85% Complete)  

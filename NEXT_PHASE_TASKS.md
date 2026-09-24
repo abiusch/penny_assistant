@@ -36,9 +36,14 @@ passed on `6b06d7c`, verified independently of the PR results.
 Active [PR #42](https://github.com/abiusch/penny_assistant/pull/42) updates anyio
 and torch. Its previous five checks passed on `1e27574`; merging #41 into this
 branch required reconciling only this task document. Both dependency and memory
-recaps are retained. Refresh `7f782da` is pushed (local/remote SHA matched); fresh
-checks/review are pending. The
-separate `codex/project-continuity` documentation follow-up is in progress.
+recaps are retained. All five fresh checks passed on `7f782da`, and Claude's
+completed review found no blockers. Directly inspected Linux/Python 3.11 CI logs
+confirm anyio 4.14.2 / torch 2.13.0 installed and **653 passed, 2 expected failures**
+plus **30** characterizations. Claude's comment reports an older 635 count; use
+the actual CI logs for this revision. #42 is ready for CJ's merge decision.
+[PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
+`codex/project-continuity`, contains the documentation follow-up; its own checks
+and review are pending.
 
 Memory failures now surface explicitly, but paired-file transactions, recovery and
 stale-writer coordination remain unfinished. See [recovery limits](docs/memory_storage_recovery.md).
@@ -78,7 +83,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 ## SESSION RECAP — September 24, 2026 (Project continuity)
 
-On `codex/project-continuity`, based on merged #41 (`6b06d7c`):
+[PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
+`codex/project-continuity`, based on merged #41 (`6b06d7c`):
 
 - Add a code-backed architecture/coverage map, verification commands and short
   session guide. Add `CLAUDE.md` as a pointer to the existing agreement and task
@@ -112,8 +118,13 @@ pytest commands (Make is blocked by the Xcode license on this Mac) passed **653
 canonical tests, 2 expected failures**, and **all 30 characterizations** in the
 isolated checkout with offline settings. The shared existing Python 3.13 environment
 still has anyio 4.10.0 / torch 2.8.0: these runs validate code/conflict resolution,
-not the upgraded packages. Fresh GitHub installs/checks on the pushed commit remain
-required. The previous review job's final output said installation was still
+not the upgraded packages. Fresh GitHub verification subsequently passed all five
+checks on `7f782da` ([test run 36057361931](https://github.com/abiusch/penny_assistant/actions/runs/36057361931)).
+The Python 3.11 log explicitly confirms the new pins and 653 + 2 expected failures,
+plus 30 characterizations; Python 3.13 and integration jobs also passed. Claude's
+new posted review found no blockers, but its 635-test count differs from current
+CI, so use the directly inspected logs for the current count. Live transcription
+and embedding quality were not checked. The previous review job's final output said installation was still
 running and it would post later; no completed review was posted. Do not treat its
 green badge as a finished review. No workflow permissions or dependency pins were
 changed during this refresh.

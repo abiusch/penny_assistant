@@ -56,8 +56,13 @@ After #41 merged, refreshed #42 with main and reconciled only `NEXT_PHASE_TASKS.
 retaining both recaps. Refresh commit `7f782da` has **653 passed, 2 expected failures**
 and **30 characterizations** locally in an isolated checkout. That run uses the
 existing Python 3.13 environment with anyio 4.10.0 and torch 2.8.0; it validates
-code/conflict resolution, not the upgraded pins. Fresh GitHub install/tests and
-review are required on the refreshed commit before a merge recommendation.
+code/conflict resolution, not the upgraded pins. Subsequently, all five fresh
+GitHub checks passed on `7f782da`. Directly inspected Python 3.11 CI logs confirm
+the upgraded packages, 653 passed + 2 expected failures, and all 30 characterizations
+([run 36057361931](https://github.com/abiusch/penny_assistant/actions/runs/36057361931)).
+Claude's completed review found no blockers but reported the older 635 count;
+use the actual CI output for this revision. Live transcription and embedding
+quality remain unverified. #42 is ready for CJ's merge decision.
 
 The documentation branch and #42 both touch `NEXT_PHASE_TASKS.md`; reconcile status
 and preserve relevant recaps rather than choosing one whole side of a conflict.
@@ -66,7 +71,8 @@ CJ retains merge authority under [AGENTS.md](../../AGENTS.md).
 ## Documentation adoption
 
 Overlord contributed workflow ideas, not runtime personality or memory features.
-This pass adds a code-backed architecture/test map and continuity links, flags the
+[PR #43](https://github.com/abiusch/penny_assistant/pull/43) adds a code-backed
+architecture/test map and continuity links, flags the
 December 2025 roadmap as historical, and corrects the obsolete restart-counter
 warning. It preserves the existing task source and standing authority.
 

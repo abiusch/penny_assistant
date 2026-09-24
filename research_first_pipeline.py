@@ -43,6 +43,7 @@ from src.tools.tool_registry import get_tool_registry
 
 # Week 6: Context Manager, Emotion Detector, Semantic Memory Integration
 from src.memory import ContextManager, EmotionDetector, SemanticMemory
+from src.memory.errors import MemoryStorageError, MEMORY_SAVE_WARNING, MEMORY_UNAVAILABLE_REPLY
 
 # Week 7.5: Nemotron-3 Nano Local LLM
 from src.llm.nemotron_client import create_nemotron_client
@@ -211,11 +212,15 @@ class ResearchFirstPipeline(PipelineLoop):
         # Week 6: Context Manager, Emotion Detector, Semantic Memory
         self.context_manager = ContextManager(max_window_size=10, consent_manager=self.consent_manager)
         self.emotion_detector = EmotionDetector()
-        self.semantic_memory = SemanticMemory(
-            storage_path=os.path.join(self.data_dir, "embeddings", "vector_store"),
-            encryption=encryption,
-            consent_manager=self.consent_manager,
-        )
+        try:
+            self.semantic_memory = SemanticMemory(
+                storage_path=os.path.join(self.data_dir, "embeddings", "vector_store"),
+                encryption=encryption,
+                consent_manager=self.consent_manager,
+            )
+        except MemoryStorageError:
+            self.research_manager.shutdown()
+            raise
         logger.info("🧠 Week 6 systems initialized: Context Manager, Emotion Detector, Semantic Memory")
 
         # Week 8: Emotional Continuity System
@@ -917,7 +922,7 @@ class ResearchFirstPipeline(PipelineLoop):
         _update_personality_from_conversation, which also drives milestone_tracker),
         hebbian, emotional_continuity, personality_snapshots, and
         forgetting_mechanism. Returns nothing; every effect lands on self.*
-        subsystems. Keeps its own non-fatal try/except intact.
+        subsystems. Storage failures propagate; ancillary failures remain non-fatal.
         """
         # Step 8: Store in memory (WEEK 7: Dual-save architecture)
         try:
@@ -946,15 +951,7 @@ class ResearchFirstPipeline(PipelineLoop):
             import uuid
             turn_id = str(uuid.uuid4())
 
-            # SAVE 1: Context Manager (in-memory cache only, NO persistence)
-            self.context_manager.add_turn(
-                user_input=actual_command,
-                assistant_response=final_response,
-                metadata=enhanced_metadata
-            )
-            logger.debug(f"💬 Context Manager: Cached turn (in-memory only)")
-
-            # SAVE 2: Semantic Memory (ONLY persistent store)
+            # Save to the persistent store before updating the cache or learning.
             self.semantic_memory.add_conversation_turn(
                 user_input=actual_command,
                 assistant_response=final_response,
@@ -962,6 +959,14 @@ class ResearchFirstPipeline(PipelineLoop):
                 context=enhanced_metadata  # Includes encrypted emotions/sentiment
             )
             logger.debug(f"🧠 Semantic Memory: Turn {turn_id[:8]}... saved with encryption")
+
+            # After confirmed storage: Context Manager (in-memory cache only, NO persistence)
+            self.context_manager.add_turn(
+                user_input=actual_command,
+                assistant_response=final_response,
+                metadata=enhanced_metadata
+            )
+            logger.debug(f"💬 Context Manager: Cached turn (in-memory only)")
 
             # Update personality tracking from this conversation
             self._update_personality_from_conversation(actual_command, final_response, turn_id)
@@ -1024,6 +1029,8 @@ class ResearchFirstPipeline(PipelineLoop):
                 )
                 logger.info(f"🧹 Applied forgetting mechanism ({conversation_count} conversations)")
 
+        except MemoryStorageError:
+            raise
         except Exception as e:
             import traceback
             logger.warning(f"⚠️ Memory storage failed: {e}")
@@ -1210,9 +1217,14 @@ class ResearchFirstPipeline(PipelineLoop):
             final_response = require_response_text(final_response)
             final_response = _apply_financial_disclaimer(final_response, financial_topic)
 
-            self._persist_turn(actual_command, final_response, emotion_result,
-                               research_required, financial_topic, group,
-                               start_time, check_in_thread)
+            try:
+                self._persist_turn(actual_command, final_response, emotion_result,
+                                   research_required, financial_topic, group,
+                                   start_time, check_in_thread)
+            except MemoryStorageError:
+                logger.warning('Conversation save unconfirmed; skipping success hooks')
+                self.state = State.SPEAKING
+                return final_response + "\n\n" + MEMORY_SAVE_WARNING
 
             self._record_ab_metrics(conversation_id, user_id, is_control,
                                     actual_command, start_time, group)
@@ -1222,6 +1234,10 @@ class ResearchFirstPipeline(PipelineLoop):
             self.state = State.SPEAKING
             return final_response
 
+        except MemoryStorageError:
+            logger.warning("Conversation memory unavailable")
+            self.state = State.SPEAKING
+            return MEMORY_UNAVAILABLE_REPLY
         except ModelGenerationError:
             # No unusable answer reaches persistence, success metrics or
             # response tagging. Generation failures also bypass post-processing.

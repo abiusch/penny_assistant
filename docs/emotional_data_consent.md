@@ -86,9 +86,11 @@ of development.
 
 Writers must use these consent-aware interfaces and the same consent file. Generic
 VectorStore use and other legacy/experimental stores are not a consent service.
-The vector store's older non-atomic general-save behavior and stale conversation
-snapshot overwrites still need a separate durability/single-writer improvement;
-the consent lock does not merge independent conversation snapshots. Web request
+General vector saves now replace each file atomically, report failures and block
+reuse of failed instances; see [storage recovery](memory_storage_recovery.md).
+The pair is still not an atomic transaction, and stale conversation snapshot
+overwrites still need a durability/single-writer improvement; the consent lock
+does not merge independent conversation snapshots. Web request
 state isolation, current-turn emotion inference policy, and UI settings remain
 separate work.
 

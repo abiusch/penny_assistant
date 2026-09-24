@@ -13,7 +13,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 21, 2026
+**Last Updated:** September 24, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -24,19 +24,21 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 13):** PRs #32–#39 are merged. Consent-aware emotion
-storage/deletion landed in #38; eight dependency updates, the approved Claude-only
-bot review allowlist, and the standing working agreement landed in #39 (`a3199a1`).
-PR #40 restores conversation identity after restart. All five checks passed on
-`067e8b4` with a clean Claude review; it is now refreshed with #39 and the task-doc
-conflict is resolved. Fresh checks/review with the updated dependencies are pending.
+**Reliability pass (September 24):** PRs #32–#41 are merged. CJ merged #41 as
+`6b06d7ce04346dc35b594ca564eb136857119a1b`. Its five checks passed on `865a19e`,
+and Claude's posted reviews independently verified 653 passed, 2 expected failures
+and all 30 characterizations with no blockers. Main's own post-#41 pipeline
+([run 36056483851](https://github.com/abiusch/penny_assistant/actions/runs/36056483851))
+is running; do not substitute PR results for that run.
 
-PR #39's original tests passed. Its first review rejected the bot actor; the review
-on the workflow-changing commit later reported success by skipping validation,
-not by reviewing the dependencies. CJ merged #39 while its refreshed Python checks
-were still running. The workflow now matches `main`, so #40 can receive a real
-review. Original vulnerability counts remain the September 7 watchdog report;
-the audit has not been rerun here. No additional dependency versions were changed.
+Active [PR #42](https://github.com/abiusch/penny_assistant/pull/42) updates anyio
+and torch. Its previous five checks passed on `1e27574`; merging #41 into this
+branch required reconciling only this task document. Both dependency and memory
+recaps are retained. Fresh checks on the refreshed commit are pending. The
+separate `codex/project-continuity` documentation follow-up is in progress.
+
+Memory failures now surface explicitly, but paired-file transactions, recovery and
+stale-writer coordination remain unfinished. See [recovery limits](docs/memory_storage_recovery.md).
 
 Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
 Continue routine development independently; CJ approves merges, deployments,
@@ -47,14 +49,14 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** verify updated-dependency checks and review/merge #40, then memory durability
-  and consistent conversation entry points.
+- **Next:** finish #42 verification and the documentation follow-up, then
+  transactional durability, writer coordination and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (restart fix, local):** 635 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (storage errors, local):** 653 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`). Intentional consent changes to one assertion
   and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
@@ -65,18 +67,34 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   verified from a request thread on September 7.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
-  #38 consent enforcement, and #39 dependency/review updates (`main` at `a3199a1`).
-  #40 (memory restart identity) merged. **Active, awaiting review:**
-  `fix/pip-audit-anyio-torch-cve` (#42, dependency CVE fixes).
+  #38 consent enforcement, #39 dependency/review updates, #40 restart identity and
+  #41 memory failures (`main` at `6b06d7c`). **Active:** dependency PR #42 and
+  `codex/project-continuity` documentation work.
 
 ---
+
+## SESSION RECAP — September 24, 2026 (Refresh dependency PR #42)
+
+Merged main at `6b06d7c` into the PR branch and resolved the task-document-only
+conflict, preserving both recaps. Application code matches main; the only runtime
+difference remains the two dependency pins. On September 24, the direct virtualenv
+pytest commands (Make is blocked by the Xcode license on this Mac) passed **653
+canonical tests, 2 expected failures**, and **all 30 characterizations** in the
+isolated checkout with offline settings. The shared existing Python 3.13 environment
+still has anyio 4.10.0 / torch 2.8.0: these runs validate code/conflict resolution,
+not the upgraded packages. Fresh GitHub installs/checks on the pushed commit remain
+required. The previous review job's final output said installation was still
+running and it would post later; no completed review was posted. Do not treat its
+green badge as a finished review. No workflow permissions or dependency pins were
+changed during this refresh.
 
 ## SESSION RECAP — September 21, 2026 (pip-audit dependency CVE sweep)
 
 [PR #42](https://github.com/abiusch/penny_assistant/pull/42), on
 `fix/pip-audit-anyio-torch-cve`, based on `main` at `85b58bb` (#40 merged).
-Not merged — awaiting CJ review per standing instructions. Routine `pip-audit`
-sweep of `requirements.txt`, run independently per the working agreement.
+Original author report (September 21); vulnerability counts and clean-install
+results below have not been rerun during the September 24 conflict resolution.
+This remains an open dependency PR, now refreshed with merged #41.
 
 - `pip-audit -r requirements.txt` found 35 known vulnerabilities across 7
   packages: anyio, click, starlette, pytest, torch, setuptools, transformers.
@@ -113,10 +131,82 @@ sweep of `requirements.txt`, run independently per the working agreement.
   confirms anyio/torch findings are gone (35 → 25); `make test` — 635 passed,
   2 expected failures, no regressions.
 
-Next: CJ decides on the six remaining findings above (gTTS/click replacement,
-setuptools ceiling, fastapi+starlette upgrade, pytest major bump, and whether
-to also close the sentence-transformers lock-file gap). Re-run `pip-audit`
-after any of those land.
+Follow-up: investigate the remaining dependency families and incomplete transitive
+pins in separate, tested changes under the existing working agreement. CJ retains
+merge authority; routine investigation does not require renewed approval. Re-run
+`pip-audit` after dependency changes.
+
+## SUPPORTING CONTEXT — September 13, 2026 (Project Overlord)
+
+CJ supplied the Overlord handoff during #41. Local `Project-Overlord` is a separate
+repository, clean at merge `19db80e` when inspected. Its README, configuration,
+instruction template and scaffold describe developer-session continuity, not
+Penny's personality or relationship memory. No bootstrap, hooks, settings, optional
+model indexing or runtime integration was applied to Penny during this review.
+The kit's port-status document has pre-merge wording; use CJ's merged handoff and
+verified repository state instead. Kit: https://github.com/abiusch/Project-Overlord.
+
+Reconciled with current Penny code:
+
+- `AGENTS.md` retains CJ's approved authority and boundaries; `NEXT_PHASE_TASKS.md`
+  remains the current backlog/status source. Overlord's generic `docs/ROADMAP.md`
+  convention must not create a competing source. Penny's December 2025
+  `docs/ROADMAP.md` is stale historical planning, not current implementation status.
+- Hebbian learning is implemented and wired, but `hebbian_enabled = False` in the
+  research pipeline. Outcome/goal/follow-up/belief integrations also exist;
+  presence does not establish complete end-to-end verification. Do not rebuild or
+  enable them merely because the older roadmap labels them future work.
+- The dynamic personality prompt builder specifies natural, dry conversation,
+  subtle wit and appropriate sarcasm, with no forced humor/excessive enthusiasm.
+  Learned dimensions are confidence-filtered (default threshold 0.65); personality
+  updates blend according to the dimension's learning rate. Preserve these,
+  explicit preferences, consent/deletion, snapshots and proactivity limits.
+- CJ reports Claude transcripts archived outside repositories at
+  `~/Development/session-archives`, with keyword search available. Installation
+  and scheduling were not rerun here. Codex capture was not implemented; optional
+  model indexing/summaries remain off. Archives are developer evidence only:
+  never ingest them into Penny's personal memory, embeddings or learning stores.
+
+Tailored follow-up after the current storage fix: mark obsolete roadmap claims,
+add a code-backed architecture/verification index and a concise session handoff
+that point to the existing task source. Mine Overlord's wrap/review practices;
+do not copy generic permissions, placeholder gates, backlog conventions or
+bootstrap files over the approved project instructions. Behavioral tests should
+check stable contracts while allowing natural variation in model replies.
+
+## SESSION RECAP — September 13, 2026 (Memory storage errors)
+
+[PR #41](https://github.com/abiusch/penny_assistant/pull/41) merged September 24
+as `6b06d7c`; all five checks passed on `865a19e` with no blocking Claude findings.
+The implementation and original local validation below are unchanged:
+
+- Refuse incomplete, unreadable or structurally inconsistent vector-store pairs
+  instead of silently replacing them with empty memory. Validate index type,
+  dimensions, next ID and metadata shape/ranges before installing loaded objects.
+  Missing metadata for deleted vector IDs remains valid.
+- Serialize both files before writing, then replace each atomically. Raise
+  `MemoryStorageError` on failure and mark the instance unusable until a validated
+  reload or restart. Block later reads/writes/deletion/clear/stats rather than
+  expose or persist an unconfirmed in-memory mutation. Preserve files during failed
+  loads and preserve an individual file when its replacement fails.
+- Persist before updating recent context or running post-save learning/follow-up
+  work. On storage failure, retain the generated answer with an unconfirmed-save
+  warning and skip success metrics/tagging. Failed startup closes the research
+  manager. These are intentional error-path and save-order changes; no existing
+  characterization assertions were altered.
+- Add 18 canonical cases; all 14 initial cases failed before implementation.
+  Cover corrupt/missing pairs, invalid metadata/dimensions, first/second-file write
+  failure, serialization failure, failed reload/clear/delete, constructor cleanup
+  and real pipeline response/side effects. **653 passed, 2 expected failures**;
+  **all 30** characterizations unchanged. Isolated synthetic stores and production
+  data guards pass; no live data repair, deletion or migration was performed.
+
+See [memory recovery](docs/memory_storage_recovery.md). A second-file failure can
+still leave a mixed pair; equal-shape mismatches are not all detectable. Backups,
+transactional commits, stale writers, incremental saves, vector tombstones and
+legacy explicit filepath wrappers remain follow-ups. Do not describe this as
+full crash-safe persistence. Next: a transactional record store or paired checkpoint
+protocol with recovery and writer-coordination tests.
 
 ## SESSION RECAP — September 12, 2026 (Memory identity after restart)
 
@@ -125,8 +215,9 @@ after any of those land.
 `07a99d9`, and Claude independently verified 635 + 2 expected failures and all 30
 characterizations with no blockers. September 13: #38 merged; refreshed #40 with
 `main` and resolved squash-merge conflicts while preserving the restart fix.
-Both #38 and #39 are merged; #40 is refreshed with their changes. Fresh checks
-with the updated dependencies are pending; the restart application code is unchanged.
+#40 merged September 13 as `85b58bb`. All five checks passed on `cbb2750`, and
+Claude independently verified 635 + 2 expected failures and 30 characterizations
+with no blockers against the updated dependencies.
 
 - Rebuild the conversation-ID lookup from the vector metadata loaded at startup.
   Previously saved vectors remained searchable, but conversation counts reset to

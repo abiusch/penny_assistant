@@ -1,6 +1,7 @@
 # Penny architecture and behavior map
 
-Source review: September 24, 2026, against merged `main` at `6b06d7c` (#41).
+Source review: September 24, 2026, against merged `main` at `dc56849` (#43), with
+writer-conflict protection on `codex/memory-writer-conflicts` pending review.
 This is a navigation aid, not another backlog. Read [current tasks](../NEXT_PHASE_TASKS.md)
 for later changes and [verification](VERIFICATION.md) before running checks.
 Code presence, offline test coverage and live verification are different evidence.
@@ -34,6 +35,7 @@ Test paths below are relative to `tests/`. Canonical files are selected by
 | Tool parsing, replay and execution | [tool_orchestrator.py](../src/tools/tool_orchestrator.py), [tool_registry.py](../src/tools/tool_registry.py) | `test_tool_roundtrip.py`, `test_tool_request_safety.py`: real tool round trips with synthetic model responses, request threads and worker timeouts |
 | Conversation memory | [semantic_memory.py](../src/memory/semantic_memory.py), [vector_store.py](../src/memory/vector_store.py), [context_manager.py](../src/memory/context_manager.py) | `test_memory_restart.py`: restart ID mapping/counts and similarity exclusion; not crash recovery or concurrent writer safety |
 | Memory failures | [vector_store.py](../src/memory/vector_store.py), pipeline `_persist_turn`, [recovery limits](memory_storage_recovery.md) | `test_memory_storage_errors.py`: invalid pairs, failed writes/reloads and skipped post-save effects; not paired-file atomicity |
+| Competing writers | [vector_store.py](../src/memory/vector_store.py), [storage_lock.py](../src/memory/storage_lock.py), [recovery rules](memory_storage_recovery.md) | `test_memory_writer_conflicts.py`: reject outdated snapshots, coordinate disk loads/writes and preserve newer conversations; not automatic merging or a paired transaction |
 | Emotion consent and deletion | [consent_manager.py](../src/memory/consent_manager.py), [emotional_continuity.py](../src/memory/emotional_continuity.py), [consent behavior](emotional_data_consent.md) | `test_consent_storage.py`: opt-out, retained history, deletion retries and participating writer ordering; not a transaction for all conversation data |
 | Personality voice and adaptation | [prompt builder](../src/personality/dynamic_personality_prompt_builder.py), [post-processor](../src/personality/personality_response_post_processor.py), [tracker](../personality_tracker.py), pipeline `_update_dimension_if_changed` | Characterizations cover control/treatment routing and prompt wiring; do not establish naturalness or live adaptation quality |
 | Snapshots and forgetting | [personality_snapshots.py](../src/personality/personality_snapshots.py), [forgetting_mechanism.py](../src/memory/forgetting_mechanism.py) | Consent tests cover emotional-thread redaction; characterizations cover snapshot/decay hooks, not full restore or long-term quality |
@@ -68,6 +70,10 @@ with a warning while skipping context caching and success hooks. It does not
 provide paired-file transactions, automatic recovery or stale-writer merging.
 Preserve its save-before-cache order and failure-side-effect tests in any post-turn
 refactor. Consent deletion retains its separate pending-deletion/retry path.
+Writer-conflict protection adds a per-store lock and byte fingerprints before
+mutation, including standalone users. Outdated instances must restart before
+saving; normal in-memory reads are not refreshed across instances. Paired-file
+crash recovery and nonparticipating writers remain outside that protection.
 
 Tracking consent defaults to off. Emotion inference may inform the current reply;
 durable derived tracking fields require consent. CJ chose to keep conversation

@@ -15,7 +15,7 @@
 >
 > 📚 **Project overview:** [README.md](README.md)
 
-**Last Updated:** September 24, 2026
+**Last Updated:** September 25, 2026
 
 Keep Quick Status and the relevant session recap current as implementation,
 verification, and PR merges progress. Record the PR/branch, what was actually
@@ -26,29 +26,24 @@ Older recaps are historical evidence, not the current test or deployment status.
 
 ## 🎯 QUICK STATUS
 
-**Reliability pass (September 24):** PRs #32–#42 are merged. CJ merged #41 as
-`6b06d7ce04346dc35b594ca564eb136857119a1b`. Its five checks passed on `865a19e`,
-and Claude's posted reviews independently verified 653 passed, 2 expected failures
-and all 30 characterizations with no blockers. Main's own post-#41 pipeline
-([run 36056483851](https://github.com/abiusch/penny_assistant/actions/runs/36056483851))
-passed on `6b06d7c`, verified independently of the PR results.
+**Reliability pass (September 24):** PRs #32–#43 are merged. CJ merged the
+architecture/verification/handoff documentation (#43) as `dc56849`. All five PR
+checks passed on `2b7021b`; the earlier substantive documentation review found no
+concerns (the final review job deferred its own tests). Main's separate post-#43
+pipeline passed at `dc56849`
+([run 36066960639](https://github.com/abiusch/penny_assistant/actions/runs/36066960639)).
+Post-#42 main CI also passed at `6079f23` (run 36059816739).
 
-[PR #42](https://github.com/abiusch/penny_assistant/pull/42) updated anyio
-and torch; CJ merged it as `6079f233710b386c6a3f12774438ae882cfb4a09`. Its previous five checks passed on `1e27574`; merging #41 into this
-branch required reconciling only this task document. Both dependency and memory
-recaps are retained. All five fresh checks passed on `7f782da`, and Claude's
-completed review found no blockers. Directly inspected Linux/Python 3.11 CI logs
-confirm anyio 4.14.2 / torch 2.13.0 installed and **653 passed, 2 expected failures**
-plus **30** characterizations. Claude's comment reports an older 635 count; use
-the actual CI logs for this revision. Main's separate post-#42 pipeline
-([run 36059816739](https://github.com/abiusch/penny_assistant/actions/runs/36059816739))
-is running at `6079f23`.
-[PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
-`codex/project-continuity`, contains the documentation follow-up and is refreshed
-with #42. Its own checks/review on the refreshed commit are pending.
+Active branch `codex/memory-writer-conflicts` rejects outdated vector-store writers
+before mutation, rather than overwriting conversations saved by another instance.
+Local validation: **674 passed, 2 existing expected failures**, plus **30 unchanged
+characterizations**. This uses the existing Python 3.13 environment (anyio 4.10.0,
+torch 2.8.0); fresh GitHub dependency installs/checks and review are pending.
 
-Memory failures now surface explicitly, but paired-file transactions, recovery and
-stale-writer coordination remain unfinished. See [recovery limits](docs/memory_storage_recovery.md).
+The new protection coordinates participating writers and disk loads; it does not
+make the index/metadata pair transactional or merge concurrent conversation state.
+Next: paired-file commit/recovery design with interruption tests, followed by
+consistent conversation entry points. See [recovery limits](docs/memory_storage_recovery.md).
 
 Standing authority and approval boundaries are recorded in [AGENTS.md](AGENTS.md).
 Continue routine development independently; CJ approves merges, deployments,
@@ -59,14 +54,14 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 
 - **Current:** Phase 5, Week 15 capability baseline merged in #30; its two expected
   failures still represent unfinished enforcement. Reliability work takes priority.
-- **Next:** finish the documentation follow-up and verify post-merge CI, then
-  transactional durability, writer coordination and consistent conversation entry points.
+- **Next:** finish review of writer-conflict protection, then transactional
+  durability/recovery and consistent conversation entry points.
 - **Completed foundations:** Phase 4; R1 `think()` decomposition (#15–#23); Week 14
   audio-output abstraction (#27) and VAD import guard (#28).
 - **Later roadmap:** R4/R5/R2 remain in Week 16; cross-platform calendar work in Week 18.
 - **Web server:** configured for port 5001; full live web behavior was not verified
   during this reliability pass.
-- **Tests (storage errors, local):** 653 passed, 2 expected failures, plus all 30 `think()`
+- **Tests (writer conflicts, local):** 674 passed, 2 expected failures, plus all 30 `think()`
   characterization checks (`--run-slow`). Intentional consent changes to one assertion
   and opt-in fixture setup are documented below.
 - **CI:** canonical and characterization coverage on Linux/Python 3.11 and 3.13;
@@ -78,15 +73,54 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
 - **Latest merged work:** #32 tool parsing/replay, #33 live-model JSON compatibility,
   #34 review/evidence, #35 request-thread tools, #36 model failures, #37 stable paths
   #38 consent enforcement, #39 dependency/review updates, #40 restart identity and
-  #41 memory failures and #42 anyio/torch updates (`main` at `6079f23`).
-  **Active:** `codex/project-continuity` documentation work (#43).
+  #41 memory failures, #42 anyio/torch updates and #43 continuity documentation
+  (`main` at `dc56849`). **Active:** `codex/memory-writer-conflicts`.
 
 ---
+
+## SESSION RECAP — September 24–25, 2026 (Memory writer conflicts)
+
+On `codex/memory-writer-conflicts`, based on merged #43 (`dc56849`):
+
+- Reproduced outdated `add`/`save`/`clear`/`delete` overwriting newer history, first-save
+  races, equal-shape metadata edits, pair removal and two separate processes both
+  reporting success from the same old snapshot. **All 12 initial cases failed**
+  before the fix. The final new canonical file has **21 cases**.
+- Compare byte fingerprints under a shared per-store thread/process lock before
+  ordinary mutation. Refuse stale writers with `MemoryStorageError`, preserve the
+  newer pair and block normal reuse until validated reload/restart. Coordinate
+  startup and explicit loads with in-progress writes, including standalone stores.
+  Resolve the storage path once at construction. The existing consent lock code
+  moves to a shared helper; its behavior and consent-before-store order are retained.
+- Emotional cleanup still reads/redacts latest disk metadata. A stale cleanup
+  caller does not become a valid ordinary writer; a current owner can continue
+  after successful redaction. One existing consent test intentionally now expects
+  a stale-save failure and restarts before adding the next turn; all preservation
+  assertions remain. No characterization assertions or pipeline code changed.
+- New cases also cover same-shape index edits, relative paths after directory
+  changes, concurrent threads, startup between the two writes, failed lock/fingerprint
+  reads, deletion from a stale cache and real pipeline conflict warnings with no
+  context-cache or success-hook updates. Tests use isolated synthetic stores and
+  retain production-data guards; no live conversations, keys or consent were changed.
+- Validation: direct virtualenv canonical command **674 passed, 2 expected failures**;
+  separate offline characterizations **30 passed**. A preceding focused selection
+  (before the final two new cases) passed 75 consent/storage/writer cases. Make is
+  still blocked by this Mac's Xcode license; used the documented equivalent Python
+  command with offline settings. Local dependencies predate #42's pins; GitHub will
+  install the checked-in requirements. `git diff --check` passes. CI/review pending.
+
+This is explicit conflict rejection, not transparent multiwriter merging. Full-file
+fingerprinting adds read I/O; there is no incremental-save performance claim.
+Old/nonparticipating writers can still race; normal in-memory reads are not refreshed
+across instances. Paired-file crash recovery, network-filesystem guarantees,
+vector compaction, legacy filepath wrappers and concurrent web turn state remain
+open. Paired checkpoints/transactional persistence are the next separate change.
 
 ## SESSION RECAP — September 24, 2026 (Project continuity)
 
 [PR #43](https://github.com/abiusch/penny_assistant/pull/43), on
-`codex/project-continuity`, now refreshed with merged #42 (`6079f23`):
+`codex/project-continuity`, merged as `dc56849` after refresh with #42:
+all five checks passed on `2b7021b`; main CI also passed (see Quick Status).
 
 - Add a code-backed architecture/coverage map, verification commands and short
   session guide. Add `CLAUDE.md` as a pointer to the existing agreement and task
@@ -105,8 +139,8 @@ checks remain offline and isolated; request-thread tools also run in Windows CI.
   application code as merged #41) passed 653 plus 2 expected failures and all 30
   characterizations. This documentation pass does not rerun live model/audio tests.
   Two old README targets (`VOICE_QUALITY_COMPLETE.md`, `LICENSE`) remain absent;
-  the new references do not depend on them. GitHub checks for this branch are
-  pending. The independent #42 conflict repair is documented below.
+  the new references do not depend on them. Final GitHub checks subsequently
+  passed. The independent #42 conflict repair is documented below.
 
 September 24 merge follow-up: reconciled the task-document-only conflict with
 #42, preserving the newer check evidence and all historical recaps. Runtime code,

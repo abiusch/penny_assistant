@@ -9,11 +9,43 @@ from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
 import pickle
 import logging
+import hashlib
+from functools import wraps
+from contextlib import ExitStack
 from src.memory.storage_io import atomic_write
+from src.memory.storage_lock import get_store_lock
 from src.memory.errors import MemoryStorageError
 from src.memory.consent_manager import consent_guarded, without_emotion
 
 logger = logging.getLogger(__name__)
+
+
+def _store_guarded(method):
+    """Always acquire after the consent guard, including on standalone stores."""
+    @wraps(method)
+    def call(self, *args, **kwargs):
+        with ExitStack() as stack:
+            try:
+                stack.enter_context(self._store_lock.hold(self.index_path))
+            except OSError as error:
+                self._storage_failed = True
+                raise MemoryStorageError('Cannot coordinate the memory store; restart before continuing') from error
+            return method(self, *args, **kwargs)
+    return call
+
+
+def _write_guarded(method):
+    @wraps(method)
+    @_store_guarded
+    def call(self, *args, **kwargs):
+        if self._write_depth == 0:
+            self._require_current()
+        self._write_depth += 1
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            self._write_depth -= 1
+    return call
 
 
 class VectorStore:
@@ -34,31 +66,62 @@ class VectorStore:
         """
         self.embedding_dim = int(embedding_dim)
         self.consent_manager = consent_manager
-        self.storage_path = Path(storage_path)
+        self.storage_path = Path(storage_path).resolve()
         self.index_path = self.storage_path.with_suffix('.index')
         self.metadata_path = self.storage_path.with_suffix('.pkl')
         self._storage_failed = False
+        self._generation = (None, None)
+        self._write_depth = 0
+        self._store_lock = get_store_lock(self.index_path)
 
         # Ensure directory exists
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Try to load existing index
+        self._initialize()
+        logger.info(f"VectorStore initialized: {self.index.ntotal} vectors, dim={self.embedding_dim}")
+
+    @consent_guarded
+    @_store_guarded
+    def _initialize(self):
+        # Check and load under the same lock so another writer cannot create or
+        # replace one half between startup's existence check and load.
         if self.index_path.exists() or self.metadata_path.exists():
             logger.info(f"Loading existing vector store from {self.storage_path}")
             self.load()
         else:
             logger.info(f"Creating new vector store at {self.storage_path}")
-            self.index = faiss.IndexFlatIP(int(embedding_dim))
+            self.index = faiss.IndexFlatIP(self.embedding_dim)
             self.id_to_metadata: Dict[int, Dict[str, Any]] = {}
             self.next_id = 0
-
-        logger.info(f"VectorStore initialized: {self.index.ntotal} vectors, dim={self.embedding_dim}")
 
     def _require_healthy(self):
         if self._storage_failed:
             raise MemoryStorageError('The memory store is unavailable; repair and reload it before continuing')
 
+    def _disk_generation(self):
+        """Fingerprint bytes, not counts or mtimes (same-shape edits matter)."""
+        result = []
+        for path in (self.index_path, self.metadata_path):
+            try:
+                with path.open('rb') as source:
+                    result.append(hashlib.file_digest(source, 'sha256').digest())
+            except FileNotFoundError:
+                result.append(None)
+        return tuple(result)
+
+    def _require_current(self):
+        self._require_healthy()
+        try:
+            current = self._disk_generation()
+        except OSError as error:
+            self._storage_failed = True
+            raise MemoryStorageError('Cannot check the memory store; restart before continuing') from error
+        if current != self._generation:
+            self._storage_failed = True
+            raise MemoryStorageError('The memory store changed on disk; restart before saving more conversations')
+
     @consent_guarded
+    @_write_guarded
     def add(self, embeddings: np.ndarray, metadata: Optional[List[Dict[str, Any]]] = None) -> List[int]:
         """
         Add embeddings to the index with metadata.
@@ -157,6 +220,7 @@ class VectorStore:
         return results
 
     @consent_guarded
+    @_write_guarded
     def save(self):
         """Replace each file atomically; failure invalidates this instance.
 
@@ -177,6 +241,8 @@ class VectorStore:
             })
             atomic_write(self.index_path, index_bytes)
             atomic_write(self.metadata_path, metadata_bytes)
+            self._generation = (hashlib.sha256(index_bytes).digest(),
+                                hashlib.sha256(metadata_bytes).digest())
 
             logger.debug(f"Saved vector store: {self.index.ntotal} vectors")
         except Exception as e:
@@ -185,6 +251,7 @@ class VectorStore:
             raise MemoryStorageError('The memory store save is not confirmed; repair and reload before continuing') from e
 
     @consent_guarded
+    @_store_guarded
     def delete_emotional_metadata(self):
         """Atomically redact metadata without rewriting vectors or conversations.
 
@@ -195,18 +262,30 @@ class VectorStore:
             result = without_emotion(record)
             result['context'] = without_emotion(record.get('context'))
             return result
+        before = self._disk_generation()
+        was_current = before == self._generation and not self._storage_failed
         self.id_to_metadata = {key: redact(record) for key, record in self.id_to_metadata.items()}
         if not self.metadata_path.exists():
             if self.index_path.exists():
                 raise FileNotFoundError('Memory metadata missing; deletion cannot be verified')
+            if not was_current:
+                self._storage_failed = True
             return
         with self.metadata_path.open('rb') as source:
             payload = pickle.load(source)
         payload['id_to_metadata'] = {key: redact(record)
                                      for key, record in payload['id_to_metadata'].items()}
-        atomic_write(self.metadata_path, pickle.dumps(payload))
+        metadata_bytes = pickle.dumps(payload)
+        atomic_write(self.metadata_path, metadata_bytes)
+        if was_current:
+            self._generation = (before[0], hashlib.sha256(metadata_bytes).digest())
+        else:
+            # Deletion uses latest disk metadata, but must never bless an old
+            # vector/cache snapshot as current merely because redaction worked.
+            self._storage_failed = True
 
     @consent_guarded
+    @_store_guarded
     def load(self):
         """Validate a complete pair before installing it; never reset bad data."""
         try:
@@ -225,9 +304,11 @@ class VectorStore:
                            for key, record in metadata.items())):
                 raise ValueError('Inconsistent vector index and metadata')
 
+            generation = self._disk_generation()
             self.index = index
             self.id_to_metadata = metadata
             self.next_id = next_id
+            self._generation = generation
             self._storage_failed = False
             logger.info(f"Loaded vector store: {self.index.ntotal} vectors")
         except Exception as e:
@@ -236,6 +317,7 @@ class VectorStore:
             raise MemoryStorageError('Cannot load the memory store; restore a complete matching pair before continuing') from e
 
     @consent_guarded
+    @_write_guarded
     def clear(self):
         """Clear all vectors and metadata"""
         self._require_healthy()
@@ -267,6 +349,7 @@ class VectorStore:
         return self.id_to_metadata.get(id)
 
     @consent_guarded
+    @_write_guarded
     def delete(self, ids: List[int]):
         """Delete entries by ID (removes metadata only)"""
         self._require_healthy()

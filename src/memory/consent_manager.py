@@ -15,56 +15,11 @@ from datetime import datetime
 from contextlib import contextmanager
 from functools import wraps
 import threading
-import os
 from src.memory.storage_io import atomic_write
+from src.memory.storage_lock import get_store_lock
 
 logger = logging.getLogger(__name__)
 EMOTIONAL_FIELDS = frozenset({'emotion', 'emotion_confidence', 'sentiment', 'sentiment_score'})
-_locks = {}
-_locks_guard = threading.Lock()
-
-
-class _StoreLock:
-    """Reentrant thread lock plus an OS-released advisory process lock."""
-    def __init__(self):
-        self.thread = threading.RLock()
-        self.depth = threading.local()
-
-    @contextmanager
-    def hold(self, path):
-        with self.thread:
-            depth = getattr(self.depth, 'value', 0)
-            if depth:
-                self.depth.value = depth + 1
-                try:
-                    yield
-                finally:
-                    self.depth.value = depth
-                return
-            # A stable sidecar is necessary: locking the JSON inode would stop
-            # protecting it when an atomic preference update replaces the file.
-            with open(path.with_name('.' + path.name + '.lock'), 'a+b') as lock_file:
-                if os.name == 'nt':
-                    import msvcrt
-                    lock_file.seek(0, os.SEEK_END)
-                    if lock_file.tell() == 0:
-                        lock_file.write(b'0')
-                        lock_file.flush()
-                    lock_file.seek(0)
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
-                else:
-                    import fcntl
-                    fcntl.flock(lock_file, fcntl.LOCK_EX)
-                self.depth.value = 1
-                try:
-                    yield
-                finally:
-                    self.depth.value = 0
-                    if os.name == 'nt':
-                        lock_file.seek(0)
-                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-                    else:
-                        fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 def without_emotion(metadata):
@@ -121,8 +76,7 @@ class ConsentManager:
         """
         self.storage_path = Path(storage_path).resolve()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with _locks_guard:
-            self._lock = _locks.setdefault(str(self.storage_path), _StoreLock())
+        self._lock = get_store_lock(self.storage_path)
         self._delete_handler = None
         self._write_failed = False
         self._guard_depth = threading.local()

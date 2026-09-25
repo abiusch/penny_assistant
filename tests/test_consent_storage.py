@@ -169,7 +169,14 @@ def test_older_instance_cannot_restore_deleted_metadata_even_after_regrant(offli
     p.consent_manager.revoke_consent(delete_data=True)
     p.consent_manager.grant_consent()
     assert not old.personality_snapshots.rollback_to_version(1).emotional_threads
-    old.semantic_memory.add_conversation_turn('New opted-in words', 'reply', context=EMOTION)
+    from src.memory.errors import MemoryStorageError
+    # A disk redaction now invalidates older writer snapshots. Reject them
+    # rather than relying on a later save's cutoff filter to repair their data.
+    with pytest.raises(MemoryStorageError, match='changed on disk'):
+        old.semantic_memory.add_conversation_turn('Rejected stale words', 'reply', context=EMOTION)
+    assert len(disk_records(old)) == 1
+    restarted = offline_pipeline_factory()
+    restarted.semantic_memory.add_conversation_turn('New opted-in words', 'reply', context=EMOTION)
     old.personality_snapshots._save_snapshot(old_snapshot)
     assert not FIELDS.intersection(disk_records(old)[0]['context'])
     assert 'emotion' in disk_records(old)[1]['context']

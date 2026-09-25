@@ -88,9 +88,13 @@ Writers must use these consent-aware interfaces and the same consent file. Gener
 VectorStore use and other legacy/experimental stores are not a consent service.
 General vector saves now replace each file atomically, report failures and block
 reuse of failed instances; see [storage recovery](memory_storage_recovery.md).
-The pair is still not an atomic transaction, and stale conversation snapshot
-overwrites still need a durability/single-writer improvement; the consent lock
-does not merge independent conversation snapshots. Web request
+The pair is still not an atomic transaction. A separate vector-store lock and
+content-fingerprint check now reject outdated writers before they can overwrite
+newer conversation snapshots; they must restart rather than silently merge. This
+also applies after another instance redacts emotional metadata. Cleanup itself
+still redacts the latest disk records and retains its pending/retry behavior;
+it cannot make an old vector snapshot current. See the storage recovery guide
+for the cooperating-writer boundary and remaining crash-durability limits. Web request
 state isolation, current-turn emotion inference policy, and UI settings remain
 separate work.
 

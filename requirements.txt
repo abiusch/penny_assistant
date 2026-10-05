@@ -170,7 +170,7 @@ requests==2.33.0
     #   -r requirements.in
     #   gtts
     #   tiktoken
-sentence-transformers==5.1.2
+sentence-transformers==5.6.0
     # via -r requirements.in
 setuptools<81
     # via -r requirements.in
@@ -207,7 +207,7 @@ typing-extensions==4.15.0
     #   typing-inspection
 typing-inspection==0.4.1
     # via pydantic
-urllib3==2.7.0
+urllib3==2.8.0
     # via requests
 uvicorn[standard]==0.35.0
     # via -r requirements.in
